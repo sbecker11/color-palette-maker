@@ -12,7 +12,6 @@ const canvasCtx = imageCanvas.getContext('2d', { willReadFrequently: true }); //
 let currentlySelectedListItem = null; // Track selected LI
 let isSamplingMode = false; // Restore state variable
 let currentSampledColor = null; // Restore state variable
-let addSwatchElement = null; // Restore state variable
 
 // --- Theme Toggling ---
 function setTheme(themeName) {
@@ -63,10 +62,13 @@ function toggleInput(type) {
 
 // --- Image Display ---
 function showImage(imageUrl, listItem, event = null) {
-    console.log('[Image Select] Showing image:', imageUrl);
-    if (event) {
-        event.preventDefault();
+    // Exit sampling mode if active when a new image is selected
+    if (isSamplingMode) {
+        exitSamplingMode();
     }
+
+    console.log('[Image Select] Showing image:', imageUrl);
+    if (event) event.preventDefault();
     imgElement.src = imageUrl;
     imgElement.style.display = 'block';
     placeholder.style.display = 'none';
@@ -187,8 +189,13 @@ async function loadImageList() {
                 const imageUrl = '/uploads/' + encodeURIComponent(filename);
                 li.dataset.metadata = JSON.stringify(meta);
                 a.href = imageUrl;
-                a.textContent = filename + (meta.width && meta.height ? ' (' + meta.width + 'x' + meta.height + ') ' : ' ');
-                a.title = 'Format: ' + (meta.format || '?') + ', Size: ' + (meta.fileSizeBytes ? Math.round(meta.fileSizeBytes / 1024) + ' KB' : '?') + ', Added: ' + (meta.createdDateTime ? new Date(meta.createdDateTime).toLocaleString() : '?');
+                // Determine display name: Use paletteName if it exists and differs from default, otherwise use filename
+                const filenameWithoutExt = filename.includes('.') ? filename.substring(0, filename.lastIndexOf('.')) : filename;
+                const displayName = (meta.paletteName && meta.paletteName !== filenameWithoutExt) ? meta.paletteName : filename;
+                // Set link text
+                a.textContent = displayName + (meta.width && meta.height ? ' (' + meta.width + 'x' + meta.height + ') ' : ' ');
+                // Tooltip remains the same, showing detailed info
+                a.title = 'Filename: ' + filename + ' | Format: ' + (meta.format || '?') + ', Size: ' + (meta.fileSizeBytes ? Math.round(meta.fileSizeBytes / 1024) + ' KB' : '?') + ', Added: ' + (meta.createdDateTime ? new Date(meta.createdDateTime).toLocaleString() : '?');
                 a.onclick = (e) => showImage(imageUrl, li, e);
                 const deleteButton = document.createElement('button');
                 deleteButton.textContent = 'Delete';
@@ -274,19 +281,12 @@ function displayPalette(palette, isGenerating = false) {
 
     // Render actual palette if it exists
     if (palette && Array.isArray(palette) && palette.length > 0) {
-        palette.forEach(hexColor => {
-            const itemDiv = document.createElement('div');
-            itemDiv.className = 'palette-item';
-
-            const colorCircle = document.createElement('div');
-            colorCircle.className = 'palette-color';
-            colorCircle.style.backgroundColor = hexColor;
-            colorCircle.title = hexColor;
-
-            const colorLabel = document.createElement('span');
-            colorLabel.className = 'palette-label';
-            colorLabel.textContent = hexColor;
-
+        console.log(`[displayPalette] Rendering ${palette.length} actual swatches.`); // Log before loop
+        palette.forEach((hexColor, index) => {
+            console.log(`[displayPalette]   - Creating swatch ${index}: ${hexColor}`); // Log inside loop
+            const itemDiv = document.createElement('div'); itemDiv.className = 'palette-item';
+            const colorCircle = document.createElement('div'); colorCircle.className = 'palette-color'; colorCircle.style.backgroundColor = hexColor; colorCircle.title = hexColor;
+            const colorLabel = document.createElement('span'); colorLabel.className = 'palette-label'; colorLabel.textContent = hexColor;
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'swatch-delete-btn';
             deleteBtn.textContent = '×';
@@ -295,51 +295,252 @@ function displayPalette(palette, isGenerating = false) {
                 event.stopPropagation();
                 handleSwatchDelete(hexColor);
             };
-
-            itemDiv.appendChild(colorCircle);
-            itemDiv.appendChild(colorLabel);
-            itemDiv.appendChild(deleteBtn);
+            itemDiv.appendChild(colorCircle); itemDiv.appendChild(colorLabel); itemDiv.appendChild(deleteBtn);
             paletteDisplayArea.appendChild(itemDiv);
+            console.log(`[displayPalette]   - Appended swatch ${index}`); // Log after append
         });
+    } else {
+        // Add log for when palette is empty/invalid
+        console.log('[displayPalette] No actual swatches to render (palette empty or invalid).'); 
     }
 
-    // <<<< START TEST CODE: Add placeholder swatch >>>>
-    // Ensure this block is active
-    const testHexColor = '#888888'; // Keep value for potential title/debug
-    console.log(`[Test] Adding placeholder swatch.`);
+    // <<<< START TEST CODE: Placeholder Swatch >>>>
+    const testHexColor = '#888888'; // Base value, not displayed
+    // console.log(`[Test] Adding placeholder swatch.`); // Reduce logging
     const testItemDiv = document.createElement('div');
     testItemDiv.className = 'palette-item';
+    testItemDiv.title = 'Click to sample color from image'; // Initial title
+    testItemDiv.onclick = toggleSamplingMode; // Click the container to toggle sampling
 
     const testColorCircle = document.createElement('div');
-    testColorCircle.className = 'palette-color test-placeholder-swatch'; // Add specific class
-    testColorCircle.style.backgroundColor = 'transparent'; // Make background transparent
-    testColorCircle.title = 'Test Placeholder';
+    testColorCircle.className = 'palette-color test-placeholder-swatch'; 
+    testColorCircle.style.backgroundColor = 'transparent';
+    // testColorCircle.title = 'Test Placeholder'; // Title now on itemDiv
 
     const testColorLabel = document.createElement('span');
-    testColorLabel.className = 'palette-label test-placeholder-label'; // Add specific class
-    testColorLabel.textContent = testHexColor; // Restore hex text content
-
-    // Remove or hide the delete button for this placeholder
-    /* 
-    const testDeleteBtn = document.createElement('button');
-    testDeleteBtn.className = 'swatch-delete-btn';
-    testDeleteBtn.textContent = '×';
-    testDeleteBtn.title = 'Delete swatch (test)';
-    testDeleteBtn.style.pointerEvents = 'none';
-    testItemDiv.appendChild(testDeleteBtn);
-    */
+    testColorLabel.className = 'palette-label test-placeholder-label';
+    testColorLabel.textContent = testHexColor; // Keep for geometry
 
     testItemDiv.appendChild(testColorCircle);
     testItemDiv.appendChild(testColorLabel);
     paletteDisplayArea.appendChild(testItemDiv);
+    
+    // Update placeholder appearance based on sampling state
+    if (isSamplingMode && currentSampledColor) {
+         testColorCircle.classList.add('sampling'); // Add sampling class for potential style changes
+         testColorCircle.style.backgroundColor = currentSampledColor; // Show sampled color
+         testItemDiv.title = `Double-click image to add ${currentSampledColor}. Click swatch to cancel.`; 
+    } else if (isSamplingMode) {
+        testColorCircle.classList.add('sampling'); // Add sampling class
+        testColorCircle.style.backgroundColor = 'transparent'; // Ensure transparent if no color sampled yet
+        testItemDiv.title = 'Double-click image to pick color. Click swatch to cancel sampling.'; 
+    } else {
+        testColorCircle.classList.remove('sampling'); // Ensure sampling class is removed
+        testColorCircle.style.backgroundColor = 'transparent';
+        testItemDiv.title = 'Click to sample color from image';
+    }
     // <<<< END TEST CODE >>>>
 
     // Handle placeholder message if palette is empty AND not generating
     if (!isGenerating && (!palette || !Array.isArray(palette) || palette.length === 0)) {
+         const existingPlaceholder = paletteDisplayArea.querySelector('.placeholder');
+         if (existingPlaceholder) existingPlaceholder.remove();
          const placeholderSpan = document.createElement('span');
          placeholderSpan.className = 'placeholder';
          placeholderSpan.textContent = 'No color palette extracted for this image.';
-         paletteDisplayArea.appendChild(placeholderSpan);
+         paletteDisplayArea.insertBefore(placeholderSpan, testItemDiv); // Insert before placeholder swatch
+    }
+}
+
+// --- Sampling Functions --- 
+// Renamed from handleAddSwatchClick
+function toggleSamplingMode() { 
+    if (!currentlySelectedListItem) {
+        showMessage('Select an image first.', true);
+        return;
+    }
+    if (!isSamplingMode) {
+        enterSamplingMode();
+    } else {
+        exitSamplingMode(); // Clicking placeholder while sampling cancels
+    }
+}
+
+// NEW function to enter sampling
+function enterSamplingMode() {
+    console.log('[Sampling] Entering sampling mode.');
+    isSamplingMode = true;
+    currentSampledColor = null;
+    document.body.classList.add('sampling-active');
+    viewer.addEventListener('mousemove', handleImageViewerMouseMove);
+    viewer.addEventListener('mouseleave', handleImageViewerMouseLeave);
+    viewer.addEventListener('dblclick', handleImageViewerDoubleClick); 
+    // Log the palette we are about to pass
+    const currentPalette = getCurrentPaletteFromMeta();
+    console.log('[Sampling] Palette data before redraw in enterSamplingMode:', JSON.stringify(currentPalette));
+    displayPalette(currentPalette, false); // Update placeholder appearance
+}
+
+function handleImageViewerDoubleClick(event) {
+    event.preventDefault(); event.stopPropagation();
+    if (!isSamplingMode) return;
+    console.log('[Sampling] Double-click detected.');
+    if (currentSampledColor) {
+         console.log(`[Sampling] Attempting to add color via double-click: ${currentSampledColor}`);
+         try {
+             const metaString = currentlySelectedListItem.dataset.metadata;
+             const meta = JSON.parse(metaString);
+             if (!meta.colorPalette) meta.colorPalette = []; 
+             if (!meta.colorPalette.includes(currentSampledColor)) {
+                 meta.colorPalette.push(currentSampledColor);
+                 currentlySelectedListItem.dataset.metadata = JSON.stringify(meta);
+                 savePaletteUpdate(meta); 
+                 console.log('[Sampling] Color added via double-click.');
+                 displayPalette(meta.colorPalette, false); // Redraw with new color, placeholder appearance updates
+             } else {
+                 console.log('[Sampling] Color already exists in palette.');
+             }
+         } catch(e) {
+             console.error('[Sampling] Error adding sampled color:', e);
+             showMessage('Error adding color.', true);
+         }
+    } else {
+        console.log('[Sampling] Double-clicked, but no valid color was sampled recently.');
+    }
+    // Stay in sampling mode: call displayPalette handled above
+}
+
+function handleImageViewerMouseMove(event) {
+    if (!isSamplingMode || !canvasCtx || !imgElement.complete || imgElement.naturalWidth === 0) {
+        // Don't sample if not in mode, or if image/canvas isn't ready
+        return;
+    }
+
+    // --- Accurate Coordinate Calculation (Handles object-fit: cover) ---
+    const imgRect = imgElement.getBoundingClientRect(); // Position of the displayed image element
+    const canvasWidth = imageCanvas.width;
+    const canvasHeight = imageCanvas.height;
+    const imgDispWidth = imgElement.clientWidth;  // Displayed width of <img>
+    const imgDispHeight = imgElement.clientHeight; // Displayed height of <img>
+
+    // Mouse coordinates relative to the displayed <img> element
+    const mouseX = event.clientX - imgRect.left;
+    const mouseY = event.clientY - imgRect.top;
+
+    // Calculate the scaling factor and offsets introduced by object-fit: cover
+    const canvasRatio = canvasWidth / canvasHeight;
+    const imgDispRatio = imgDispWidth / imgDispHeight;
+    let scale = 1, offsetX = 0, offsetY = 0;
+
+    if (canvasRatio > imgDispRatio) { 
+        // Canvas is wider than display area: Fit height, crop/offset width
+        scale = canvasHeight / imgDispHeight;
+        const scaledWidth = canvasWidth / scale;
+        offsetX = (scaledWidth - imgDispWidth) / 2;
+    } else {
+        // Canvas is taller than display area: Fit width, crop/offset height
+        scale = canvasWidth / imgDispWidth;
+        const scaledHeight = canvasHeight / scale;
+        offsetY = (scaledHeight - imgDispHeight) / 2;
+    }
+
+    // Calculate corresponding coordinates on the original canvas
+    const canvasX = Math.floor((mouseX + offsetX) * scale);
+    const canvasY = Math.floor((mouseY + offsetY) * scale);
+
+    // Clamp coordinates to canvas bounds
+    const x = Math.max(0, Math.min(canvasX, canvasWidth - 1));
+    const y = Math.max(0, Math.min(canvasY, canvasHeight - 1));
+    // --- End Coordinate Calculation ---
+
+    const sampleSize = 1; 
+    let r = 0, g = 0, b = 0;
+    let count = 0;
+    try {
+        const pixelData = canvasCtx.getImageData(x, y, 1, 1).data;
+        r = pixelData[0]; g = pixelData[1]; b = pixelData[2]; count = 1;
+    } catch (e) {
+        console.error("[Sampling] Error getting pixel data at:", x, y, e);
+        count = 0;
+    }
+
+    if (count > 0) {
+        currentSampledColor = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+        
+        // Update the TEST placeholder swatch UI immediately
+        const placeholderSwatch = paletteDisplayArea.querySelector('.test-placeholder-swatch');
+        const placeholderItem = placeholderSwatch ? placeholderSwatch.closest('.palette-item') : null;
+        if (placeholderSwatch && placeholderItem) {
+            placeholderSwatch.classList.add('sampling');
+            placeholderSwatch.style.backgroundColor = currentSampledColor;
+            placeholderItem.title = `Double-click image to add ${currentSampledColor}. Click swatch to cancel.`; // Update title dynamically
+            // Plus sign is hidden via CSS .sampling rule
+        }
+    } else { 
+        currentSampledColor = null; 
+         // Optionally reset placeholder background if sampling failed?
+         const placeholderSwatch = paletteDisplayArea.querySelector('.test-placeholder-swatch');
+         if (placeholderSwatch) {
+            placeholderSwatch.style.backgroundColor = 'transparent';
+            // Plus sign is restored via CSS when .sampling removed
+         }
+    }
+}
+
+function handleImageViewerMouseLeave() {
+    if (isSamplingMode) { 
+        console.log('[Sampling] Mouse left viewer.'); 
+        // Reset sampled color visually when mouse leaves?
+        currentSampledColor = null;
+        const placeholderSwatch = paletteDisplayArea.querySelector('.test-placeholder-swatch');
+        const placeholderItem = placeholderSwatch ? placeholderSwatch.closest('.palette-item') : null;
+        if (placeholderSwatch && placeholderItem) {
+            placeholderSwatch.style.backgroundColor = 'transparent';
+            placeholderItem.title = 'Double-click image to pick color. Click swatch to cancel sampling.';
+             // Restore the '+' sign using ::before style change (see CSS step)
+        }
+    }
+}
+
+function exitSamplingMode() {
+    if (!isSamplingMode) return;
+    console.log('[Sampling] Cleaning up and exiting sampling mode.');
+    viewer.removeEventListener('mousemove', handleImageViewerMouseMove);
+    viewer.removeEventListener('mouseleave', handleImageViewerMouseLeave);
+    viewer.removeEventListener('dblclick', handleImageViewerDoubleClick); 
+    isSamplingMode = false;
+    currentSampledColor = null;
+    document.body.classList.remove('sampling-active'); 
+    displayPalette(getCurrentPaletteFromMeta(), false); 
+}
+
+// --- Utility Function: Get Current Palette from Metadata ---
+function getCurrentPaletteFromMeta() {
+    console.log('[getCurrentPalette] Checking currentlySelectedListItem:', currentlySelectedListItem);
+    if (!currentlySelectedListItem) { 
+        console.log('[getCurrentPalette] No item selected, returning [].');
+        return []; 
+    }
+    try { 
+        const metaString = currentlySelectedListItem.dataset.metadata;
+        console.log('[getCurrentPalette] Raw metaString:', metaString);
+        if (!metaString) { 
+            console.log('[getCurrentPalette] metaString is empty/null, returning [].');
+            return []; 
+        }
+        const meta = JSON.parse(metaString);
+        console.log('[getCurrentPalette] Parsed meta object:', meta);
+        // Explicitly check if colorPalette exists before returning
+        if (meta && meta.colorPalette && Array.isArray(meta.colorPalette)) {
+            console.log('[getCurrentPalette] Returning meta.colorPalette:', meta.colorPalette);
+            return meta.colorPalette; 
+        } else {
+            console.log('[getCurrentPalette] meta.colorPalette is missing or not an array, returning [].');
+            return [];
+        }
+    } catch (e) { 
+        console.error('[getCurrentPalette] Error parsing metadata:', e);
+        return []; // Return empty array on error
     }
 }
 
@@ -550,8 +751,20 @@ async function savePaletteName(filename, newName) {
                     const meta = JSON.parse(currentlySelectedListItem.dataset.metadata);
                     meta.paletteName = newName;
                     currentlySelectedListItem.dataset.metadata = JSON.stringify(meta);
+
+                    // --- Update visible list item text ---
+                    const linkElement = currentlySelectedListItem.querySelector('a');
+                    if (linkElement) {
+                        const dimensions = (meta.width && meta.height) ? ' (' + meta.width + 'x' + meta.height + ') ' : ' ';
+                        linkElement.textContent = newName + dimensions;
+                        console.log('[Save Name] Updated list item display text.');
+                    } else {
+                        console.warn('[Save Name] Could not find link element in list item to update text.');
+                    }
+                    // --- End update visible list item text ---
+
                  } catch (e) {
-                     console.error('[Save Name] Error updating local metadata dataset:', e);
+                     console.error('[Save Name] Error updating local metadata dataset or list item text:', e);
                  }
             }
         }

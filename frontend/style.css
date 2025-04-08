@@ -65,23 +65,55 @@ header h1 {
 main { 
     display: flex; 
     flex: 1; 
-    overflow: hidden; 
     padding: 10px; 
     gap: 20px; 
 }
+
+/* New styles for the combined left panel */
+#leftPanel {
+    width: 300px; /* Adjust width as needed */
+    display: flex;
+    flex-direction: column;
+    gap: 15px; 
+    overflow-y: auto; /* RESTORE: Allow panel to scroll */
+}
+
+/* New middle panel for palette/meta */
+#middlePanel {
+    width: 300px; /* Adjust width as needed */
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Space between palette/name/meta */
+    overflow-y: auto; /* RESTORE: Allow panel to scroll */
+}
+
+/* Style for the new h2 in middle panel */
+#middlePanel h2 {
+    margin-top: 0;
+}
+
 #controls { 
-    width: 350px; 
+    /* width: 350px; */ /* Width now controlled by #leftPanel */
     display: flex; 
     flex-direction: column; 
     gap: 15px; 
 }
-#fileListContainer { 
-    width: 250px; 
+
+/* Styles for the Stored Images section within left panel */
+#storedImagesSection {
+    /* margin-top: 15px; */ /* REMOVE space below controls */
     border: 1px solid var(--border-color); 
     padding: 10px; 
-    overflow-y: auto; 
     background-color: var(--bg-color); 
+    /* Allow this section to grow and scroll if list is long */
+    flex-grow: 1; 
+    overflow-y: auto;
 }
+
+#storedImagesSection h2 {
+    margin-top: 0; /* Remove default margin */
+}
+
 #fileList { 
     list-style: none; 
     padding: 0; 
@@ -191,11 +223,17 @@ input[type=file] {
       flex-direction: column; 
       overflow: auto; 
   }
+  /* Update responsive styles */
+  #leftPanel,
+  #middlePanel, /* Add middle panel */
   #controls,
-  #fileListContainer,
+  /* #fileListContainer, */ /* Remove */
+  #storedImagesSection, /* Add stored images section */
   #imageViewerContainer {
       width: 100%; 
       max-width: none; 
+      height: auto; /* Reset fixed height for column flow */
+      overflow-y: visible; /* Allow natural scrolling */
   }
   #imageViewer { 
       height: 400px; 
@@ -378,6 +416,32 @@ body.sampling-active #imageViewer img {
 .test-placeholder-swatch {
     /* border: 0.5px dotted var(--placeholder-color) !important; */ /* Old fractional border */
     border: 1px dotted var(--placeholder-color) !important; /* Use 1px width to match .palette-color */
+    position: relative; /* Needed for absolute positioning of pseudo-element */
+}
+
+/* Add the '+' sign using a pseudo-element */
+.test-placeholder-swatch::before {
+    content: '+';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 20px; /* Adjust size as needed */
+    font-weight: bold;
+    color: var(--placeholder-color); /* Use the placeholder color */
+    line-height: 1; /* Prevent extra vertical space */
+    pointer-events: none; /* Make sure it doesn't interfere with clicks */
+    transition: opacity 0.1s linear; /* Add transition for fade */
+    opacity: 1; /* Default visible */
+}
+
+/* Hide the '+' when the swatch is showing a sampled color */
+.test-placeholder-swatch.sampling {
+     border-style: solid; /* Use solid border when sampling */
+     border-color: #000;
+}
+.test-placeholder-swatch.sampling::before {
+    opacity: 0; /* Hide the plus sign */
 }
 
 /* Style for the test placeholder label text */

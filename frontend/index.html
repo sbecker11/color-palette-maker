@@ -11,55 +11,64 @@
     <button id="themeToggleButton">Toggle Theme</button>
   </header>
   <main>
-    <div id="controls">
-      <h2>Upload or Download</h2>
-      <form id="uploadForm">
-        <div class="input-group">
-          <input type="radio" id="uploadTypeUrl" name="uploadType" value="url" checked onclick="toggleInput('url')">
-          <label for="uploadTypeUrl">Download from URL</label>
-          <br>
-          <input type="radio" id="uploadTypeFile" name="uploadType" value="file" onclick="toggleInput('file')">
-          <label for="uploadTypeFile">Upload Local File</label>
+    <!-- Left Column -->
+    <div id="leftPanel">
+        <div id="controls">
+          <h2>Source</h2>
+          <form id="uploadForm">
+            <div class="input-group">
+              <input type="radio" id="uploadTypeUrl" name="uploadType" value="url" checked onclick="toggleInput('url')">
+              <label for="uploadTypeUrl">Download from URL</label>
+              <br>
+              <input type="radio" id="uploadTypeFile" name="uploadType" value="file" onclick="toggleInput('file')">
+              <label for="uploadTypeFile">Upload Local File</label>
+            </div>
+
+            <div id="fileInputGroup" class="input-group hidden">
+              <label for="imageFile">Select File:</label><br>
+              <input type="file" id="imageFile" name="imageFile" accept="image/*" />
+            </div>
+
+            <div id="urlInputGroup" class="input-group">
+              <label for="imageUrl">Image URL:</label><br>
+              <input type="text" id="imageUrl" name="imageUrl" size="50"/>
+            </div>
+            <button type="submit">Submit</button>
+          </form>
+          <div id="messageArea"></div>
         </div>
 
-        <div id="fileInputGroup" class="input-group hidden">
-          <label for="imageFile">Select File:</label><br>
-          <input type="file" id="imageFile" name="imageFile" accept="image/*" />
+        <!-- Moved Stored Images List Here -->
+        <div id="storedImagesSection"> 
+            <h2>Library</h2>
+            <ul id="fileList">
+                <li>Loading...</li>
+            </ul>
         </div>
+    </div> <!-- End leftPanel -->
 
-        <div id="urlInputGroup" class="input-group">
-          <label for="imageUrl">Image URL:</label><br>
-          <input type="text" id="imageUrl" name="imageUrl" size="50"/>
+    <!-- NEW Middle Column for Palette/Meta -->
+    <div id="middlePanel">
+        <h2>Color Palettes</h2>
+        <div id="paletteDisplay">
+            <span class="placeholder">Color palette will appear here.</span>
         </div>
-        <button type="submit">Submit</button>
-      </form>
-      <div id="messageArea"></div>
-    </div>
+        <div id="paletteNameContainer">
+            <label for="paletteNameInput">Palette Name:</label>
+            <input type="text" id="paletteNameInput" name="paletteNameInput" />
+        </div>
+        <div id="metadataDisplay">
+            <h3>Selected Image Info</h3>
+            <span class="placeholder">Select an image from the list below.</span>
+        </div>
+    </div> <!-- End middlePanel -->
 
-    <div id="fileListContainer">
-       <div id="paletteDisplay">
-         <span class="placeholder">Color palette will appear here.</span>
-      </div>
-      <div id="paletteNameContainer">
-          <label for="paletteNameInput">Palette Name:</label>
-          <input type="text" id="paletteNameInput" name="paletteNameInput" />
-      </div>
-      <div id="metadataDisplay">
-        <h3>Selected Image Info</h3>
-        <span class="placeholder">Select an image from the list below.</span>
-      </div>
-      <h2>Stored Images</h2>
-      <ul id="fileList">
-         <li>Loading...</li>
-      </ul>
-    </div>
-
+    <!-- Right Column -->
     <div id="imageViewerContainer">
-       <h2>Image Viewer</h2>
        <div id="imageViewer">
         <span class="placeholder">Select an image from the list</span>
         <img id="displayedImage" src="" alt="Selected Image" />
-        <!-- Hidden canvas for pixel sampling -->
+        <!-- Hidden canvas for pixel sampling - RESTORED -->
         <canvas id="imageCanvas" style="display: none;"></canvas> 
       </div>
     </div>
