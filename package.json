@@ -1,0 +1,37 @@
+{
+  "name": "color-palette-maker",
+  "version": "1.0.0",
+  "description": "Simple image uploader",
+  "keywords": [
+    "color"
+  ],
+  "homepage": "https://github.com/sbecker11/color-palette-maker#readme",
+  "bugs": {
+    "url": "https://github.com/sbecker11/color-palette-maker/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sbecker11/color-palette-maker.git"
+  },
+  "license": "MIT",
+  "author": "sbecker11",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "color-diff": "^1.4.0",
+    "express": "^4.19.2",
+    "get-pixels": "^3.3.3",
+    "multer": "1.4.4-lts.1",
+    "node-vibrant": "^4.0.3",
+    "quantize": "^1.0.2",
+    "sharp": "^0.33.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}
