@@ -40,6 +40,10 @@
        <div id="paletteDisplay">
          <span class="placeholder">Color palette will appear here.</span>
       </div>
+      <div id="paletteNameContainer">
+          <label for="paletteNameInput">Palette Name:</label>
+          <input type="text" id="paletteNameInput" name="paletteNameInput" />
+      </div>
       <div id="metadataDisplay">
         <h3>Selected Image Info</h3>
         <span class="placeholder">Select an image from the list below.</span>
@@ -55,6 +59,8 @@
        <div id="imageViewer">
         <span class="placeholder">Select an image from the list</span>
         <img id="displayedImage" src="" alt="Selected Image" />
+        <!-- Hidden canvas for pixel sampling -->
+        <canvas id="imageCanvas" style="display: none;"></canvas> 
       </div>
     </div>
   </main>

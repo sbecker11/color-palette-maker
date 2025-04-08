@@ -103,17 +103,19 @@ app.post('/upload', upload.single('imageFile'), async (req, res) => {
         const outputInfo = await image.toFile(outputFilePath);
         console.log(`[Upload] Saved processed image to: ${outputFilePath}`);
 
-        // 3. Create Metadata Record (NO palette generation here)
+        // 3. Create Metadata Record
+        const defaultPaletteName = path.parse(outputFilename).name; // Filename without extension
         const record = {
             createdDateTime: new Date().toISOString(),
             uploadedURL: sourceInfo.uploadedURL || null,
             uploadedFilePath: sourceInfo.uploadedFilePath || null,
-            cachedFilePath: outputFilePath, // Store the *relative* path within uploads dir
+            cachedFilePath: outputFilePath,
             width: metadata.width,
             height: metadata.height,
             format: outputFormat,
             fileSizeBytes: outputInfo.size,
-            colorPalette: [] // Initialize empty, generated on demand
+            colorPalette: [], // Initialize empty
+            paletteName: defaultPaletteName // Add default palette name
         };
 
         // 4. Append Metadata
@@ -235,6 +237,49 @@ app.put('/api/palette/:filename', express.json(), async (req, res) => { // Use e
     } catch (writeError) {
         console.error(`[API PUT /palette] Error rewriting metadata for ${filename}:`, writeError);
         res.status(500).json({ success: false, message: 'Failed to save updated palette.' });
+    }
+});
+
+// PUT /api/metadata/:filename - Update specific metadata fields (e.g., paletteName)
+app.put('/api/metadata/:filename', express.json(), async (req, res) => {
+    const filename = req.params.filename;
+    const { paletteName } = req.body; // Expecting { paletteName: "new name" }
+    console.log(`[API PUT /metadata] Request received for ${filename}`);
+
+    if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+        return res.status(400).json({ success: false, message: 'Invalid filename.' });
+    }
+    // Validate the new name (basic check)
+    if (typeof paletteName !== 'string' || paletteName.trim().length === 0 || paletteName.length > 100) {
+        return res.status(400).json({ success: false, message: 'Invalid palette name provided.' });
+    }
+
+    let allMetadata;
+    try {
+        allMetadata = await metadataHandler.readMetadata();
+    } catch (readError) {
+        console.error("[API PUT /metadata] Error reading metadata:", readError);
+        return res.status(500).json({ success: false, message: 'Failed to read image metadata.' });
+    }
+
+    const imageIndex = allMetadata.findIndex(entry => path.basename(entry.cachedFilePath || '') === filename);
+
+    if (imageIndex === -1) {
+        return res.status(404).json({ success: false, message: 'Image metadata not found.' });
+    }
+
+    console.log(`[API PUT /metadata] Updating paletteName for ${filename} to "${paletteName}".`);
+    // Update the specific field
+    allMetadata[imageIndex].paletteName = paletteName.trim(); // Trim whitespace
+
+    // Rewrite the metadata file
+    try {
+        await metadataHandler.rewriteMetadata(allMetadata);
+        console.log(`[API PUT /metadata] Successfully saved updated metadata for ${filename}.`);
+        res.json({ success: true, message: 'Metadata updated successfully.' });
+    } catch (writeError) {
+        console.error(`[API PUT /metadata] Error rewriting metadata for ${filename}:`, writeError);
+        res.status(500).json({ success: false, message: 'Failed to save updated metadata.' });
     }
 });
 

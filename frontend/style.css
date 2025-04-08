@@ -308,3 +308,84 @@ input[type=file] {
     background-color: rgba(255, 0, 0, 0.7); /* Red on hover */
     opacity: 1;
 }
+
+/* Palette Name Input Styles */
+#paletteNameContainer {
+    margin-top: 10px; /* Space above the input */
+    margin-bottom: 10px; /* Space below before metadata */
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    background-color: var(--metadata-bg);
+}
+
+#paletteNameContainer label {
+    display: block; /* Label on its own line */
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: var(--text-color);
+}
+
+#paletteNameInput {
+    width: calc(100% - 16px); /* Adjust width to fit padding/border */
+    padding: 6px;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--input-border);
+    border-radius: 3px;
+}
+
+/* Add Swatch Button Placeholder */
+.palette-add-swatch {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    /* border: 2px dashed var(--border-color); */ /* Old border */
+    border: 1px dashed var(--border-color); /* Make border width consistent with .palette-color */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--placeholder-color);
+    cursor: pointer;
+    transition: background-color 0.1s linear, border-color 0.2s ease;
+    order: 99; /* Ensure it comes last in flex container */
+}
+
+.palette-add-swatch:hover {
+    border-color: var(--text-color);
+    color: var(--text-color);
+}
+
+/* Style when sampling color */
+.palette-add-swatch.sampling {
+    border-style: solid;
+    border-color: #000; /* Or use a variable */
+    color: transparent; /* Hide the '+' sign */
+}
+
+/* Style for body when in sampling mode */
+body.sampling-active {
+    cursor: crosshair;
+}
+/* Ensure image viewer also shows crosshair */
+body.sampling-active #imageViewer,
+body.sampling-active #imageViewer img {
+    cursor: crosshair;
+}
+
+/* Style for the test placeholder swatch circle */
+.test-placeholder-swatch {
+    /* border: 0.5px dotted var(--placeholder-color) !important; */ /* Old fractional border */
+    border: 1px dotted var(--placeholder-color) !important; /* Use 1px width to match .palette-color */
+}
+
+/* Style for the test placeholder label text */
+.test-placeholder-label {
+    color: white !important; /* Make text invisible, override default */
+}
+
+/* Ensure span specifically is transparent */
+span.test-placeholder-label {
+  color: transparent !important;
+}

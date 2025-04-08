@@ -6,7 +6,13 @@ const placeholder = viewer.querySelector('.placeholder');
 const messageArea = document.getElementById('messageArea');
 const themeToggleButton = document.getElementById('themeToggleButton');
 const paletteDisplayArea = document.getElementById('paletteDisplay'); 
+const paletteNameInput = document.getElementById('paletteNameInput'); // Get palette name input
+const imageCanvas = document.getElementById('imageCanvas'); // Restore canvas element
+const canvasCtx = imageCanvas.getContext('2d', { willReadFrequently: true }); // Restore context
 let currentlySelectedListItem = null; // Track selected LI
+let isSamplingMode = false; // Restore state variable
+let currentSampledColor = null; // Restore state variable
+let addSwatchElement = null; // Restore state variable
 
 // --- Theme Toggling ---
 function setTheme(themeName) {
@@ -80,14 +86,20 @@ function showImage(imageUrl, listItem, event = null) {
                 const meta = JSON.parse(metaString);
                 displayMetadata(meta);
 
-                // Palette Logic
+                // --- Palette Name Logic ---
+                const filenameWithoutExt = meta.cachedFilePath ? meta.cachedFilePath.split('/').pop().replace(/\.[^/.]+$/, "") : "";
+                paletteNameInput.value = meta.paletteName || filenameWithoutExt;
+                paletteNameInput.disabled = false;
+                // --- End Palette Name Logic ---
+
+                // Palette Logic - Check if needs generation
                 if (meta.colorPalette && Array.isArray(meta.colorPalette) && meta.colorPalette.length > 0) {
                     console.log('[Palette] Found existing palette in metadata.');
-                    displayPalette(meta.colorPalette);
+                    displayPalette(meta.colorPalette); // Display existing palette
                 } else {
                     console.log('[Palette] No valid existing palette found. Requesting generation...');
                     displayPalette(null, true); // Show "Generating..." placeholder
-                    generateAndDisplayPalette(imageUrl, listItem, meta);
+                    generateAndDisplayPalette(imageUrl, listItem, meta); // Trigger generation
                 }
                 // End Palette Logic
 
@@ -95,31 +107,47 @@ function showImage(imageUrl, listItem, event = null) {
                 console.warn('[Image Select] No metadata found on list item.');
                 displayMetadata(null);
                 displayPalette(null);
+                paletteNameInput.value = '';
+                paletteNameInput.disabled = true;
             }
         } catch (e) {
             console.error('[Image Select] Error parsing metadata or handling palette:', e);
             displayMetadata(null);
             displayPalette(null);
+            paletteNameInput.value = '';
+            paletteNameInput.disabled = true;
         }
     } 
-} 
+    // Draw image to canvas whenever image is shown
+    drawImageToCanvas(imageUrl);
+}
+
+// --- Draw image to hidden canvas ---
+function drawImageToCanvas(imageUrl) {
+    const img = new Image();
+    img.crossOrigin = "Anonymous"; 
+    img.onload = () => {
+        console.log('[Canvas] Image loaded for canvas drawing.');
+        imageCanvas.width = img.naturalWidth;
+        imageCanvas.height = img.naturalHeight;
+        canvasCtx.drawImage(img, 0, 0);
+        console.log(`[Canvas] Image drawn to canvas (${imageCanvas.width}x${imageCanvas.height})`);
+    };
+    img.onerror = (err) => {
+        console.error('[Canvas] Error loading image onto canvas:', err);
+        canvasCtx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+    };
+    img.src = imageUrl;
+}
 
 // --- Generate Palette via API ---
 async function generateAndDisplayPalette(imageUrl, listItem, meta) {
     const filename = imageUrl.split('/').pop();
-    if (!filename) {
-        console.error('[Palette API] Could not extract filename from URL:', imageUrl);
-        displayPalette(null);
-        return;
-    }
-
+    if (!filename) { console.error('[Palette API] Could not extract filename from URL:', imageUrl); displayPalette(null); return; }
     try {
-        const response = await fetch('/api/palette/' + encodeURIComponent(filename), {
-            method: 'POST'
-        });
-        console.log('[Palette API] Raw response status:', response.status); // Log status
+        const response = await fetch('/api/palette/' + encodeURIComponent(filename), { method: 'POST' });
+        console.log('[Palette API] Raw response status:', response.status);
         const result = await response.json();
-
         if (response.ok && result.success) {
             console.log('[Palette API] Received palette for ' + filename + ':', result.palette);
             meta.colorPalette = result.palette;
@@ -127,7 +155,7 @@ async function generateAndDisplayPalette(imageUrl, listItem, meta) {
             displayPalette(result.palette);
         } else {
             console.error('[Palette API] Failed to generate palette for ' + filename + ':', result ? result.message : 'No JSON response');
-            displayPalette(null); 
+            displayPalette(null);
         }
     } catch (error) {
         console.error('[Palette API] Network or fetch error for ' + filename + ':', error);
@@ -138,77 +166,53 @@ async function generateAndDisplayPalette(imageUrl, listItem, meta) {
 // --- Message Display ---
 function showMessage(message, isError = false) {
     messageArea.textContent = message;
-    messageArea.className = 'messageArea'; // Reset
-    if (message) {
-        messageArea.classList.add(isError ? 'message-error' : 'message-success');
-    }
-    setTimeout(() => {
-         messageArea.textContent = '';
-         messageArea.className = 'messageArea';
-    }, 5000);
+    messageArea.className = 'messageArea';
+    if (message) { messageArea.classList.add(isError ? 'message-error' : 'message-success'); }
+    setTimeout(() => { messageArea.textContent = ''; messageArea.className = 'messageArea'; }, 5000);
 }
 
 // --- Populate File List ---
 async function loadImageList() {
-  showMessage('Loading image list...');
-  currentlySelectedListItem = null; 
-  displayMetadata(null); 
-  displayPalette(null); 
-  try {
-      const response = await fetch('/api/images');
-      const data = await response.json();
-      fileList.innerHTML = ''; 
-
-      if (response.ok && data.success && data.images.length > 0) {
-          data.images.forEach(meta => {
-              const li = document.createElement('li');
-              const a = document.createElement('a');
-              const filename = meta.cachedFilePath ? meta.cachedFilePath.split('/').pop() : 'unknown';
-              const imageUrl = '/uploads/' + encodeURIComponent(filename);
-
-              li.dataset.metadata = JSON.stringify(meta);
-
-              a.href = imageUrl;
-              a.textContent = filename + (meta.width && meta.height ? ' (' + meta.width + 'x' + meta.height + ') ' : ' ');
-              a.title = 'Format: ' + (meta.format || '?') + ', Size: ' + (meta.fileSizeBytes ? Math.round(meta.fileSizeBytes / 1024) + ' KB' : '?') + ', Added: ' + (meta.createdDateTime ? new Date(meta.createdDateTime).toLocaleString() : '?');
-              a.onclick = (e) => showImage(imageUrl, li, e);
-
-              const deleteButton = document.createElement('button');
-              deleteButton.textContent = 'Delete';
-              deleteButton.style.marginLeft = '5px';
-              deleteButton.style.fontSize = '0.8em';
-              deleteButton.style.padding = '2px 5px';
-              deleteButton.onclick = () => deleteImage(filename, li);
-
-              li.appendChild(a);
-              li.appendChild(deleteButton);
-              fileList.appendChild(li);
-          });
-
-          const firstListItem = fileList.firstChild;
-          if (firstListItem) {
-              const firstLink = firstListItem.querySelector('a');
-              if (firstLink) {
-                   const firstImageUrl = firstLink.href;
-                   showImage(firstImageUrl, firstListItem);
-              }
-          }
-          showMessage(''); 
-
-      } else if (data.images && data.images.length === 0) {
-           fileList.innerHTML = '<li>No images stored.</li>';
-           showMessage(''); 
-      } else {
-           const errorMsg = 'Error: ' + (data.message || 'Could not load images');
-           fileList.innerHTML = '<li>' + errorMsg + '</li>';
-           showMessage(errorMsg, true);
-      }
-  } catch (error) {
-      console.error('Failed to load image list:', error);
-      const errorMsg = 'Error loading image list.';
-      fileList.innerHTML = '<li>' + errorMsg + '</li>';
-      showMessage(errorMsg, true);
-  }
+    showMessage('Loading image list...');
+    currentlySelectedListItem = null; displayMetadata(null); displayPalette(null); paletteNameInput.disabled = true;
+    try {
+        const response = await fetch('/api/images');
+        const data = await response.json();
+        fileList.innerHTML = '';
+        if (response.ok && data.success && data.images.length > 0) {
+            data.images.forEach(meta => {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                const filename = meta.cachedFilePath ? meta.cachedFilePath.split('/').pop() : 'unknown';
+                const imageUrl = '/uploads/' + encodeURIComponent(filename);
+                li.dataset.metadata = JSON.stringify(meta);
+                a.href = imageUrl;
+                a.textContent = filename + (meta.width && meta.height ? ' (' + meta.width + 'x' + meta.height + ') ' : ' ');
+                a.title = 'Format: ' + (meta.format || '?') + ', Size: ' + (meta.fileSizeBytes ? Math.round(meta.fileSizeBytes / 1024) + ' KB' : '?') + ', Added: ' + (meta.createdDateTime ? new Date(meta.createdDateTime).toLocaleString() : '?');
+                a.onclick = (e) => showImage(imageUrl, li, e);
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.style.marginLeft = '5px'; deleteButton.style.fontSize = '0.8em'; deleteButton.style.padding = '2px 5px';
+                deleteButton.onclick = () => deleteImage(filename, li);
+                li.appendChild(a); li.appendChild(deleteButton); fileList.appendChild(li);
+            });
+            const firstListItem = fileList.firstChild;
+            if (firstListItem) {
+                const firstLink = firstListItem.querySelector('a');
+                if (firstLink) { showImage(firstLink.href, firstListItem); }
+            }
+            showMessage('');
+        } else if (data.images && data.images.length === 0) {
+            fileList.innerHTML = '<li>No images stored.</li>'; showMessage('');
+        } else {
+            const errorMsg = 'Error: ' + (data.message || 'Could not load images');
+            fileList.innerHTML = '<li>' + errorMsg + '</li>'; showMessage(errorMsg, true);
+        }
+    } catch (error) {
+        console.error('Failed to load image list:', error);
+        const errorMsg = 'Error loading image list.';
+        fileList.innerHTML = '<li>' + errorMsg + '</li>'; showMessage(errorMsg, true);
+    }
 }
 
 // --- Display Metadata Function ---
@@ -260,14 +264,15 @@ function displayMetadata(meta) {
 // --- Display Palette Function ---
 function displayPalette(palette, isGenerating = false) {
     if (!paletteDisplayArea) return;
-
     paletteDisplayArea.innerHTML = ''; 
 
     if (isGenerating) {
          paletteDisplayArea.innerHTML = '<span class="placeholder">Generating palette...</span>';
-         return;
+         // Don't add the '+' button while generating
+         return; 
     }
 
+    // Render actual palette if it exists
     if (palette && Array.isArray(palette) && palette.length > 0) {
         palette.forEach(hexColor => {
             const itemDiv = document.createElement('div');
@@ -282,27 +287,63 @@ function displayPalette(palette, isGenerating = false) {
             colorLabel.className = 'palette-label';
             colorLabel.textContent = hexColor;
 
-            // Create Delete Button
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'swatch-delete-btn';
-            deleteBtn.textContent = '×'; // Multiplication sign
+            deleteBtn.textContent = '×';
             deleteBtn.title = 'Delete swatch';
             deleteBtn.onclick = (event) => {
-                event.stopPropagation(); // Prevent triggering other clicks if needed
+                event.stopPropagation();
                 handleSwatchDelete(hexColor);
             };
 
             itemDiv.appendChild(colorCircle);
             itemDiv.appendChild(colorLabel);
-            itemDiv.appendChild(deleteBtn); // Add delete button
+            itemDiv.appendChild(deleteBtn);
             paletteDisplayArea.appendChild(itemDiv);
         });
-    } else {
-         paletteDisplayArea.innerHTML = '<span class="placeholder">No color palette extracted for this image.</span>';
+    }
+
+    // <<<< START TEST CODE: Add placeholder swatch >>>>
+    // Ensure this block is active
+    const testHexColor = '#888888'; // Keep value for potential title/debug
+    console.log(`[Test] Adding placeholder swatch.`);
+    const testItemDiv = document.createElement('div');
+    testItemDiv.className = 'palette-item';
+
+    const testColorCircle = document.createElement('div');
+    testColorCircle.className = 'palette-color test-placeholder-swatch'; // Add specific class
+    testColorCircle.style.backgroundColor = 'transparent'; // Make background transparent
+    testColorCircle.title = 'Test Placeholder';
+
+    const testColorLabel = document.createElement('span');
+    testColorLabel.className = 'palette-label test-placeholder-label'; // Add specific class
+    testColorLabel.textContent = testHexColor; // Restore hex text content
+
+    // Remove or hide the delete button for this placeholder
+    /* 
+    const testDeleteBtn = document.createElement('button');
+    testDeleteBtn.className = 'swatch-delete-btn';
+    testDeleteBtn.textContent = '×';
+    testDeleteBtn.title = 'Delete swatch (test)';
+    testDeleteBtn.style.pointerEvents = 'none';
+    testItemDiv.appendChild(testDeleteBtn);
+    */
+
+    testItemDiv.appendChild(testColorCircle);
+    testItemDiv.appendChild(testColorLabel);
+    paletteDisplayArea.appendChild(testItemDiv);
+    // <<<< END TEST CODE >>>>
+
+    // Handle placeholder message if palette is empty AND not generating
+    if (!isGenerating && (!palette || !Array.isArray(palette) || palette.length === 0)) {
+         const placeholderSpan = document.createElement('span');
+         placeholderSpan.className = 'placeholder';
+         placeholderSpan.textContent = 'No color palette extracted for this image.';
+         paletteDisplayArea.appendChild(placeholderSpan);
     }
 }
 
-// --- NEW Function: Handle Swatch Deletion ---
+// --- Handle Swatch Deletion ---
 function handleSwatchDelete(hexColorToDelete) {
     console.log(`[Swatch Delete] Attempting to delete: ${hexColorToDelete}`);
     if (!currentlySelectedListItem) {
@@ -351,7 +392,7 @@ function handleSwatchDelete(hexColorToDelete) {
     }
 }
 
-// --- NEW Function: Save Palette Update to Backend ---
+// --- Save Palette Update to Backend ---
 async function savePaletteUpdate(meta) {
     // Extract filename using browser-compatible string splitting
     const filename = meta.cachedFilePath ? meta.cachedFilePath.split('/').pop() : null;
@@ -477,13 +518,86 @@ form.addEventListener('submit', async (event) => {
     }
 });
 
+// --- Save Palette Name Update to Backend ---
+async function savePaletteName(filename, newName) {
+    if (!filename) {
+        console.error('[Save Name] Cannot save name, filename is missing.');
+        return; 
+    }
+    console.log(`[Save Name] Saving new name "${newName}" for ${filename}`);
+
+    try {
+        const response = await fetch('/api/metadata/' + encodeURIComponent(filename), {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ paletteName: newName })
+        });
+
+        const result = await response.json().catch(() => null); // Attempt to parse JSON, but handle cases where it might not be JSON
+
+        if (!response.ok) {
+            console.error(`[Save Name] Error response from server (${response.status}):`, result);
+            showMessage(`Error saving name: ${result ? result.message : 'Server error'}`, true);
+        } else {
+            console.log(`[Save Name] Successfully saved new name for ${filename}.`);
+            showMessage('Palette name updated.', false); // Brief success message
+            
+            // Update local metadata as well for immediate consistency
+            if (currentlySelectedListItem) {
+                 try {
+                    const meta = JSON.parse(currentlySelectedListItem.dataset.metadata);
+                    meta.paletteName = newName;
+                    currentlySelectedListItem.dataset.metadata = JSON.stringify(meta);
+                 } catch (e) {
+                     console.error('[Save Name] Error updating local metadata dataset:', e);
+                 }
+            }
+        }
+    } catch (error) {
+        console.error(`[Save Name] Network or fetch error saving name for ${filename}:`, error);
+        showMessage('Network error saving palette name.', true);
+    }
+}
+
+// --- Event Listener for Palette Name Input ---
+paletteNameInput.addEventListener('change', (event) => {
+    const newName = event.target.value.trim();
+    if (!currentlySelectedListItem) {
+        console.warn('[Palette Name Change] Ignored: No item selected.');
+        return; // No item selected
+    }
+    if (!newName) {
+        showMessage('Palette name cannot be empty.', true);
+        // Optionally revert to previous name? For now, just warn.
+        return;
+    }
+
+    // Get filename from the selected item's metadata
+    let filename = null;
+    try {
+        const meta = JSON.parse(currentlySelectedListItem.dataset.metadata);
+        filename = meta.cachedFilePath ? meta.cachedFilePath.split('/').pop() : null;
+        // Check if name actually changed
+        if (meta.paletteName === newName) {
+             console.log('[Palette Name Change] Name unchanged, skipping save.');
+             return;
+        }
+    } catch (e) {
+        console.error('[Palette Name Change] Could not get filename from metadata.', e);
+        showMessage('Error determining filename to save name.', true);
+        return;
+    }
+    
+    if (filename) {
+        savePaletteName(filename, newName); // Call function to save via API
+    }
+});
+
 // --- Initial Setup & Window Events ---
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Window loaded. Initializing script.');
     toggleInput('url'); 
     loadImageList(); 
-});
-
-window.addEventListener('resize', () => {
-     console.log('Window resized to: ' + window.innerWidth + 'x' + window.innerHeight);
 });
