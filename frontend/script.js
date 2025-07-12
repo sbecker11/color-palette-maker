@@ -9,6 +9,7 @@ const paletteDisplayArea = document.getElementById('paletteDisplay');
 const paletteNameInput = document.getElementById('paletteNameInput'); // Get palette name input
 const imageCanvas = document.getElementById('imageCanvas'); // Restore canvas element
 const canvasCtx = imageCanvas.getContext('2d', { willReadFrequently: true }); // Restore context
+const exportButton = document.getElementById('exportPaletteButton'); // Get export button
 let currentlySelectedListItem = null; // Track selected LI
 let isSamplingMode = false; // Restore state variable
 let currentSampledColor = null; // Restore state variable
@@ -807,6 +808,105 @@ paletteNameInput.addEventListener('change', (event) => {
         savePaletteName(filename, newName); // Call function to save via API
     }
 });
+
+// --- Export Palette Functionality ---
+function handleExportPalette() {
+    if (!currentlySelectedListItem) {
+        showMessage('Please select an image first.', true);
+        return;
+    }
+
+    // 1. Get Palette Name
+    let paletteName = paletteNameInput.value.trim();
+    let defaultFilename = 'palette'; // Fallback filename base
+
+    if (!paletteName) {
+        try {
+            const metaString = currentlySelectedListItem.dataset.metadata;
+            if (metaString) {
+                const meta = JSON.parse(metaString);
+                if (meta.cachedFilePath) {
+                    // Use filename without extension as fallback name
+                    const filename = meta.cachedFilePath.split('/').pop();
+                    defaultFilename = filename.includes('.') ? filename.substring(0, filename.lastIndexOf('.')) : filename;
+                    paletteName = defaultFilename; 
+                }
+            }
+        } catch (e) {
+            console.error('[Export] Error getting filename from metadata:', e);
+        }
+    }
+    // If still no name, use the generic fallback
+    if (!paletteName) {
+        paletteName = defaultFilename;
+    }
+
+    // 2. Get Colors from Swatches
+    const colorSwatches = paletteDisplayArea.querySelectorAll('.palette-color:not(.test-placeholder-swatch)'); // Exclude placeholder
+    const colors = [];
+    colorSwatches.forEach(swatch => {
+        // Extract hex color from background-color style (e.g., "rgb(0, 0, 0)" or "#ffffff")
+        const rgbColor = swatch.style.backgroundColor;
+        try {
+            // Check if it's already a hex color
+            if (rgbColor.startsWith('#')) {
+                colors.push(rgbColor);
+            } else {
+                // Convert rgb(r, g, b) to hex
+                const rgbValues = rgbColor.match(/\d+/g);
+                if (rgbValues && rgbValues.length === 3) {
+                    const r = parseInt(rgbValues[0]).toString(16).padStart(2, '0');
+                    const g = parseInt(rgbValues[1]).toString(16).padStart(2, '0');
+                    const b = parseInt(rgbValues[2]).toString(16).padStart(2, '0');
+                    colors.push(`#${r}${g}${b}`);
+                } else {
+                    console.warn('[Export] Could not parse RGB color:', rgbColor);
+                }
+            }
+        } catch (e) {
+            console.error('[Export] Error processing color swatch:', rgbColor, e);
+        }
+    });
+
+    if (colors.length === 0) {
+        showMessage('No colors in the current palette to export.', true);
+        return;
+    }
+
+    // 3. Create JSON data
+    const jsonData = {
+        name: paletteName,
+        colors: colors
+    };
+    const jsonString = JSON.stringify(jsonData, null, 2); // Pretty print JSON
+
+    // 4. Trigger Download
+    // Ensure the file ends with a newline character
+    const blob = new Blob([jsonString + '\n'], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    // Sanitize palette name for use in filename
+    const downloadFilenameBase = paletteName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_\-]/g, '') || defaultFilename;
+    link.download = `${downloadFilenameBase}.json`;
+    link.href = url;
+    link.style.display = 'none'; // Hide the link
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    console.log('[Export] Exported palette:', paletteName, colors);
+    showMessage(`Export initiated for "${link.download}". Check your browser downloads.`);
+}
+
+// Add event listener (ensure button exists first)
+if (exportButton) {
+    exportButton.addEventListener('click', handleExportPalette);
+} else {
+    console.error('[Script Init] Export button not found.');
+}
 
 // --- Initial Setup & Window Events ---
 document.addEventListener('DOMContentLoaded', () => {

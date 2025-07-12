@@ -33,9 +33,11 @@
               <label for="imageUrl">Image URL:</label><br>
               <input type="text" id="imageUrl" name="imageUrl" size="50"/>
             </div>
-            <button type="submit">Submit</button>
+            <div class="form-actions">
+              <button type="submit">Submit</button>
+              <div id="messageArea"></div>
+            </div>
           </form>
-          <div id="messageArea"></div>
         </div>
 
         <!-- Moved Stored Images List Here -->
@@ -56,6 +58,7 @@
         <div id="paletteNameContainer">
             <label for="paletteNameInput">Palette Name:</label>
             <input type="text" id="paletteNameInput" name="paletteNameInput" />
+            <button id="exportPaletteButton">Export</button> 
         </div>
         <div id="metadataDisplay">
             <h3>Selected Image Info</h3>
