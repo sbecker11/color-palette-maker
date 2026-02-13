@@ -484,7 +484,9 @@ const startApp = () => {
             console.log(`Server is running on port ${port}. Access it at http://localhost:${port}`);
             console.log('\nChrome (copy/paste):');
             console.log(`  App mode:   chrome --app=http://localhost:${port}`);
-            console.log(`  Normal:     chrome http://localhost:${port}\n`);
+            console.log(`  App mode:   open -a "Google Chrome" --args --app=http://localhost:${port}   # macOS`);
+            console.log(`  Normal:     chrome http://localhost:${port}`);
+            console.log(`  Normal:     open -a "Google Chrome" http://localhost:${port}   # macOS\n`);
         });
 
         expressServer.on('error', (err) => {

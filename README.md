@@ -69,10 +69,12 @@ npm run dev:client
 Open Chrome in app mode:
 
     chrome --app=http://localhost:5173
+    open -a "Google Chrome" --args --app=http://localhost:5173   # macOS
 
 Or open Chrome in normal dev mode:
 
     chrome http://localhost:5173
+    open -a "Google Chrome" http://localhost:5173   # macOS
 
 ## Production Build
 
@@ -87,10 +89,12 @@ npm start
 Open Chrome in app mode:
 
     chrome --app=http://localhost:3000
+    open -a "Google Chrome" --args --app=http://localhost:3000   # macOS
 
 Or open Chrome in normal dev mode:
 
     chrome http://localhost:3000
+    open -a "Google Chrome" http://localhost:3000   # macOS
 
 The server will serve the React app from `client/dist` and the API at the same origin.
 
