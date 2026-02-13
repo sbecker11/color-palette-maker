@@ -482,6 +482,9 @@ const startApp = () => {
     ensureUploadsDir().then(() => {
         const expressServer = app.listen(port, () => {
             console.log(`Server is running on port ${port}. Access it at http://localhost:${port}`);
+            console.log('\nChrome (copy/paste):');
+            console.log(`  App mode:   chrome --app=http://localhost:${port}`);
+            console.log(`  Normal:     chrome http://localhost:${port}\n`);
         });
 
         expressServer.on('error', (err) => {
