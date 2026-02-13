@@ -11,11 +11,11 @@ A React-based single-page application for extracting and managing color palettes
 - **Color Sampling**: Click to sample colors directly from the image and add to the palette
 - **Palette Management**: Rename palettes, delete individual swatches, duplicate palettes, export as JSON
 - **Theme Toggle**: Light and dark mode support
-- **Image Library**: Browse, select, delete, reorder, and duplicate stored images
+- **Color Palettes**: Browse, select, delete, reorder, and duplicate stored palettes
 
 ### Key Actions
 
-- **Reorder (▲/▼)**: Use the up/down arrows next to each item in the Library to change the display order. Order is persisted to the server.
+- **Reorder (▲/▼)**: Use the up/down arrows next to each item in the Color Palettes list to change the display order. Order is persisted to the server.
 - **Palette Name**: Edit the name in the "Palette Name" input and click away (blur) to save. The name is persisted automatically.
 - **Regenerate (K-means)**: Replace the current palette colors with a freshly computed set from the image using K-means clustering (K=5).
 - **Export**: Download the palette as a JSON file for use in external integrations (design tools, other apps, code). The exported format is `{ name, colors: [...] }`. Palette changes within the app are saved to the server automatically; Export is only for creating downloadable files.

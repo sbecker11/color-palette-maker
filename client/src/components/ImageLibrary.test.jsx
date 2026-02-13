@@ -10,6 +10,13 @@ describe('ImageLibrary', () => {
     height: 100,
   };
 
+  it('renders Color Palettes heading', () => {
+    render(
+      <ImageLibrary images={[mockMeta]} isLoading={false} onSelectImage={vi.fn()} />
+    );
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Color Palettes');
+  });
+
   it('shows Loading when isLoading', () => {
     render(
       <ImageLibrary images={[]} isLoading={true} onSelectImage={vi.fn()} />

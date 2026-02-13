@@ -20,7 +20,7 @@ function PaletteDisplay({
 
   return (
     <div id="middlePanel">
-      <h2>Color Palettes</h2>
+      <h2>Color Palette</h2>
       <div id="paletteDisplay">
         {isGenerating && (
           <span className="placeholder">Generating palette...</span>

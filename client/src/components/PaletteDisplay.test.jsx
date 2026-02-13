@@ -19,9 +19,9 @@ describe('PaletteDisplay', () => {
     selectedMeta: { paletteName: 'Test Palette' },
   };
 
-  it('renders Color Palettes heading', () => {
+  it('renders Color Palette heading', () => {
     render(<PaletteDisplay {...defaultProps} />);
-    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Color Palettes');
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Color Palette');
   });
 
   it('renders palette swatches', () => {

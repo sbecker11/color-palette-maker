@@ -11,7 +11,7 @@ function ImageLibrary({
   if (isLoading) {
     return (
       <div id="storedImagesSection">
-        <h2>Library</h2>
+        <h2>Color Palettes</h2>
         <ul id="fileList">
           <li>Loading...</li>
         </ul>
@@ -22,7 +22,7 @@ function ImageLibrary({
   if (!images || images.length === 0) {
     return (
       <div id="storedImagesSection">
-        <h2>Library</h2>
+        <h2>Color Palettes</h2>
         <ul id="fileList">
           <li>No images stored.</li>
         </ul>
@@ -32,7 +32,7 @@ function ImageLibrary({
 
   return (
     <div id="storedImagesSection">
-      <h2>Library</h2>
+      <h2>Color Palettes</h2>
       <ul id="fileList">
         {images.map((meta, index) => {
           const filename = getFilenameFromMeta(meta) || 'unknown';

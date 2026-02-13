@@ -284,7 +284,7 @@ app.put('/api/metadata/:filename', express.json(), async (req, res) => {
     }
 });
 
-// PUT /api/images/order - Reorder images in the Library
+// PUT /api/images/order - Reorder images in the Color Palettes list
 app.put('/api/images/order', express.json(), async (req, res) => {
     const { filenames } = req.body;
     console.log('[API PUT /images/order] Request received.');
