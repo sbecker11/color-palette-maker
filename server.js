@@ -166,17 +166,15 @@ app.post('/api/palette/:filename', async (req, res) => {
     }
 
     const imageMeta = allMetadata[imageIndex];
+    const forceRegenerate = req.query.regenerate === 'true';
 
-    // Log the state before the check
-    console.log(`[API POST /palette] Checking existing palette for ${filename}. Found:`, JSON.stringify(imageMeta.colorPalette));
-
-    // Check if palette already exists and is valid
-    if (imageMeta.colorPalette && Array.isArray(imageMeta.colorPalette) && imageMeta.colorPalette.length > 0) {
+    // Check if palette already exists and is valid - skip cache if ?regenerate=true
+    if (!forceRegenerate && imageMeta.colorPalette && Array.isArray(imageMeta.colorPalette) && imageMeta.colorPalette.length > 0) {
         console.log(`[API POST /palette] Returning cached palette for ${filename}.`);
         return res.json({ success: true, palette: imageMeta.colorPalette });
     }
 
-    console.log(`[API POST /palette] Generating new palette for ${filename}`);
+    console.log(`[API POST /palette] Generating palette for ${filename}${forceRegenerate ? ' (regenerate)' : ''}`);
     const imagePath = path.join(uploadsDir, filename); // Use constructed path
 
     try {
@@ -336,6 +334,80 @@ app.put('/api/images/order', express.json(), async (req, res) => {
     } catch (writeError) {
         console.error('[API PUT /images/order] Error rewriting metadata:', writeError);
         res.status(500).json({ success: false, message: 'Failed to save new order.' });
+    }
+});
+
+// POST /api/images/:filename/duplicate - Duplicate the selected palette/image
+app.post('/api/images/:filename/duplicate', async (req, res) => {
+    const filename = req.params.filename;
+    console.log(`[API POST /images/duplicate] Request received for filename: ${filename}`);
+
+    if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+        return res.status(400).json({ success: false, message: 'Invalid filename.' });
+    }
+
+    let allMetadata;
+    try {
+        allMetadata = await metadataHandler.readMetadata();
+    } catch (readError) {
+        return res.status(500).json({ success: false, message: 'Failed to read metadata.' });
+    }
+
+    const imageIndex = allMetadata.findIndex(entry => path.basename(entry.cachedFilePath || '') === filename);
+    if (imageIndex === -1) {
+        return res.status(404).json({ success: false, message: 'Image metadata not found.' });
+    }
+
+    const sourceMeta = allMetadata[imageIndex];
+    const sourcePath = path.join(uploadsDir, filename);
+
+    try {
+        // 1. Copy the image file
+        const ext = path.extname(filename);
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const newFilename = `img-${uniqueSuffix}${ext}`;
+        const newFilePath = path.join(uploadsDir, newFilename);
+        await fsp.copyFile(sourcePath, newFilePath);
+        const newFileStat = await fsp.stat(newFilePath);
+
+        // 2. Determine original name and next copy number
+        const baseName = path.parse(filename).name;
+        const originalName = sourceMeta.paletteName || baseName;
+        const copyPattern = new RegExp('^' + originalName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-copy-(\\d+)$');
+        let maxCopyNum = 0;
+        for (const entry of allMetadata) {
+            const pn = entry.paletteName || '';
+            const m = pn.match(copyPattern);
+            if (m) {
+                const n = parseInt(m[1], 10);
+                if (n > maxCopyNum) maxCopyNum = n;
+            }
+        }
+        const newPaletteName = originalName + '-copy-' + (maxCopyNum + 1);
+
+        // 3. Create new metadata record (copy palette and image info)
+        const newRecord = {
+            createdDateTime: new Date().toISOString(),
+            uploadedURL: null,
+            uploadedFilePath: null,
+            cachedFilePath: newFilePath,
+            width: sourceMeta.width,
+            height: sourceMeta.height,
+            format: sourceMeta.format,
+            fileSizeBytes: newFileStat.size,
+            colorPalette: Array.isArray(sourceMeta.colorPalette) ? [...sourceMeta.colorPalette] : [],
+            paletteName: newPaletteName
+        };
+
+        // 4. Append (puts at end of file; GET reverses so new item appears at top)
+        await metadataHandler.appendMetadata(newRecord);
+
+        console.log(`[API POST /images/duplicate] Created duplicate: ${newFilename} as "${newPaletteName}"`);
+        res.json({ success: true, filename: newFilename, metadata: newRecord });
+
+    } catch (error) {
+        console.error(`[API POST /images/duplicate] Error:`, error);
+        res.status(500).json({ success: false, message: 'Failed to duplicate image.' });
     }
 });
 

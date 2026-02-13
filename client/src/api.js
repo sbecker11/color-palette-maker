@@ -16,10 +16,12 @@ const api = {
     return response.json();
   },
 
-  async generatePalette(filename) {
-    const response = await fetch(`/api/palette/${encodeURIComponent(filename)}`, {
-      method: 'POST',
-    });
+  async generatePalette(filename, opts = {}) {
+    const { regenerate = false } = opts;
+    const url = regenerate
+      ? `/api/palette/${encodeURIComponent(filename)}?regenerate=true`
+      : `/api/palette/${encodeURIComponent(filename)}`;
+    const response = await fetch(url, { method: 'POST' });
     return response.json();
   },
 
@@ -44,6 +46,13 @@ const api = {
   async deleteImage(filename) {
     const response = await fetch(`/api/images/${encodeURIComponent(filename)}`, {
       method: 'DELETE',
+    });
+    return response.json();
+  },
+
+  async duplicateImage(filename) {
+    const response = await fetch(`/api/images/${encodeURIComponent(filename)}/duplicate`, {
+      method: 'POST',
     });
     return response.json();
   },

@@ -10,6 +10,8 @@ function PaletteDisplay({
   paletteName,
   onPaletteNameChange,
   onExport,
+  onRegenerate,
+  onDuplicate,
   onPaletteNameBlur,
   selectedMeta,
 }) {
@@ -89,6 +91,12 @@ function PaletteDisplay({
           onBlur={() => onPaletteNameBlur?.()}
           disabled={!selectedMeta}
         />
+        <button type="button" id="regeneratePaletteButton" onClick={onRegenerate} disabled={!selectedMeta || isGenerating} title="Replace palette with K-means clustering">
+          Regenerate (K-means)
+        </button>
+        <button type="button" id="duplicatePaletteButton" onClick={onDuplicate} disabled={!selectedMeta} title="Duplicate palette to a new entry at top of list">
+          Duplicate
+        </button>
         <button type="button" id="exportPaletteButton" onClick={onExport}>
           Export
         </button>

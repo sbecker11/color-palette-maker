@@ -357,6 +357,59 @@ function App() {
     showMessage(`Export initiated for "${link.download}". Check your browser downloads.`);
   }, [selectedMeta, paletteName, showMessage]);
 
+  const handleDuplicate = useCallback(async () => {
+    if (!selectedMeta) {
+      showMessage('Please select an image first.', true);
+      return;
+    }
+    const filename = getFilenameFromMeta(selectedMeta);
+    if (!filename) return;
+
+    try {
+      const result = await api.duplicateImage(filename);
+      if (result.success && result.metadata) {
+        await loadImages({ selectFirst: false });
+        const newFilename = result.filename;
+        const newMeta = result.metadata;
+        handleSelectImage(newMeta, `/uploads/${encodeURIComponent(newFilename)}`);
+        showMessage(`Created duplicate: ${result.metadata.paletteName || newFilename}`);
+      } else {
+        showMessage(result.message || 'Failed to duplicate.', true);
+      }
+    } catch (error) {
+      showMessage('Failed to duplicate.', true);
+    }
+  }, [selectedMeta, showMessage, loadImages, handleSelectImage]);
+
+  const handleRegenerate = useCallback(() => {
+    if (!selectedMeta) {
+      showMessage('Please select an image first.', true);
+      return;
+    }
+    const filename = getFilenameFromMeta(selectedMeta);
+    if (!filename) return;
+
+    setPaletteGenerating(true);
+    api
+      .generatePalette(filename, { regenerate: true })
+      .then((result) => {
+        if (result.success && result.palette) {
+          const updatedMeta = { ...selectedMeta, colorPalette: result.palette };
+          setSelectedMeta(updatedMeta);
+          setImages((prev) =>
+            prev.map((m) =>
+              getFilenameFromMeta(m) === filename ? updatedMeta : m
+            )
+          );
+          showMessage('Palette regenerated with K-means.');
+        } else {
+          showMessage(result.message || 'Failed to regenerate palette.', true);
+        }
+      })
+      .catch(() => showMessage('Failed to regenerate palette.', true))
+      .finally(() => setPaletteGenerating(false));
+  }, [selectedMeta, showMessage]);
+
   const palette = selectedMeta?.colorPalette;
   const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
 
@@ -385,6 +438,8 @@ function App() {
           paletteName={paletteName}
           onPaletteNameChange={setPaletteName}
           onExport={handleExport}
+          onRegenerate={handleRegenerate}
+          onDuplicate={handleDuplicate}
           onPaletteNameBlur={handlePaletteNameBlur}
           selectedMeta={selectedMeta}
         />

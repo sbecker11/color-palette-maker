@@ -78,4 +78,44 @@ describe('api', () => {
       method: 'DELETE',
     });
   });
+
+  it('generatePalette with regenerate=true adds query param', async () => {
+    global.fetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({ success: true, palette: [] }),
+    });
+
+    await api.generatePalette('img-123.jpeg', { regenerate: true });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/palette/img-123.jpeg?regenerate=true',
+      { method: 'POST' }
+    );
+  });
+
+  it('duplicateImage posts to /api/images/:filename/duplicate', async () => {
+    global.fetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({ success: true, filename: 'img-456.jpeg', metadata: {} }),
+    });
+
+    await api.duplicateImage('img-123.jpeg');
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/images/img-123.jpeg/duplicate',
+      { method: 'POST' }
+    );
+  });
+
+  it('reorderImages puts to /api/images/order with filenames', async () => {
+    global.fetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({ success: true }),
+    });
+
+    await api.reorderImages(['img-1.jpeg', 'img-2.jpeg']);
+
+    expect(global.fetch).toHaveBeenCalledWith('/api/images/order', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filenames: ['img-1.jpeg', 'img-2.jpeg'] }),
+    });
+  });
 });

@@ -9,9 +9,16 @@ A React-based single-page application for extracting and managing color palettes
 - **Image Sources**: Upload images from URL or local file
 - **Automatic Palette Extraction**: K-means clustering extracts up to 5 dominant colors
 - **Color Sampling**: Click to sample colors directly from the image and add to the palette
-- **Palette Management**: Rename palettes, delete individual swatches, export as JSON
+- **Palette Management**: Rename palettes, delete individual swatches, duplicate palettes, export as JSON
 - **Theme Toggle**: Light and dark mode support
-- **Image Library**: Browse, select, and delete stored images
+- **Image Library**: Browse, select, delete, reorder, and duplicate stored images
+
+### Key Actions
+
+- **Reorder (▲/▼)**: Use the up/down arrows next to each item in the Library to change the display order. Order is persisted to the server.
+- **Palette Name**: Edit the name in the "Palette Name" input and click away (blur) to save. The name is persisted automatically.
+- **Regenerate (K-means)**: Replace the current palette colors with a freshly computed set from the image using K-means clustering (K=5).
+- **Export**: Download the palette as a JSON file for use in external integrations (design tools, other apps, code). The exported format is `{ name, colors: [...] }`. Palette changes within the app are saved to the server automatically; Export is only for creating downloadable files.
 
 ## Tech Stack
 
@@ -84,7 +91,9 @@ cd client && npm run test:watch
 Tests cover:
 - Utility functions (filename parsing, file size formatting, RGB to hex)
 - API client (request methods and payloads)
-- React components (Header, etc.)
+- React components (Header, PaletteDisplay, ImageLibrary, MetadataDisplay)
+
+Run `npm run test:coverage` to generate a coverage report saved to a timestamped file (e.g. `coverage-report-2025-02-13T15-30-00.html`) in the client directory. Run `npm run build:with-coverage` to build and then generate the coverage report.
 
 ## Project Structure
 
@@ -111,8 +120,10 @@ color-palette-maker-react/
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/images` | List all images with metadata |
+| PUT | `/api/images/order` | Reorder images (body: `{ filenames: [...] }`) |
+| POST | `/api/images/:filename/duplicate` | Duplicate image and palette |
 | POST | `/upload` | Upload image (file or URL) |
-| POST | `/api/palette/:filename` | Generate color palette for image |
+| POST | `/api/palette/:filename` | Generate color palette (add `?regenerate=true` to force recompute) |
 | PUT | `/api/palette/:filename` | Save updated palette |
 | PUT | `/api/metadata/:filename` | Update palette name |
 | DELETE | `/api/images/:filename` | Delete image and metadata |
