@@ -5,6 +5,7 @@ function ImageLibrary({
   selectedMeta,
   onSelectImage,
   onDeleteImage,
+  onReorder,
   isLoading,
 }) {
   if (isLoading) {
@@ -33,7 +34,7 @@ function ImageLibrary({
     <div id="storedImagesSection">
       <h2>Library</h2>
       <ul id="fileList">
-        {images.map((meta) => {
+        {images.map((meta, index) => {
           const filename = getFilenameFromMeta(meta) || 'unknown';
           const imageUrl = '/uploads/' + encodeURIComponent(filename);
           const filenameWithoutExt = getFilenameWithoutExt(filename);
@@ -45,6 +46,8 @@ function ImageLibrary({
             meta.width && meta.height ? ` (${meta.width}x${meta.height}) ` : ' ';
           const tooltip = `Filename: ${filename} | Format: ${meta.format || '?'}, Size: ${meta.fileSizeBytes ? Math.round(meta.fileSizeBytes / 1024) + ' KB' : '?'}, Added: ${meta.createdDateTime ? new Date(meta.createdDateTime).toLocaleString() : '?'}`;
           const isSelected = selectedMeta && getFilenameFromMeta(selectedMeta) === filename;
+          const canMoveUp = index > 0;
+          const canMoveDown = index < images.length - 1;
 
           return (
             <li
@@ -52,6 +55,34 @@ function ImageLibrary({
               className={isSelected ? 'selected-image' : ''}
               data-metadata={JSON.stringify(meta)}
             >
+              <span className="library-item-order">
+                <button
+                  type="button"
+                  className="order-btn order-up"
+                  title="Move up"
+                  disabled={!canMoveUp}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onReorder?.(index, 'up');
+                  }}
+                  aria-label="Move up"
+                >
+                  ▲
+                </button>
+                <button
+                  type="button"
+                  className="order-btn order-down"
+                  title="Move down"
+                  disabled={!canMoveDown}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onReorder?.(index, 'down');
+                  }}
+                  aria-label="Move down"
+                >
+                  ▼
+                </button>
+              </span>
               <a
                 href={imageUrl}
                 title={tooltip}

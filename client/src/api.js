@@ -47,6 +47,15 @@ const api = {
     });
     return response.json();
   },
+
+  async reorderImages(filenames) {
+    const response = await fetch('/api/images/order', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filenames }),
+    });
+    return response.json();
+  },
 };
 
 export default api;

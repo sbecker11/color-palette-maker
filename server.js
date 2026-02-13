@@ -286,6 +286,59 @@ app.put('/api/metadata/:filename', express.json(), async (req, res) => {
     }
 });
 
+// PUT /api/images/order - Reorder images in the Library
+app.put('/api/images/order', express.json(), async (req, res) => {
+    const { filenames } = req.body;
+    console.log('[API PUT /images/order] Request received.');
+
+    if (!filenames || !Array.isArray(filenames) || filenames.length === 0) {
+        return res.status(400).json({ success: false, message: 'Invalid filenames array.' });
+    }
+
+    // Validate each filename
+    for (const fn of filenames) {
+        if (typeof fn !== 'string' || fn.includes('..') || fn.includes('/') || fn.includes('\\')) {
+            return res.status(400).json({ success: false, message: 'Invalid filename in order list.' });
+        }
+    }
+
+    let allMetadata;
+    try {
+        allMetadata = await metadataHandler.readMetadata();
+    } catch (readError) {
+        return res.status(500).json({ success: false, message: 'Failed to read metadata.' });
+    }
+
+    const metaByFilename = new Map();
+    for (const entry of allMetadata) {
+        const fn = path.basename(entry.cachedFilePath || '');
+        if (fn) metaByFilename.set(fn, entry);
+    }
+
+    // Build new order: display order is [top...bottom], file stores [bottom...top] for reverse() compatibility
+    const displayOrder = filenames.filter(fn => metaByFilename.has(fn));
+    const fileOrder = displayOrder.slice().reverse();
+    const reorderedMetadata = fileOrder.map(fn => metaByFilename.get(fn)).filter(Boolean);
+
+    // Include any metadata not in the request (e.g. race condition) at the end
+    const orderedFilenames = new Set(displayOrder);
+    for (const entry of allMetadata) {
+        const fn = path.basename(entry.cachedFilePath || '');
+        if (fn && !orderedFilenames.has(fn)) {
+            reorderedMetadata.push(entry);
+        }
+    }
+
+    try {
+        await metadataHandler.rewriteMetadata(reorderedMetadata);
+        console.log(`[API PUT /images/order] Successfully reordered ${reorderedMetadata.length} images.`);
+        res.json({ success: true, message: 'Order updated successfully.' });
+    } catch (writeError) {
+        console.error('[API PUT /images/order] Error rewriting metadata:', writeError);
+        res.status(500).json({ success: false, message: 'Failed to save new order.' });
+    }
+});
+
 // DELETE /api/images/:filename - Delete image and metadata
 app.delete('/api/images/:filename', async (req, res) => {
     const filenameToDelete = req.params.filename;

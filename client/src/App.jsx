@@ -167,6 +167,30 @@ function App() {
     [showMessage, loadImages, handleSelectImage]
   );
 
+  const handleReorder = useCallback(
+    async (index, direction) => {
+      if (index < 0 || index >= images.length) return;
+      const newIndex = direction === 'up' ? index - 1 : index + 1;
+      if (newIndex < 0 || newIndex >= images.length) return;
+
+      const reordered = [...images];
+      [reordered[index], reordered[newIndex]] = [reordered[newIndex], reordered[index]];
+      const filenames = reordered.map((m) => getFilenameFromMeta(m)).filter(Boolean);
+
+      try {
+        const result = await api.reorderImages(filenames);
+        if (result.success) {
+          setImages(reordered);
+        } else {
+          showMessage(result.message || 'Failed to reorder.', true);
+        }
+      } catch (error) {
+        showMessage('Failed to reorder.', true);
+      }
+    },
+    [images, showMessage]
+  );
+
   const handleDeleteImage = useCallback(
     async (filename, listItemMeta) => {
       if (!confirm(`Are you sure you want to delete "${filename}"?`)) return;
@@ -347,6 +371,7 @@ function App() {
             selectedMeta={selectedMeta}
             onSelectImage={handleSelectImage}
             onDeleteImage={handleDeleteImage}
+            onReorder={handleReorder}
             isLoading={isLoading}
           />
         </div>
