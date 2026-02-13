@@ -66,6 +66,14 @@ npm run dev:server
 npm run dev:client
 ```
 
+Open Chrome in app mode:
+
+    chrome --app=http://localhost:5173
+
+Or open Chrome in normal dev mode:
+
+    chrome http://localhost:5173
+
 ## Production Build
 
 ```bash
@@ -75,6 +83,14 @@ npm run build
 # Start the server (serves built React app + API)
 npm start
 ```
+
+Open Chrome in app mode:
+
+    chrome --app=http://localhost:3000
+
+Or open Chrome in normal dev mode:
+
+    chrome http://localhost:3000
 
 The server will serve the React app from `client/dist` and the API at the same origin.
 
