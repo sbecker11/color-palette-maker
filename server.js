@@ -1,7 +1,8 @@
 const express = require('express');
 const path = require('path');
 const axios = require('axios');
-const fs = require('fs').promises;
+const fs = require('fs');
+const fsp = require('fs').promises;
 const net = require('net');
 const multer = require('multer');
 const sharp = require('sharp');
@@ -19,7 +20,7 @@ const uploadsDir = path.join(__dirname, 'uploads');
 // Ensure uploads directory exists (using async fs)
 async function ensureUploadsDir() {
     try {
-        await fs.mkdir(uploadsDir, { recursive: true });
+        await fsp.mkdir(uploadsDir, { recursive: true });
         console.log(`Uploads directory ensured at: ${uploadsDir}`);
     } catch (error) {
         console.error("Error ensuring uploads directory exists:", error);
@@ -37,8 +38,10 @@ const upload = multer({
 // --- Middleware ---
 // Serve static files from the 'uploads' directory
 app.use('/uploads', express.static(uploadsDir));
-// Serve static files from the 'frontend' directory
-app.use(express.static(path.join(__dirname, 'frontend')));
+// Serve static files from the React build (client/dist) or fallback to frontend for backwards compat
+const frontendDir = path.join(__dirname, 'client', 'dist');
+const legacyFrontendDir = path.join(__dirname, 'frontend');
+app.use(express.static(fs.existsSync(frontendDir) ? frontendDir : legacyFrontendDir));
 
 // --- API Routes ---
 
@@ -320,7 +323,7 @@ app.delete('/api/images/:filename', async (req, res) => {
         const filePathToDelete = path.join(uploadsDir, filenameToDelete); // Construct path
         console.log(`[API DELETE /images] Deleting image file: ${filePathToDelete}`);
         try {
-             await fs.unlink(filePathToDelete);
+             await fsp.unlink(filePathToDelete);
              console.log(`[API DELETE /images] Successfully deleted file: ${filePathToDelete}`);
         } catch (unlinkError) {
              if (unlinkError.code === 'ENOENT') {
@@ -343,7 +346,10 @@ app.delete('/api/images/:filename', async (req, res) => {
 
 // --- Root Route to serve frontend ---
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
+    const indexPath = path.join(frontendDir, 'index.html');
+    const legacyPath = path.join(legacyFrontendDir, 'index.html');
+    const htmlPath = fs.existsSync(indexPath) ? indexPath : legacyPath;
+    res.sendFile(htmlPath);
 });
 
 // --- Server Start Logic with Port Check ---

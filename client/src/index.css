@@ -1,0 +1,4 @@
+/* Minimal base styles - theme and layout in App.css */
+* {
+  box-sizing: border-box;
+}
