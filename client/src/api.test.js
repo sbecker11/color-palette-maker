@@ -105,6 +105,23 @@ describe('api', () => {
     );
   });
 
+  it('saveMetadata puts to /api/metadata/:filename with paletteName', async () => {
+    global.fetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({ success: true }),
+    });
+
+    await api.saveMetadata('img-123.jpeg', 'My Palette');
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/metadata/img-123.jpeg',
+      expect.objectContaining({
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paletteName: 'My Palette' }),
+      })
+    );
+  });
+
   it('reorderImages puts to /api/images/order with filenames', async () => {
     global.fetch.mockResolvedValueOnce({
       json: () => Promise.resolve({ success: true }),

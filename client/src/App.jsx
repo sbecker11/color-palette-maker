@@ -1,9 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from './api';
+import { getFilenameFromMeta, getFilenameWithoutExt } from './utils';
 import {
-  getFilenameFromMeta,
-  getFilenameWithoutExt,
-} from './utils';
+  needsPaletteGeneration,
+  getNextSelectionAfterDeletion,
+  computeReorderedState,
+  shouldSavePaletteName,
+  buildExportData,
+  applyPaletteToMeta,
+  applyPaletteToImages,
+  applyPaletteNameToImages,
+} from './AppHelpers';
 import Header from './components/Header';
 import UploadForm from './components/UploadForm';
 import ImageLibrary from './components/ImageLibrary';
@@ -50,18 +57,18 @@ function App() {
             setSelectedMeta(first);
             setSelectedImageUrl(`/uploads/${encodeURIComponent(filename)}`);
             setPaletteName(first.paletteName || getFilenameWithoutExt(filename));
-            if (!first.colorPalette || !Array.isArray(first.colorPalette) || first.colorPalette.length === 0) {
+            if (needsPaletteGeneration(first)) {
               setPaletteGenerating(true);
               api
                 .generatePalette(filename)
                 .then((result) => {
                   if (result.success && result.palette) {
                     setSelectedMeta((prev) =>
-                      prev && getFilenameFromMeta(prev) === filename ? { ...prev, colorPalette: result.palette } : prev
+                      prev && getFilenameFromMeta(prev) === filename
+                        ? applyPaletteToMeta(prev, result.palette)
+                        : prev
                     );
-                    setImages((prev) =>
-                      prev.map((m) => (getFilenameFromMeta(m) === filename ? { ...m, colorPalette: result.palette } : m))
-                    );
+                    setImages((prev) => applyPaletteToImages(prev, filename, result.palette));
                   }
                 })
                 .finally(() => setPaletteGenerating(false));
@@ -109,34 +116,28 @@ function App() {
     setSelectedImageUrl(imageUrl);
     setPaletteName(meta.paletteName || getFilenameWithoutExt(getFilenameFromMeta(meta) || ''));
 
-    if (meta.colorPalette && Array.isArray(meta.colorPalette) && meta.colorPalette.length > 0) {
-      setPaletteGenerating(false);
-    } else {
-      setPaletteGenerating(true);
+    if (needsPaletteGeneration(meta)) {
       const filename = getFilenameFromMeta(meta);
       if (filename) {
+        setPaletteGenerating(true);
         api
           .generatePalette(filename)
           .then((result) => {
             if (result.success && result.palette) {
               setSelectedMeta((prev) =>
                 prev && getFilenameFromMeta(prev) === filename
-                  ? { ...prev, colorPalette: result.palette }
+                  ? applyPaletteToMeta(prev, result.palette)
                   : prev
               );
-              setImages((prev) =>
-                prev.map((m) =>
-                  getFilenameFromMeta(m) === filename
-                    ? { ...m, colorPalette: result.palette }
-                    : m
-                )
-              );
+              setImages((prev) => applyPaletteToImages(prev, filename, result.palette));
             }
           })
           .finally(() => setPaletteGenerating(false));
       } else {
         setPaletteGenerating(false);
       }
+    } else {
+      setPaletteGenerating(false);
     }
   }, []);
 
@@ -147,13 +148,13 @@ function App() {
         const result = await api.upload(formData);
         if (result.success) {
           showMessage('Success: Image processed.');
-          await loadImages({ selectFirst: false });
           if (result.metadata) {
             const filename = getFilenameFromMeta(result.metadata);
             if (filename) {
               handleSelectImage(result.metadata, `/uploads/${encodeURIComponent(filename)}`);
             }
           }
+          await loadImages({ selectFirst: false });
           return result;
         } else {
           showMessage(result.message || 'An error occurred.', true);
@@ -169,14 +170,10 @@ function App() {
 
   const handleReorder = useCallback(
     async (index, direction) => {
-      if (index < 0 || index >= images.length) return;
-      const newIndex = direction === 'up' ? index - 1 : index + 1;
-      if (newIndex < 0 || newIndex >= images.length) return;
+      const state = computeReorderedState(images, index, direction);
+      if (!state) return;
 
-      const reordered = [...images];
-      [reordered[index], reordered[newIndex]] = [reordered[newIndex], reordered[index]];
-      const filenames = reordered.map((m) => getFilenameFromMeta(m)).filter(Boolean);
-
+      const { reordered, filenames } = state;
       try {
         const result = await api.reorderImages(filenames);
         if (result.success) {
@@ -206,12 +203,9 @@ function App() {
             setSelectedImageUrl('');
             setPaletteName('');
             const remaining = images.filter((m) => getFilenameFromMeta(m) !== filename);
-            if (remaining.length > 0) {
-              const first = remaining[0];
-              const fn = getFilenameFromMeta(first);
-              if (fn) {
-                handleSelectImage(first, `/uploads/${encodeURIComponent(fn)}`);
-              }
+            const next = getNextSelectionAfterDeletion(remaining);
+            if (next) {
+              handleSelectImage(next.meta, next.imageUrl);
             }
           }
         } else {
@@ -231,17 +225,10 @@ function App() {
       if (!Array.isArray(palette) || !palette.includes(hexColor)) return;
 
       const newPalette = palette.filter((c) => c !== hexColor);
-      const updatedMeta = { ...selectedMeta, colorPalette: newPalette };
-      setSelectedMeta(updatedMeta);
-      setImages((prev) =>
-        prev.map((m) =>
-          getFilenameFromMeta(m) === getFilenameFromMeta(selectedMeta)
-            ? updatedMeta
-            : m
-        )
-      );
-
       const filename = getFilenameFromMeta(selectedMeta);
+      const updatedMeta = applyPaletteToMeta(selectedMeta, newPalette);
+      setSelectedMeta(updatedMeta);
+      setImages((prev) => applyPaletteToImages(prev, filename, newPalette));
       if (filename) {
         try {
           const result = await api.savePalette(filename, newPalette);
@@ -283,42 +270,30 @@ function App() {
     if (palette.includes(currentSampledColor)) return;
 
     const newPalette = [...palette, currentSampledColor];
-    const updatedMeta = { ...selectedMeta, colorPalette: newPalette };
-    setSelectedMeta(updatedMeta);
-    setImages((prev) =>
-      prev.map((m) =>
-        getFilenameFromMeta(m) === getFilenameFromMeta(selectedMeta)
-          ? updatedMeta
-          : m
-      )
-    );
-
+    const updatedMeta = applyPaletteToMeta(selectedMeta, newPalette);
     const filename = getFilenameFromMeta(selectedMeta);
+    setSelectedMeta(updatedMeta);
+    setImages((prev) => applyPaletteToImages(prev, filename, newPalette));
+
     if (filename) {
-      api.savePalette(filename, newPalette).catch((err) => {
+      api.savePalette(filename, newPalette).catch(() => {
         showMessage('Error saving palette.', true);
       });
     }
   }, [isSamplingMode, currentSampledColor, selectedMeta, showMessage]);
 
   const handlePaletteNameBlur = useCallback(() => {
-    if (!selectedMeta || !paletteName.trim()) return;
-    const filename = getFilenameFromMeta(selectedMeta);
-    if (!filename || selectedMeta.paletteName === paletteName.trim()) return;
+    if (!shouldSavePaletteName(selectedMeta, paletteName)) return;
 
+    const filename = getFilenameFromMeta(selectedMeta);
+    const name = paletteName.trim();
     api
-      .saveMetadata(filename, paletteName.trim())
+      .saveMetadata(filename, name)
       .then((result) => {
         if (result.success) {
           showMessage('Palette name updated.', false);
-          setSelectedMeta((prev) => (prev ? { ...prev, paletteName: paletteName.trim() } : prev));
-          setImages((prev) =>
-            prev.map((m) =>
-              getFilenameFromMeta(m) === filename
-                ? { ...m, paletteName: paletteName.trim() }
-                : m
-            )
-          );
+          setSelectedMeta((prev) => (prev ? { ...prev, paletteName: name } : prev));
+          setImages((prev) => applyPaletteNameToImages(prev, filename, name));
         } else {
           showMessage(result.message || 'Error saving name.', true);
         }
@@ -327,20 +302,17 @@ function App() {
   }, [selectedMeta, paletteName, showMessage]);
 
   const handleExport = useCallback(() => {
-    if (!selectedMeta) {
-      showMessage('Please select an image first.', true);
+    const payload = buildExportData(selectedMeta, paletteName);
+    if (!payload) {
+      showMessage(
+        selectedMeta ? 'No colors in the current palette to export.' : 'Please select an image first.',
+        true
+      );
       return;
     }
 
-    const palette = selectedMeta.colorPalette || [];
-    const name = paletteName.trim() || getFilenameWithoutExt(getFilenameFromMeta(selectedMeta) || '') || 'palette';
-
-    if (palette.length === 0) {
-      showMessage('No colors in the current palette to export.', true);
-      return;
-    }
-
-    const jsonData = { name, colors: palette };
+    const { name, colors } = payload;
+    const jsonData = { name, colors };
     const blob = new Blob([JSON.stringify(jsonData, null, 2) + '\n'], {
       type: 'application/json',
     });
@@ -394,13 +366,9 @@ function App() {
       .generatePalette(filename, { regenerate: true })
       .then((result) => {
         if (result.success && result.palette) {
-          const updatedMeta = { ...selectedMeta, colorPalette: result.palette };
+          const updatedMeta = applyPaletteToMeta(selectedMeta, result.palette);
           setSelectedMeta(updatedMeta);
-          setImages((prev) =>
-            prev.map((m) =>
-              getFilenameFromMeta(m) === filename ? updatedMeta : m
-            )
-          );
+          setImages((prev) => applyPaletteToImages(prev, filename, result.palette));
           showMessage('Palette regenerated with K-means.');
         } else {
           showMessage(result.message || 'Failed to regenerate palette.', true);
