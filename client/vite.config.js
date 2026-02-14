@@ -23,7 +23,7 @@ export default defineConfig({
       ],
       reporter: [
         [resolve(__dirname, 'scripts/coverage-text-reporter.cjs'), { maxCols: 0 }],
-        'text-summary',
+        [resolve(__dirname, 'scripts/coverage-text-summary-reporter.cjs')],
         'html',
       ],
       outputDir: 'coverage',
