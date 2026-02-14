@@ -2,3 +2,11 @@ node_modules/
 .git/
 client/coverage/
 client/coverage-report-*.html
+
+# macOS
+.DS_Store
+
+# Runtime / generated data
+image_metadata.jsonl
+uploads/
+media/
