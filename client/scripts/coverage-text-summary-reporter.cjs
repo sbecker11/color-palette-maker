@@ -1,13 +1,34 @@
 #!/usr/bin/env node
 /**
  * Custom Istanbul text-summary reporter with equal-width columns.
+ * Uses red/yellow/green colorization for percentages:
+ *   red: < 80, yellow: 80-89, green: >= 90
  */
 'use strict';
 const { ReportBase } = require('istanbul-lib-report');
+const supportsColor = require('supports-color');
 
 const LABEL_WIDTH = 11;
 const PCT_WIDTH = 7;
 const FRAC_WIDTH = 9;
+
+// Red < 80, Yellow 80-89, Green >= 90
+const RED = '\x1b[31;1m';
+const YELLOW = '\x1b[33;1m';
+const GREEN = '\x1b[32;1m';
+const RESET = '\x1b[0m';
+
+function colorForPct(pct) {
+  if (!supportsColor.stdout) return '';
+  if (pct >= 90) return GREEN;
+  if (pct >= 80) return YELLOW;
+  return RED;
+}
+
+function colorize(str, pct) {
+  const color = colorForPct(pct);
+  return color ? color + str + RESET : str;
+}
 
 function pad(str, width, right = false) {
   const s = String(str);
@@ -43,8 +64,8 @@ class TextSummaryReport extends ReportBase {
     const cw = context.writer.writeFile(this.file);
     const printLine = (key) => {
       const str = lineForKey(summary, key);
-      const clazz = context.classForPercent(key, summary[key].pct);
-      cw.println(cw.colorize(str, clazz));
+      const pct = summary[key].pct;
+      cw.println(colorize(str, pct));
     };
     cw.println('');
     cw.println('=============================== Coverage summary ===============================');

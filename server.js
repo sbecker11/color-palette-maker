@@ -167,6 +167,8 @@ app.post('/api/palette/:filename', async (req, res) => {
 
     const imageMeta = allMetadata[imageIndex];
     const forceRegenerate = req.query.regenerate === 'true';
+    const kParam = req.query.k;
+    const k = kParam != null && /^\d+$/.test(kParam) ? Math.min(20, Math.max(2, parseInt(kParam, 10))) : undefined;
 
     // Check if palette already exists and is valid - skip cache if ?regenerate=true
     if (!forceRegenerate && imageMeta.colorPalette && Array.isArray(imageMeta.colorPalette) && imageMeta.colorPalette.length > 0) {
@@ -174,12 +176,12 @@ app.post('/api/palette/:filename', async (req, res) => {
         return res.json({ success: true, palette: imageMeta.colorPalette });
     }
 
-    console.log(`[API POST /palette] Generating palette for ${filename}${forceRegenerate ? ' (regenerate)' : ''}`);
+    console.log(`[API POST /palette] Generating palette for ${filename}${forceRegenerate ? ' (regenerate)' : ''}${k != null ? ` k=${k}` : ''}`);
     const imagePath = path.join(uploadsDir, filename); // Use constructed path
 
     try {
         // Generate palette using the imported function
-        const extractedPalette = await imageProcessor.generateDistinctPalette(imagePath);
+        const extractedPalette = await imageProcessor.generateDistinctPalette(imagePath, k != null ? { k } : undefined);
 
         // Update metadata array
         allMetadata[imageIndex].colorPalette = extractedPalette;

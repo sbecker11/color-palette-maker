@@ -125,13 +125,14 @@ function ImageViewer({
         {!hasImage && (
           <span className="placeholder">Select an image from the list</span>
         )}
-        <img
-          ref={imgRef}
-          id="displayedImage"
-          src={imageUrl || ''}
-          alt="Selected Image"
-          style={{ display: hasImage ? 'block' : 'none' }}
-        />
+        {hasImage && (
+          <img
+            ref={imgRef}
+            id="displayedImage"
+            src={imageUrl}
+            alt="Selected Image"
+          />
+        )}
         <canvas
           ref={canvasRef}
           id="imageCanvas"

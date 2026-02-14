@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import MetadataDisplay from './MetadataDisplay';
 
 function PaletteDisplay({
@@ -10,17 +11,19 @@ function PaletteDisplay({
   paletteName,
   onPaletteNameChange,
   onExport,
-  onRegenerate,
+  onRegenerateWithK,
   onDuplicate,
   onPaletteNameBlur,
   selectedMeta,
 }) {
+  const [actionSelect, setActionSelect] = useState('');
   const hasPalette = palette && Array.isArray(palette) && palette.length > 0;
   const showPlaceholder = !isGenerating && !hasPalette;
 
   return (
     <div id="middlePanel">
       <h2>Color Palette</h2>
+      {paletteName && <p id="paletteNameSubtitle">{paletteName}</p>}
       <div id="paletteDisplay">
         {isGenerating && (
           <span className="placeholder">Generating palette...</span>
@@ -80,8 +83,8 @@ function PaletteDisplay({
           <span className="palette-label test-placeholder-label">#888888</span>
         </div>
       </div>
-      <div id="paletteNameContainer">
-        <label htmlFor="paletteNameInput">Palette Name:</label>
+      <div id="paletteNameContainer" className="card">
+        <label htmlFor="paletteNameInput">Change Palette</label>
         <input
           type="text"
           id="paletteNameInput"
@@ -91,15 +94,44 @@ function PaletteDisplay({
           onBlur={() => onPaletteNameBlur?.()}
           disabled={!selectedMeta}
         />
-        <button type="button" id="regeneratePaletteButton" onClick={onRegenerate} disabled={!selectedMeta || isGenerating} title="Replace palette with K-means clustering">
-          Regenerate (K-means)
-        </button>
-        <button type="button" id="duplicatePaletteButton" onClick={onDuplicate} disabled={!selectedMeta} title="Duplicate palette to a new entry at top of list">
-          Duplicate
-        </button>
-        <button type="button" id="exportPaletteButton" onClick={onExport}>
-          Export
-        </button>
+      </div>
+      <div id="paletteActionsCard" className="card">
+        <div className="actions-row">
+          <label htmlFor="paletteActionsNameInput">Name:</label>
+          <input
+            type="text"
+            id="paletteActionsNameInput"
+            name="paletteActionsNameInput"
+            value={paletteName}
+            onChange={(e) => onPaletteNameChange?.(e.target.value)}
+            onBlur={() => onPaletteNameBlur?.()}
+            disabled={!selectedMeta}
+          />
+        </div>
+        <div className="actions-row">
+          <select
+            id="paletteActionsSelect"
+            aria-label="Choose action"
+            value={actionSelect}
+            onChange={(e) => {
+              const v = e.target.value;
+              setActionSelect('');
+              if (v === 'duplicate') onDuplicate?.();
+              else if (v === 'kmeans5') onRegenerateWithK?.(5);
+              else if (v === 'kmeans7') onRegenerateWithK?.(7);
+              else if (v === 'kmeans9') onRegenerateWithK?.(9);
+              else if (v === 'export') onExport?.();
+            }}
+            disabled={!selectedMeta || isGenerating}
+          >
+            <option value="" disabled>Choose action…</option>
+            <option value="duplicate">Duplicate</option>
+            <option value="kmeans5">K-means (5)</option>
+            <option value="kmeans7">K-means (7)</option>
+            <option value="kmeans9">K-means (9)</option>
+            <option value="export">Export</option>
+          </select>
+        </div>
       </div>
       <MetadataDisplay meta={selectedMeta} />
     </div>

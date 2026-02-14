@@ -329,14 +329,8 @@ function App() {
     showMessage(`Export initiated for "${link.download}". Check your browser downloads.`);
   }, [selectedMeta, paletteName, showMessage]);
 
-  const handleDuplicate = useCallback(async () => {
-    if (!selectedMeta) {
-      showMessage('Please select an image first.', true);
-      return;
-    }
-    const filename = getFilenameFromMeta(selectedMeta);
+  const handleDuplicateImage = useCallback(async (filename) => {
     if (!filename) return;
-
     try {
       const result = await api.duplicateImage(filename);
       if (result.success && result.metadata) {
@@ -351,9 +345,18 @@ function App() {
     } catch (error) {
       showMessage('Failed to duplicate.', true);
     }
-  }, [selectedMeta, showMessage, loadImages, handleSelectImage]);
+  }, [showMessage, loadImages, handleSelectImage]);
 
-  const handleRegenerate = useCallback(() => {
+  const handleDuplicate = useCallback(() => {
+    if (!selectedMeta) {
+      showMessage('Please select an image first.', true);
+      return;
+    }
+    const filename = getFilenameFromMeta(selectedMeta);
+    if (filename) handleDuplicateImage(filename);
+  }, [selectedMeta, showMessage, handleDuplicateImage]);
+
+  const handleRegenerateWithK = useCallback((k) => {
     if (!selectedMeta) {
       showMessage('Please select an image first.', true);
       return;
@@ -363,13 +366,13 @@ function App() {
 
     setPaletteGenerating(true);
     api
-      .generatePalette(filename, { regenerate: true })
+      .generatePalette(filename, { regenerate: true, k })
       .then((result) => {
         if (result.success && result.palette) {
           const updatedMeta = applyPaletteToMeta(selectedMeta, result.palette);
           setSelectedMeta(updatedMeta);
           setImages((prev) => applyPaletteToImages(prev, filename, result.palette));
-          showMessage('Palette regenerated with K-means.');
+          showMessage(`Palette regenerated with K-means (${k}).`);
         } else {
           showMessage(result.message || 'Failed to regenerate palette.', true);
         }
@@ -392,6 +395,7 @@ function App() {
             selectedMeta={selectedMeta}
             onSelectImage={handleSelectImage}
             onDeleteImage={handleDeleteImage}
+            onDuplicateImage={handleDuplicateImage}
             onReorder={handleReorder}
             isLoading={isLoading}
           />
@@ -406,7 +410,7 @@ function App() {
           paletteName={paletteName}
           onPaletteNameChange={setPaletteName}
           onExport={handleExport}
-          onRegenerate={handleRegenerate}
+          onRegenerateWithK={handleRegenerateWithK}
           onDuplicate={handleDuplicate}
           onPaletteNameBlur={handlePaletteNameBlur}
           selectedMeta={selectedMeta}

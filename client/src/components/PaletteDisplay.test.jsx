@@ -13,7 +13,7 @@ describe('PaletteDisplay', () => {
     paletteName: 'Test Palette',
     onPaletteNameChange: vi.fn(),
     onExport: vi.fn(),
-    onRegenerate: vi.fn(),
+    onRegenerateWithK: vi.fn(),
     onDuplicate: vi.fn(),
     onPaletteNameBlur: vi.fn(),
     selectedMeta: { paletteName: 'Test Palette' },
@@ -30,51 +30,55 @@ describe('PaletteDisplay', () => {
     expect(screen.getByTitle('#00ff00')).toBeInTheDocument();
   });
 
-  it('shows Regenerate (K-means) button', () => {
+  it('shows actions dropdown with K-means options', () => {
     render(<PaletteDisplay {...defaultProps} />);
-    const btn = screen.getByRole('button', { name: /regenerate/i });
-    expect(btn).toBeInTheDocument();
+    const select = screen.getByRole('combobox', { name: 'Choose action' });
+    expect(select).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /k-means \(5\)/i })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /k-means \(7\)/i })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /k-means \(9\)/i })).toBeInTheDocument();
   });
 
-  it('calls onRegenerate when Regenerate button is clicked', () => {
+  it('calls onRegenerateWithK when K-means (7) is selected', () => {
     render(<PaletteDisplay {...defaultProps} />);
-    fireEvent.click(screen.getByRole('button', { name: /regenerate/i }));
-    expect(defaultProps.onRegenerate).toHaveBeenCalledTimes(1);
+    const select = screen.getByRole('combobox', { name: 'Choose action' });
+    fireEvent.change(select, { target: { value: 'kmeans7' } });
+    expect(defaultProps.onRegenerateWithK).toHaveBeenCalledWith(7);
   });
 
-  it('shows Duplicate button', () => {
+  it('shows Duplicate option in actions dropdown', () => {
     render(<PaletteDisplay {...defaultProps} />);
-    const btn = screen.getByRole('button', { name: /duplicate/i });
-    expect(btn).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /duplicate/i })).toBeInTheDocument();
   });
 
-  it('calls onDuplicate when Duplicate button is clicked', () => {
+  it('calls onDuplicate when Duplicate is selected from dropdown', () => {
     render(<PaletteDisplay {...defaultProps} />);
-    fireEvent.click(screen.getByRole('button', { name: /duplicate/i }));
+    const select = screen.getByRole('combobox', { name: 'Choose action' });
+    fireEvent.change(select, { target: { value: 'duplicate' } });
     expect(defaultProps.onDuplicate).toHaveBeenCalledTimes(1);
   });
 
-  it('shows Export button', () => {
+  it('shows Export option in actions dropdown', () => {
     render(<PaletteDisplay {...defaultProps} />);
-    const btn = screen.getByRole('button', { name: /export/i });
-    expect(btn).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /export/i })).toBeInTheDocument();
   });
 
-  it('calls onExport when Export button is clicked', () => {
+  it('calls onExport when Export is selected from dropdown', () => {
     render(<PaletteDisplay {...defaultProps} />);
-    fireEvent.click(screen.getByRole('button', { name: /export/i }));
+    const select = screen.getByRole('combobox', { name: 'Choose action' });
+    fireEvent.change(select, { target: { value: 'export' } });
     expect(defaultProps.onExport).toHaveBeenCalledTimes(1);
   });
 
   it('shows palette name input', () => {
     render(<PaletteDisplay {...defaultProps} />);
-    const input = screen.getByLabelText(/palette name/i);
+    const input = screen.getByLabelText(/change palette/i);
     expect(input).toHaveValue('Test Palette');
   });
 
   it('calls onPaletteNameBlur when palette name input loses focus', () => {
     render(<PaletteDisplay {...defaultProps} />);
-    const input = screen.getByLabelText(/palette name/i);
+    const input = screen.getByLabelText(/change palette/i);
     fireEvent.blur(input);
     expect(defaultProps.onPaletteNameBlur).toHaveBeenCalledTimes(1);
   });
@@ -116,7 +120,7 @@ describe('PaletteDisplay', () => {
 
   it('calls onPaletteNameChange when input changes', () => {
     render(<PaletteDisplay {...defaultProps} />);
-    const input = screen.getByLabelText(/palette name/i);
+    const input = screen.getByLabelText(/change palette/i);
     fireEvent.change(input, { target: { value: 'New Name' } });
     expect(defaultProps.onPaletteNameChange).toHaveBeenCalledWith('New Name');
   });
@@ -147,11 +151,11 @@ describe('PaletteDisplay', () => {
 
   it('disables palette name input when no selectedMeta', () => {
     render(<PaletteDisplay {...defaultProps} selectedMeta={null} />);
-    expect(screen.getByLabelText(/palette name/i)).toBeDisabled();
+    expect(screen.getByLabelText(/change palette/i)).toBeDisabled();
   });
 
-  it('disables Regenerate button when no selectedMeta', () => {
+  it('disables actions dropdown when no selectedMeta', () => {
     render(<PaletteDisplay {...defaultProps} selectedMeta={null} />);
-    expect(screen.getByRole('button', { name: /regenerate/i })).toBeDisabled();
+    expect(screen.getByRole('combobox', { name: 'Choose action' })).toBeDisabled();
   });
 });

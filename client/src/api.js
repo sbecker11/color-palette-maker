@@ -17,10 +17,12 @@ const api = {
   },
 
   async generatePalette(filename, opts = {}) {
-    const { regenerate = false } = opts;
-    const url = regenerate
-      ? `/api/palette/${encodeURIComponent(filename)}?regenerate=true`
-      : `/api/palette/${encodeURIComponent(filename)}`;
+    const { regenerate = false, k } = opts;
+    const params = new URLSearchParams();
+    if (regenerate) params.set('regenerate', 'true');
+    if (k != null && k >= 2 && k <= 20) params.set('k', String(k));
+    const qs = params.toString();
+    const url = `/api/palette/${encodeURIComponent(filename)}${qs ? `?${qs}` : ''}`;
     const response = await fetch(url, { method: 'POST' });
     return response.json();
   },

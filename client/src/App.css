@@ -412,12 +412,22 @@ input[type="file"] {
   opacity: 1;
 }
 
-#paletteNameContainer {
+#paletteNameSubtitle {
+  margin: 0 0 5px 0;
+  font-size: 0.9em;
+  color: var(--placeholder-color);
+}
+
+#paletteNameContainer,
+#paletteActionsCard {
   margin-top: 10px;
   margin-bottom: 10px;
   padding: 10px;
   border: 1px solid var(--border-color);
   background-color: var(--metadata-bg);
+}
+
+#paletteNameContainer {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -429,6 +439,36 @@ input[type="file"] {
   font-weight: bold;
   color: var(--text-color);
   flex-shrink: 0;
+}
+
+#paletteActionsCard .actions-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+#paletteActionsCard .actions-row:last-child {
+  margin-bottom: 0;
+}
+#paletteActionsCard label {
+  margin: 0;
+  font-weight: bold;
+  color: var(--text-color);
+  flex-shrink: 0;
+  min-width: 40px;
+}
+#paletteActionsCard input {
+  flex-grow: 1;
+  min-width: 0;
+}
+#paletteActionsCard select {
+  width: 100%;
+  padding: 6px;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  border: 1px solid var(--input-border);
+  border-radius: 3px;
+  font-size: 0.95em;
 }
 
 #paletteNameInput {

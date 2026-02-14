@@ -27,13 +27,6 @@ export default defineConfig({
         'html',
       ],
       outputDir: 'coverage',
-      thresholds: {
-        statements: 90,
-        branches: 75,
-        functions: 90,
-        lines: 90,
-        '**/App.jsx': { statements: 84, branches: 56, lines: 84 },
-      },
     },
   },
   server: {

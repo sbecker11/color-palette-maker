@@ -44,14 +44,16 @@ function calculateLuminance(rgb) {
 }
 
 /**
- * Generates a palette of up to 5 dominant colors from an image using K-means (k=7),
+ * Generates a palette of up to 5 dominant colors from an image using K-means,
  * filtering clusters based on luminance thresholds (removing near-blacks/whites),
  * and returning the remaining colors sorted by luminance (darkest to lightest).
  * @param {string} imagePath - The path to the image file.
+ * @param {{ k?: number }} [options] - Optional. k: number of clusters (2–20, default 7).
  * @returns {Promise<string[]>} A promise that resolves to an array of hex color strings (e.g., ['#RRGGBB']).
  */
-async function generateDistinctPalette(imagePath) {
-    console.log(`[Image Processor] Starting K-means palette generation (k=${K_CLUSTERS}, luminance threshold filtered) for: ${imagePath}`);
+async function generateDistinctPalette(imagePath, options = {}) {
+    const k = options.k != null ? Math.min(20, Math.max(2, Math.floor(options.k))) : K_CLUSTERS;
+    console.log(`[Image Processor] Starting K-means palette generation (k=${k}, luminance threshold filtered) for: ${imagePath}`);
     let extractedPalette = [];
 
     try {
@@ -84,9 +86,8 @@ async function generateDistinctPalette(imagePath) {
 
             // 3. Perform K-means clustering (unseeded).
             const result = await new Promise((resolve, reject) => {
-                console.log(`[Image Processor] Calling K-means clusterize with k=${K_CLUSTERS}...`);
-                // clusterize(pixelArray, { k: K_CLUSTERS, initialization: initialCentroids }, (err, res) => { // OLD SEEDED CALL
-                clusterize(pixelArray, { k: K_CLUSTERS }, (err, res) => { // UNSEEDED CALL
+                console.log(`[Image Processor] Calling K-means clusterize with k=${k}...`);
+                clusterize(pixelArray, { k }, (err, res) => {
                     if (err) {
                         console.error('[Image Processor] *** K-means callback error:', err);
                         return reject(err);

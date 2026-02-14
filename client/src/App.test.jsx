@@ -98,27 +98,29 @@ describe('App', () => {
     });
   });
 
-  it('calls handleRegenerate when Regenerate button clicked', async () => {
+  it('calls handleRegenerateWithK when K-means (7) selected from dropdown', async () => {
     api.generatePalette.mockResolvedValue({
       success: true,
       palette: ['#111', '#222'],
     });
     render(<App />);
     await waitFor(() => expect(api.getImages).toHaveBeenCalled());
-    const regenBtn = screen.getByRole('button', { name: /regenerate/i });
-    fireEvent.click(regenBtn);
-    await waitFor(() => expect(api.generatePalette).toHaveBeenCalledWith(expect.any(String), { regenerate: true }));
+    const select = screen.getByRole('combobox', { name: 'Choose action' });
+    fireEvent.change(select, { target: { value: 'kmeans7' } });
+    await waitFor(() =>
+      expect(api.generatePalette).toHaveBeenCalledWith(expect.any(String), { regenerate: true, k: 7 })
+    );
   });
 
-  it('calls handleExport when Export button clicked', async () => {
+  it('calls handleExport when Export selected from dropdown', async () => {
     render(<App />);
     await waitFor(() => expect(api.getImages).toHaveBeenCalled());
-    const exportBtn = screen.getByRole('button', { name: /export/i });
-    fireEvent.click(exportBtn);
+    const select = screen.getByRole('combobox', { name: 'Choose action' });
+    fireEvent.change(select, { target: { value: 'export' } });
     expect(screen.getByText(/export initiated|please select/i)).toBeInTheDocument();
   });
 
-  it('calls handleDuplicate when Duplicate button clicked', async () => {
+  it('calls handleDuplicate when Duplicate selected from dropdown', async () => {
     api.duplicateImage.mockResolvedValue({
       success: true,
       filename: 'img-1-copy-1.jpeg',
@@ -126,8 +128,8 @@ describe('App', () => {
     });
     render(<App />);
     await waitFor(() => expect(api.getImages).toHaveBeenCalled());
-    const dupBtn = screen.getByRole('button', { name: /duplicate/i });
-    fireEvent.click(dupBtn);
+    const select = screen.getByRole('combobox', { name: 'Choose action' });
+    fireEvent.change(select, { target: { value: 'duplicate' } });
     await waitFor(() => expect(api.duplicateImage).toHaveBeenCalled());
   });
 
@@ -135,7 +137,7 @@ describe('App', () => {
     api.saveMetadata.mockResolvedValue({ success: true });
     render(<App />);
     await waitFor(() => expect(api.getImages).toHaveBeenCalled());
-    const input = screen.getByLabelText(/palette name/i);
+    const input = screen.getByLabelText(/change palette/i);
     fireEvent.change(input, { target: { value: 'New Name' } });
     fireEvent.blur(input);
     await waitFor(() => expect(api.saveMetadata).toHaveBeenCalled());
@@ -198,7 +200,7 @@ describe('App', () => {
     api.deleteImage.mockResolvedValue({ success: true });
     render(<App />);
     await waitFor(() => expect(api.getImages).toHaveBeenCalled());
-    const deleteBtn = screen.getByRole('button', { name: /delete/i });
+    const deleteBtn = screen.getByRole('button', { name: /del/i });
     fireEvent.click(deleteBtn);
     await waitFor(() => expect(api.deleteImage).toHaveBeenCalled());
     confirmSpy.mockRestore();
@@ -219,7 +221,8 @@ describe('App', () => {
     api.generatePalette.mockRejectedValue(new Error('Network error'));
     render(<App />);
     await waitFor(() => expect(api.getImages).toHaveBeenCalled());
-    fireEvent.click(screen.getByRole('button', { name: /regenerate/i }));
+    const select = screen.getByRole('combobox', { name: 'Choose action' });
+    fireEvent.change(select, { target: { value: 'kmeans7' } });
     await waitFor(() =>
       expect(screen.getByText(/failed to regenerate palette/i)).toBeInTheDocument()
     );
@@ -240,7 +243,8 @@ describe('App', () => {
     api.duplicateImage.mockResolvedValue({ success: false, message: 'Duplicate failed' });
     render(<App />);
     await waitFor(() => expect(api.getImages).toHaveBeenCalled());
-    fireEvent.click(screen.getByRole('button', { name: /duplicate/i }));
+    const select = screen.getByRole('combobox', { name: 'Choose action' });
+    fireEvent.change(select, { target: { value: 'duplicate' } });
     await waitFor(() =>
       expect(screen.getByText(/failed to duplicate|duplicate failed/i)).toBeInTheDocument()
     );
@@ -253,7 +257,8 @@ describe('App', () => {
     global.URL.revokeObjectURL = revokeObjectURL;
     render(<App />);
     await waitFor(() => expect(api.getImages).toHaveBeenCalled());
-    fireEvent.click(screen.getByRole('button', { name: /export/i }));
+    const select = screen.getByRole('combobox', { name: 'Choose action' });
+    fireEvent.change(select, { target: { value: 'export' } });
     expect(createObjectURL).toHaveBeenCalled();
   });
 });
