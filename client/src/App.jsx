@@ -347,6 +347,12 @@ function App() {
     }
   }, [showMessage, loadImages, handleSelectImage]);
 
+  const handleDelete = useCallback(() => {
+    if (!selectedMeta) return;
+    const filename = getFilenameFromMeta(selectedMeta);
+    if (filename) handleDeleteImage(filename, selectedMeta);
+  }, [selectedMeta, handleDeleteImage]);
+
   const handleDuplicate = useCallback(() => {
     if (!selectedMeta) {
       showMessage('Please select an image first.', true);
@@ -411,6 +417,7 @@ function App() {
           onPaletteNameChange={setPaletteName}
           onExport={handleExport}
           onRegenerateWithK={handleRegenerateWithK}
+          onDelete={handleDelete}
           onDuplicate={handleDuplicate}
           onPaletteNameBlur={handlePaletteNameBlur}
           selectedMeta={selectedMeta}

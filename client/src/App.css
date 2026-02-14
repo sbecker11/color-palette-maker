@@ -1,5 +1,6 @@
 /* Color Palette Maker - React SPA Styles */
 :root {
+  --gap: 10px;
   --bg-color: #fff;
   --text-color: #333;
   --header-bg: #eee;
@@ -53,7 +54,7 @@ body {
   color: var(--text-color);
 }
 header {
-  padding: 10px;
+  padding: var(--gap);
   background-color: var(--header-bg);
   border-bottom: 1px solid var(--border-color);
   display: flex;
@@ -76,16 +77,16 @@ header h1 {
 main {
   display: flex;
   flex: 1;
-  padding: 10px;
-  gap: 20px;
-  margin-top: 10px;
+  padding: var(--gap);
+  gap: var(--gap);
+  margin-top: var(--gap);
 }
 
 #leftPanel {
   width: 300px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--gap);
   overflow-y: auto;
   margin-top: 0;
 }
@@ -94,20 +95,20 @@ main {
   width: 300px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--gap);
   overflow-y: auto;
 }
 
 #middlePanel h2 {
-  margin-top: 0;
+  margin: 0;
 }
 
 #controls {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: var(--gap);
   border: 1px solid var(--border-color);
-  padding: 10px 10px 5px 10px;
+  padding: var(--gap);
   background-color: var(--bg-color);
   margin-bottom: 0;
 }
@@ -119,14 +120,14 @@ main {
 
 #storedImagesSection {
   border: 1px solid var(--border-color);
-  padding: 10px;
+  padding: var(--gap);
   background-color: var(--bg-color);
   flex-grow: 1;
   overflow-y: auto;
   margin-top: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--gap);
 }
 
 #storedImagesSection h2 {
@@ -140,9 +141,9 @@ main {
   margin: 0;
 }
 #fileList li {
-  margin-bottom: 5px;
+  margin-bottom: var(--gap);
   word-break: break-all;
-  padding: 2px 4px;
+  padding: calc(var(--gap) * 0.2) calc(var(--gap) * 0.4);
   border-radius: 3px;
   cursor: default;
   color: var(--text-color);
@@ -162,7 +163,7 @@ main {
 .library-item-order {
   display: inline-flex;
   flex-direction: column;
-  margin-right: 6px;
+  margin-right: var(--gap);
   vertical-align: middle;
 }
 
@@ -222,7 +223,7 @@ main {
 }
 
 .input-group {
-  margin-bottom: 10px;
+  margin-bottom: var(--gap);
 }
 .input-group label {
   color: var(--text-color);
@@ -233,13 +234,13 @@ main {
 
 #messageArea {
   margin-top: 0;
-  padding: 5px 10px;
+  padding: var(--gap);
   border-radius: 5px;
   text-align: center;
   min-height: auto;
   border: 1px solid transparent;
   flex-grow: 1;
-  margin-left: 10px;
+  margin-left: var(--gap);
   line-height: 1.5;
 }
 
@@ -260,12 +261,12 @@ main {
 
 form {
   border: 1px solid var(--input-border);
-  padding: 15px 15px 0 15px;
+  padding: var(--gap);
   border-radius: 5px;
   background-color: var(--bg-color);
 }
 button {
-  padding: 8px 15px;
+  padding: calc(var(--gap) * 0.8) var(--gap);
   cursor: pointer;
   background-color: var(--button-bg);
   color: var(--button-text);
@@ -282,8 +283,8 @@ button:disabled {
 input[type="text"],
 input[type="file"] {
   width: 95%;
-  padding: 6px;
-  margin-top: 5px;
+  padding: calc(var(--gap) * 0.6);
+  margin-top: calc(var(--gap) * 0.5);
   background-color: var(--bg-color);
   color: var(--text-color);
   border: 1px solid var(--input-border);
@@ -312,8 +313,8 @@ input[type="file"] {
 
 #metadataDisplay {
   border: 1px solid var(--border-color);
-  padding: 10px;
-  margin-bottom: 10px;
+  padding: var(--gap);
+  margin-bottom: var(--gap);
   background-color: var(--metadata-bg);
   font-size: 0.85em;
   max-height: 170px;
@@ -321,7 +322,7 @@ input[type="file"] {
   color: var(--text-color);
 }
 #metadataDisplay h3 {
-  margin: 0 0 5px 0;
+  margin: 0 0 calc(var(--gap) * 0.5) 0;
   font-size: 1.1em;
 }
 #metadataDisplay ul {
@@ -330,7 +331,7 @@ input[type="file"] {
   margin: 0;
 }
 #metadataDisplay li {
-  margin-bottom: 3px;
+  margin-bottom: calc(var(--gap) * 0.3);
 }
 #metadataDisplay strong {
   color: var(--metadata-key-color);
@@ -346,20 +347,19 @@ input[type="file"] {
 }
 
 #themeToggleButton {
-  padding: 5px 10px;
+  padding: calc(var(--gap) * 0.5) var(--gap);
   font-size: 0.9em;
 }
 
 #paletteDisplay {
-  padding: 10px;
-  margin-bottom: 10px;
+  padding: var(--gap);
   border: 1px solid var(--border-color);
   background-color: var(--metadata-bg);
   text-align: center;
   min-height: 60px;
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: var(--gap);
   justify-content: center;
   align-items: center;
 }
@@ -368,7 +368,7 @@ input[type="file"] {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: calc(var(--gap) * 0.4);
   position: relative;
 }
 .palette-color {
@@ -412,58 +412,34 @@ input[type="file"] {
   opacity: 1;
 }
 
-#paletteNameSubtitle {
-  margin: 0 0 5px 0;
-  font-size: 0.9em;
-  color: var(--placeholder-color);
-}
-
-#paletteNameContainer,
-#paletteActionsCard {
-  margin-top: 10px;
-  margin-bottom: 10px;
-  padding: 10px;
-  border: 1px solid var(--border-color);
-  background-color: var(--metadata-bg);
-}
-
-#paletteNameContainer {
+#paletteNameRow {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-#paletteNameContainer label {
-  margin-bottom: 0;
-  font-weight: bold;
-  color: var(--text-color);
-  flex-shrink: 0;
-}
-
-#paletteActionsCard .actions-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-#paletteActionsCard .actions-row:last-child {
+  gap: var(--gap);
   margin-bottom: 0;
 }
-#paletteActionsCard label {
+#paletteNameRow label {
   margin: 0;
   font-weight: bold;
   color: var(--text-color);
   flex-shrink: 0;
-  min-width: 40px;
 }
-#paletteActionsCard input {
+#paletteNameRow input {
   flex-grow: 1;
   min-width: 0;
+  padding: calc(var(--gap) * 0.6);
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  border: 1px solid var(--input-border);
+  border-radius: 3px;
 }
-#paletteActionsCard select {
+
+#paletteActionsRow {
+  margin: 0;
+}
+#paletteActionsRow select {
   width: 100%;
-  padding: 6px;
+  padding: calc(var(--gap) * 0.6);
   background-color: var(--bg-color);
   color: var(--text-color);
   border: 1px solid var(--input-border);
@@ -474,7 +450,7 @@ input[type="file"] {
 #paletteNameInput {
   flex-grow: 1;
   min-width: 100px;
-  padding: 6px;
+  padding: calc(var(--gap) * 0.6);
   background-color: var(--bg-color);
   color: var(--text-color);
   border: 1px solid var(--input-border);
@@ -484,7 +460,7 @@ input[type="file"] {
 #regeneratePaletteButton,
 #duplicatePaletteButton,
 #exportPaletteButton {
-  padding: 6px 10px;
+  padding: calc(var(--gap) * 0.6) var(--gap);
   font-size: 0.9em;
   flex-shrink: 0;
 }
@@ -530,5 +506,5 @@ body.sampling-active #imageViewer img {
 .form-actions {
   display: flex;
   align-items: center;
-  margin-top: 10px;
+  margin-top: var(--gap);
 }

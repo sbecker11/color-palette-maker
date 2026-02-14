@@ -4,7 +4,7 @@ function MetadataDisplay({ meta }) {
   if (!meta) {
     return (
       <div id="metadataDisplay">
-        <h3>Selected Image Info</h3>
+        <h3>Palette image info</h3>
         <span className="placeholder">Select an image from the list below.</span>
       </div>
     );
@@ -39,7 +39,7 @@ function MetadataDisplay({ meta }) {
 
   return (
     <div id="metadataDisplay">
-      <h3>Selected Image Info</h3>
+      <h3>Palette image info</h3>
       <ul>
         <li>
           <strong>Filename:</strong> {filename}

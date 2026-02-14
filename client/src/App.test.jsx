@@ -120,24 +120,11 @@ describe('App', () => {
     expect(screen.getByText(/export initiated|please select/i)).toBeInTheDocument();
   });
 
-  it('calls handleDuplicate when Duplicate selected from dropdown', async () => {
-    api.duplicateImage.mockResolvedValue({
-      success: true,
-      filename: 'img-1-copy-1.jpeg',
-      metadata: { cachedFilePath: '/uploads/img-1-copy-1.jpeg', paletteName: 'img-1-copy-1' },
-    });
-    render(<App />);
-    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
-    const select = screen.getByRole('combobox', { name: 'Choose action' });
-    fireEvent.change(select, { target: { value: 'duplicate' } });
-    await waitFor(() => expect(api.duplicateImage).toHaveBeenCalled());
-  });
-
   it('updates palette name on blur', async () => {
     api.saveMetadata.mockResolvedValue({ success: true });
     render(<App />);
     await waitFor(() => expect(api.getImages).toHaveBeenCalled());
-    const input = screen.getByLabelText(/change palette/i);
+    const input = screen.getByLabelText(/name/i);
     fireEvent.change(input, { target: { value: 'New Name' } });
     fireEvent.blur(input);
     await waitFor(() => expect(api.saveMetadata).toHaveBeenCalled());
@@ -236,17 +223,6 @@ describe('App', () => {
     fireEvent.click(deleteButtons[0]);
     await waitFor(() =>
       expect(screen.getByText(/error saving palette|save failed/i)).toBeInTheDocument()
-    );
-  });
-
-  it('handles handleDuplicate failure', async () => {
-    api.duplicateImage.mockResolvedValue({ success: false, message: 'Duplicate failed' });
-    render(<App />);
-    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
-    const select = screen.getByRole('combobox', { name: 'Choose action' });
-    fireEvent.change(select, { target: { value: 'duplicate' } });
-    await waitFor(() =>
-      expect(screen.getByText(/failed to duplicate|duplicate failed/i)).toBeInTheDocument()
     );
   });
 

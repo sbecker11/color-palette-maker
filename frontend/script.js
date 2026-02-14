@@ -253,7 +253,7 @@ function displayMetadata(meta) {
         const added = meta.createdDateTime ? new Date(meta.createdDateTime).toLocaleString() : 'N/A';
 
         displayArea.innerHTML = 
-            '<h3>Selected Image Info</h3>' +
+            '<h3>Palette image info</h3>' +
             '<ul>' +
                 '<li><strong>Filename:</strong> ' + filename + '</li>' +
                 '<li><strong>Dimensions:</strong> ' + dimensions + '</li>' +
@@ -264,7 +264,7 @@ function displayMetadata(meta) {
             '</ul>';
     } else {
         displayArea.innerHTML = 
-            '<h3>Selected Image Info</h3>' +
+            '<h3>Palette image info</h3>' +
             '<span class="placeholder">Select an image from the list below.</span>';
     }
 }

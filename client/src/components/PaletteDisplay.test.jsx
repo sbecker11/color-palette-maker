@@ -14,6 +14,7 @@ describe('PaletteDisplay', () => {
     onPaletteNameChange: vi.fn(),
     onExport: vi.fn(),
     onRegenerateWithK: vi.fn(),
+    onDelete: vi.fn(),
     onDuplicate: vi.fn(),
     onPaletteNameBlur: vi.fn(),
     selectedMeta: { paletteName: 'Test Palette' },
@@ -46,12 +47,23 @@ describe('PaletteDisplay', () => {
     expect(defaultProps.onRegenerateWithK).toHaveBeenCalledWith(7);
   });
 
-  it('shows Duplicate option in actions dropdown', () => {
+  it('shows (Del)ete and (Dup)licate at top of actions dropdown', () => {
     render(<PaletteDisplay {...defaultProps} />);
-    expect(screen.getByRole('option', { name: /duplicate/i })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: '(Del)ete' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: '(Dup)licate' })).toBeInTheDocument();
+    const options = screen.getAllByRole('option');
+    expect(options[1]).toHaveTextContent('(Del)ete');
+    expect(options[2]).toHaveTextContent('(Dup)licate');
   });
 
-  it('calls onDuplicate when Duplicate is selected from dropdown', () => {
+  it('calls onDelete when (Del)ete is selected from dropdown', () => {
+    render(<PaletteDisplay {...defaultProps} />);
+    const select = screen.getByRole('combobox', { name: 'Choose action' });
+    fireEvent.change(select, { target: { value: 'delete' } });
+    expect(defaultProps.onDelete).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls onDuplicate when (Dup)licate is selected from dropdown', () => {
     render(<PaletteDisplay {...defaultProps} />);
     const select = screen.getByRole('combobox', { name: 'Choose action' });
     fireEvent.change(select, { target: { value: 'duplicate' } });
@@ -72,13 +84,13 @@ describe('PaletteDisplay', () => {
 
   it('shows palette name input', () => {
     render(<PaletteDisplay {...defaultProps} />);
-    const input = screen.getByLabelText(/change palette/i);
+    const input = screen.getByLabelText(/name/i);
     expect(input).toHaveValue('Test Palette');
   });
 
   it('calls onPaletteNameBlur when palette name input loses focus', () => {
     render(<PaletteDisplay {...defaultProps} />);
-    const input = screen.getByLabelText(/change palette/i);
+    const input = screen.getByLabelText(/name/i);
     fireEvent.blur(input);
     expect(defaultProps.onPaletteNameBlur).toHaveBeenCalledTimes(1);
   });
@@ -120,7 +132,7 @@ describe('PaletteDisplay', () => {
 
   it('calls onPaletteNameChange when input changes', () => {
     render(<PaletteDisplay {...defaultProps} />);
-    const input = screen.getByLabelText(/change palette/i);
+    const input = screen.getByLabelText(/name/i);
     fireEvent.change(input, { target: { value: 'New Name' } });
     expect(defaultProps.onPaletteNameChange).toHaveBeenCalledWith('New Name');
   });
@@ -151,7 +163,7 @@ describe('PaletteDisplay', () => {
 
   it('disables palette name input when no selectedMeta', () => {
     render(<PaletteDisplay {...defaultProps} selectedMeta={null} />);
-    expect(screen.getByLabelText(/change palette/i)).toBeDisabled();
+    expect(screen.getByLabelText(/name/i)).toBeDisabled();
   });
 
   it('disables actions dropdown when no selectedMeta', () => {

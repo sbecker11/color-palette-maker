@@ -2,6 +2,7 @@
 
 const getPixels = require('get-pixels');
 const { clusterize } = require('node-kmeans'); // Import K-means
+const colorDiff = require('color-diff');
 
 // --- Palette Generation Configuration ---
 
@@ -13,6 +14,23 @@ const FINAL_PALETTE_SIZE = 5;
 // Luminance thresholds to filter out near-black and near-white clusters.
 const MIN_LUMINANCE_THRESHOLD = 25;
 const MAX_LUMINANCE_THRESHOLD = 185;
+
+// CIEDE2000 delta-E threshold for merging centroids (e.g., when image has fewer distinct colors than k).
+const COLOR_SIMILARITY_THRESHOLD = 5;
+
+function minPairwiseColorDistance(centroidsRgb) {
+    if (centroidsRgb.length < 2) return null;
+    let minD = Infinity;
+    for (let i = 0; i < centroidsRgb.length; i++) {
+        const a = { R: centroidsRgb[i][0], G: centroidsRgb[i][1], B: centroidsRgb[i][2] };
+        for (let j = i + 1; j < centroidsRgb.length; j++) {
+            const b = { R: centroidsRgb[j][0], G: centroidsRgb[j][1], B: centroidsRgb[j][2] };
+            const d = colorDiff.diff(a, b);
+            if (d < minD) minD = d;
+        }
+    }
+    return minD === Infinity ? null : minD;
+}
 
 // // Define pure black and white for seeding and filtering (REMOVED)
 // const PURE_BLACK_RGB = [0, 0, 0];
@@ -71,16 +89,17 @@ async function generateDistinctPalette(imagePath, options = {}) {
         });
         console.log('[Image Processor] getPixels promise resolved.');
 
-        // 2. Prepare the pixel array for K-means.
+        // 2. Prepare the pixel array for K-means (exclude transparent, near-black, near-white).
         const pixelArray = []; // Array of [R, G, B] vectors
         const pixelDataArray = pixelsData.data;
         for (let i = 0; i < pixelDataArray.length; i += 4) {
-            // Alpha threshold: Ignore pixels that are mostly transparent.
-            if (pixelDataArray[i + 3] > 128) { 
-                pixelArray.push([pixelDataArray[i], pixelDataArray[i + 1], pixelDataArray[i + 2]]);
-            }
+            if (pixelDataArray[i + 3] <= 128) continue; // Skip mostly transparent
+            const rgb = [pixelDataArray[i], pixelDataArray[i + 1], pixelDataArray[i + 2]];
+            const lum = calculateLuminance(rgb);
+            if (lum < MIN_LUMINANCE_THRESHOLD || lum > MAX_LUMINANCE_THRESHOLD) continue; // Exclude near-black/white
+            pixelArray.push(rgb);
         }
-        console.log(`[Image Processor] Prepared pixel array with ${pixelArray.length} pixels.`);
+        console.log(`[Image Processor] Prepared pixel array with ${pixelArray.length} pixels (excluding near-black/white).`);
 
         if (pixelArray.length > 0) {
 
@@ -99,39 +118,14 @@ async function generateDistinctPalette(imagePath, options = {}) {
             console.log('[Image Processor] K-means promise resolved.');
 
             if (result && Array.isArray(result) && result.length > 0) {
-                // 4. Extract the 7 centroids.
-                let allCentroidsRgb = result.map(cluster => cluster.centroid.map(Math.round)); 
+                const allCentroidsRgb = result.map(cluster => cluster.centroid.map(Math.round));
                 console.log(`[Image Processor] Extracted ${allCentroidsRgb.length} centroids (colors).`);
-
-                // 5. Calculate luminance for each centroid.
-                const centroidsWithLuminance = allCentroidsRgb.map(rgb => ({
-                    rgb: rgb,
-                    luminance: calculateLuminance(rgb)
-                }));
-
-                // 6. Filter centroids based on luminance thresholds.
-                const thresholdFilteredCentroids = centroidsWithLuminance.filter(item => 
-                    item.luminance >= MIN_LUMINANCE_THRESHOLD && item.luminance <= MAX_LUMINANCE_THRESHOLD
-                );
-                console.log(`[Image Processor] Filtered ${centroidsWithLuminance.length} centroids by luminance thresholds down to ${thresholdFilteredCentroids.length}.`);
-
-                // 7. Sort the filtered centroids by luminance.
-                thresholdFilteredCentroids.sort((a, b) => a.luminance - b.luminance);
-                console.log('[Image Processor] Sorted filtered centroids by luminance.');
-
-                // 8. Take up to FINAL_PALETTE_SIZE colors.
-                const finalCentroids = thresholdFilteredCentroids.slice(0, FINAL_PALETTE_SIZE);
-                console.log(`[Image Processor] Selected final ${finalCentroids.length} centroids.`);
-
-                // 9. Format the final RGB colors as hex strings.
-                extractedPalette = finalCentroids.map(item => {
-                    const rgb = item.rgb;
-                    const r = rgb[0].toString(16).padStart(2, '0');
-                    const g = rgb[1].toString(16).padStart(2, '0');
-                    const b = rgb[2].toString(16).padStart(2, '0');
-                    return `#${r}${g}${b}`;
-                });
-
+                const minDistKmeans = minPairwiseColorDistance(allCentroidsRgb);
+                if (minDistKmeans != null) {
+                    console.log(`[Image Processor] After K-means: minimal color distance = ${minDistKmeans.toFixed(4)}`);
+                }
+                extractedPalette = centroidsToPalette(allCentroidsRgb, options);
+                console.log(`[Image Processor] Selected final ${extractedPalette.length} centroids.`);
             } else {
                 console.warn('[Image Processor] K-means did not return valid results.');
             }
@@ -155,6 +149,57 @@ function rgbToHex(rgb) {
     return `#${r}${g}${b}`;
 }
 
+/**
+ * Converts raw K-means centroids (RGB arrays) to a palette of hex strings.
+ * Filters by luminance, sorts by luminance, and takes up to maxColors.
+ * @param {number[][]} centroidsRgb - Array of [r,g,b] arrays (0-255).
+ * @param {{ k?: number }} [options] - Optional. k: max palette size when specified.
+ * @returns {string[]} Array of hex color strings.
+ */
+function centroidsToPalette(centroidsRgb, options = {}) {
+    const k = options.k != null ? Math.min(20, Math.max(2, Math.floor(options.k))) : K_CLUSTERS;
+    const maxColors = options.k != null ? k : FINAL_PALETTE_SIZE;
+
+    const centroidsWithLuminance = centroidsRgb.map(rgb => ({
+        rgb: rgb,
+        luminance: calculateLuminance(rgb)
+    }));
+
+    const filtered = centroidsWithLuminance.filter(item =>
+        item.luminance >= MIN_LUMINANCE_THRESHOLD && item.luminance <= MAX_LUMINANCE_THRESHOLD
+    );
+    filtered.sort((a, b) => a.luminance - b.luminance);
+
+    const filteredRgb = filtered.map((item) => item.rgb);
+    const minDistBeforeMerge = minPairwiseColorDistance(filteredRgb);
+    if (minDistBeforeMerge != null) {
+        console.log(`[Image Processor] Before merge centroids: minimal color distance = ${minDistBeforeMerge.toFixed(4)} (${filtered.length} centroids)`);
+    }
+
+    // Merge centroids within COLOR_SIMILARITY_THRESHOLD (handles images with fewer distinct colors than k)
+    const merged = [];
+    for (const item of filtered) {
+        const c = { R: item.rgb[0], G: item.rgb[1], B: item.rgb[2] };
+        const shouldMerge = merged.some((existing) =>
+            colorDiff.diff(c, { R: existing.rgb[0], G: existing.rgb[1], B: existing.rgb[2] }) < COLOR_SIMILARITY_THRESHOLD
+        );
+        if (!shouldMerge) merged.push(item);
+        if (merged.length >= maxColors) break;
+    }
+
+    const mergedRgb = merged.map((item) => item.rgb);
+    const minDistMerged = minPairwiseColorDistance(mergedRgb);
+    if (minDistMerged != null) {
+        console.log(`[Image Processor] After merge centroids: minimal color distance = ${minDistMerged.toFixed(4)} (${merged.length} centroids)`);
+    }
+
+    const finalCentroids = merged.slice(0, maxColors);
+    return finalCentroids.map(item => rgbToHex(item.rgb));
+}
+
 module.exports = {
-    generateDistinctPalette
+    generateDistinctPalette,
+    centroidsToPalette,
+    calculateLuminance,
+    minPairwiseColorDistance
 };
