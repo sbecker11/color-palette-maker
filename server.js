@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const { spawn } = require('child_process');
 const axios = require('axios');
 const fs = require('fs');
 const fsp = require('fs').promises;
@@ -16,6 +17,18 @@ const port = 3000;
 
 // --- Configuration ---
 const uploadsDir = path.join(__dirname, 'uploads');
+
+// Resolve Python for region detection: DETECT_REGIONS_PYTHON > VIRTUAL_ENV > ./venv > python3
+function getRegionDetectionPython() {
+    if (process.env.DETECT_REGIONS_PYTHON) {
+        return process.env.DETECT_REGIONS_PYTHON;
+    }
+    const isWin = process.platform === 'win32';
+    const venvDir = process.env.VIRTUAL_ENV || path.join(__dirname, 'venv');
+    const venvPython = path.join(venvDir, isWin ? 'Scripts\\python.exe' : 'bin/python');
+    if (fs.existsSync(venvPython)) return venvPython;
+    return 'python3';
+}
 
 // Ensure uploads directory exists (using async fs)
 async function ensureUploadsDir() {
@@ -142,8 +155,64 @@ app.post('/upload', upload.single('imageFile'), async (req, res) => {
     }
 });
 
+// POST /api/regions/:filename - Detect regions using Python subprocess
+app.post('/api/regions/:filename', async (req, res) => {
+    const filename = req.params.filename;
+    if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+        return res.status(400).json({ success: false, message: 'Invalid filename.' });
+    }
+    const imagePath = path.join(uploadsDir, filename);
+    if (!fs.existsSync(imagePath)) {
+        return res.status(404).json({ success: false, message: 'Image not found.' });
+    }
+    const scriptPath = path.join(__dirname, 'scripts', 'detect_regions.py');
+    if (!fs.existsSync(scriptPath)) {
+        return res.status(500).json({ success: false, message: 'Region detection script not found.' });
+    }
+    try {
+        const pythonCmd = getRegionDetectionPython();
+        const result = await new Promise((resolve, reject) => {
+            const proc = spawn(pythonCmd, [scriptPath, imagePath], {
+                cwd: __dirname,
+                stdio: ['ignore', 'pipe', 'pipe'],
+            });
+            let stdout = '';
+            let stderr = '';
+            proc.stdout.on('data', (d) => { stdout += d.toString(); });
+            proc.stderr.on('data', (d) => { stderr += d.toString(); });
+            proc.on('close', (code) => {
+                if (code !== 0) {
+                    try {
+                        const errObj = JSON.parse(stdout || stderr);
+                        return reject(new Error(errObj.error || 'Region detection failed'));
+                    } catch {
+                        return reject(new Error(stderr || stdout || `Process exited ${code}`));
+                    }
+                }
+                try {
+                    resolve(JSON.parse(stdout));
+                } catch {
+                    reject(new Error('Invalid JSON from region detection'));
+                }
+            });
+            proc.on('error', reject);
+        });
+        // Persist regions to metadata
+        const allMetadata = await metadataHandler.readMetadata();
+        const idx = allMetadata.findIndex((e) => path.basename(e.cachedFilePath || '') === filename);
+        if (idx >= 0) {
+            allMetadata[idx].regions = result.regions;
+            await metadataHandler.rewriteMetadata(allMetadata);
+        }
+        res.json({ success: true, ...result });
+    } catch (err) {
+        console.error('[API POST /regions] Error:', err);
+        res.status(500).json({ success: false, message: err.message || 'Region detection failed.' });
+    }
+});
+
 // POST /api/palette/:filename - Generate Palette On-Demand
-app.post('/api/palette/:filename', async (req, res) => {
+app.post('/api/palette/:filename', express.json(), async (req, res) => {
     const filename = req.params.filename;
     console.log(`[API POST /palette] Request received for filename: ${filename}`);
 
@@ -166,32 +235,47 @@ app.post('/api/palette/:filename', async (req, res) => {
     }
 
     const imageMeta = allMetadata[imageIndex];
-    const forceRegenerate = req.query.regenerate === 'true';
-    const kParam = req.query.k;
-    const k = kParam != null && /^\d+$/.test(kParam) ? Math.min(20, Math.max(2, parseInt(kParam, 10))) : undefined;
+    const forceRegenerate = req.query.regenerate === 'true' || req.body?.regenerate === true;
+    const kParam = req.query.k ?? req.body?.k;
+    const k = kParam != null && /^\d+$/.test(String(kParam)) ? Math.min(20, Math.max(2, parseInt(String(kParam), 10))) : undefined;
+    const regions = Array.isArray(req.body?.regions) ? req.body.regions : undefined;
 
     // Check if palette already exists and is valid - skip cache if ?regenerate=true
-    if (!forceRegenerate && imageMeta.colorPalette && Array.isArray(imageMeta.colorPalette) && imageMeta.colorPalette.length > 0) {
+    if (!forceRegenerate && !regions && imageMeta.colorPalette && Array.isArray(imageMeta.colorPalette) && imageMeta.colorPalette.length > 0) {
         console.log(`[API POST /palette] Returning cached palette for ${filename}.`);
-        return res.json({ success: true, palette: imageMeta.colorPalette });
+        const cachedMarkers = Array.isArray(imageMeta.clusterMarkers) ? imageMeta.clusterMarkers : [];
+        return res.json({ success: true, palette: imageMeta.colorPalette, clusterMarkers: cachedMarkers });
     }
 
     console.log(`[API POST /palette] Generating palette for ${filename}${forceRegenerate ? ' (regenerate)' : ''}${k != null ? ` k=${k}` : ''}`);
     const imagePath = path.join(uploadsDir, filename); // Use constructed path
 
     try {
-        // Generate palette using the imported function
-        const extractedPalette = await imageProcessor.generateDistinctPalette(imagePath, k != null ? { k } : undefined);
+        const opts = {};
+        if (k != null) opts.k = k;
+        if (regions && regions.length > 0) opts.regions = regions;
+        const extractedPalette = await imageProcessor.generateDistinctPalette(imagePath, Object.keys(opts).length ? opts : undefined);
+
+        // Compute region color markers when we have regions + palette
+        let clusterMarkers = [];
+        if (regions?.length > 0 && extractedPalette?.length > 0) {
+            try {
+                clusterMarkers = await imageProcessor.computeRegionColorMarkers(imagePath, regions, extractedPalette);
+            } catch (mrErr) {
+                console.warn('[API POST /palette] Could not compute region markers:', mrErr);
+            }
+        }
 
         // Update metadata array
         allMetadata[imageIndex].colorPalette = extractedPalette;
+        allMetadata[imageIndex].clusterMarkers = clusterMarkers;
 
         // Rewrite metadata file
         await metadataHandler.rewriteMetadata(allMetadata);
         console.log(`[API POST /palette] Rewritten metadata for ${filename} with new palette.`);
 
-        // Return new palette
-        res.json({ success: true, palette: extractedPalette });
+        // Return new palette and markers
+        res.json({ success: true, palette: extractedPalette, clusterMarkers });
 
     } catch (error) {
         // Catch errors specifically from palette generation or rewrite
@@ -243,18 +327,25 @@ app.put('/api/palette/:filename', express.json(), async (req, res) => { // Use e
     }
 });
 
-// PUT /api/metadata/:filename - Update specific metadata fields (e.g., paletteName)
+// PUT /api/metadata/:filename - Update specific metadata fields (paletteName, regions)
 app.put('/api/metadata/:filename', express.json(), async (req, res) => {
     const filename = req.params.filename;
-    const { paletteName } = req.body; // Expecting { paletteName: "new name" }
+    const { paletteName, regions } = req.body;
     console.log(`[API PUT /metadata] Request received for ${filename}`);
 
     if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
         return res.status(400).json({ success: false, message: 'Invalid filename.' });
     }
-    // Validate the new name (basic check)
-    if (typeof paletteName !== 'string' || paletteName.trim().length === 0 || paletteName.length > 100) {
-        return res.status(400).json({ success: false, message: 'Invalid palette name provided.' });
+    if (paletteName !== undefined) {
+        if (typeof paletteName !== 'string' || paletteName.trim().length === 0 || paletteName.length > 100) {
+            return res.status(400).json({ success: false, message: 'Invalid palette name provided.' });
+        }
+    }
+    if (regions !== undefined && !Array.isArray(regions)) {
+        return res.status(400).json({ success: false, message: 'Regions must be an array.' });
+    }
+    if (paletteName === undefined && regions === undefined) {
+        return res.status(400).json({ success: false, message: 'Provide paletteName and/or regions.' });
     }
 
     let allMetadata;
@@ -271,11 +362,30 @@ app.put('/api/metadata/:filename', express.json(), async (req, res) => {
         return res.status(404).json({ success: false, message: 'Image metadata not found.' });
     }
 
-    console.log(`[API PUT /metadata] Updating paletteName for ${filename} to "${paletteName}".`);
-    // Update the specific field
-    allMetadata[imageIndex].paletteName = paletteName.trim(); // Trim whitespace
+    if (paletteName !== undefined) {
+        allMetadata[imageIndex].paletteName = paletteName.trim();
+    }
+    if (regions !== undefined) {
+        allMetadata[imageIndex].regions = regions;
+        // Recompute cluster markers when regions change and we have a palette
+        const palette = allMetadata[imageIndex].colorPalette;
+        if (Array.isArray(palette) && palette.length > 0 && regions.length > 0) {
+            try {
+                const imagePath = path.join(uploadsDir, filename);
+                if (fs.existsSync(imagePath)) {
+                    allMetadata[imageIndex].clusterMarkers = await imageProcessor.computeRegionColorMarkers(imagePath, regions, palette);
+                } else {
+                    allMetadata[imageIndex].clusterMarkers = [];
+                }
+            } catch (mrErr) {
+                console.warn('[API PUT /metadata] Could not recompute cluster markers:', mrErr);
+                allMetadata[imageIndex].clusterMarkers = [];
+            }
+        } else {
+            allMetadata[imageIndex].clusterMarkers = [];
+        }
+    }
 
-    // Rewrite the metadata file
     try {
         await metadataHandler.rewriteMetadata(allMetadata);
         console.log(`[API PUT /metadata] Successfully saved updated metadata for ${filename}.`);
@@ -387,7 +497,7 @@ app.post('/api/images/:filename/duplicate', async (req, res) => {
         }
         const newPaletteName = originalName + '-copy-' + (maxCopyNum + 1);
 
-        // 3. Create new metadata record (copy palette and image info)
+        // 3. Create new metadata record (copy palette, regions, and image info)
         const newRecord = {
             createdDateTime: new Date().toISOString(),
             uploadedURL: null,
@@ -398,7 +508,9 @@ app.post('/api/images/:filename/duplicate', async (req, res) => {
             format: sourceMeta.format,
             fileSizeBytes: newFileStat.size,
             colorPalette: Array.isArray(sourceMeta.colorPalette) ? [...sourceMeta.colorPalette] : [],
-            paletteName: newPaletteName
+            paletteName: newPaletteName,
+            regions: Array.isArray(sourceMeta.regions) ? JSON.parse(JSON.stringify(sourceMeta.regions)) : [],
+            clusterMarkers: Array.isArray(sourceMeta.clusterMarkers) ? JSON.parse(JSON.stringify(sourceMeta.clusterMarkers)) : []
         };
 
         // 4. Append (puts at end of file; GET reverses so new item appears at top)

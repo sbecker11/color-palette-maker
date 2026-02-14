@@ -30,15 +30,30 @@ export function getNextSelectionAfterDeletion(remaining) {
 
 /**
  * Computes reordered images and filenames for reorder API.
+ * @param {Object[]} images - Array of image metadata
+ * @param {number} index - Index of item to move
+ * @param {'up'|'down'|'top'|'bottom'} direction - Move direction
  * @returns {{ reordered: Object[], filenames: string[] } | null} null if invalid
  */
 export function computeReorderedState(images, index, direction) {
   if (!images || index < 0 || index >= images.length) return null;
-  const newIndex = direction === 'up' ? index - 1 : index + 1;
-  if (newIndex < 0 || newIndex >= images.length) return null;
+  let newIndex;
+  if (direction === 'top') {
+    newIndex = 0;
+  } else if (direction === 'bottom') {
+    newIndex = images.length - 1;
+  } else if (direction === 'up') {
+    newIndex = index - 1;
+  } else if (direction === 'down') {
+    newIndex = index + 1;
+  } else {
+    return null;
+  }
+  if (newIndex < 0 || newIndex >= images.length || newIndex === index) return null;
 
   const reordered = [...images];
-  [reordered[index], reordered[newIndex]] = [reordered[newIndex], reordered[index]];
+  const [item] = reordered.splice(index, 1);
+  reordered.splice(newIndex, 0, item);
   const filenames = reordered.map((m) => getFilenameFromMeta(m)).filter(Boolean);
   return { reordered, filenames };
 }
@@ -95,5 +110,15 @@ export function applyPaletteNameToImages(images, filename, paletteName) {
   const name = paletteName.trim();
   return images.map((m) =>
     getFilenameFromMeta(m) === filename ? { ...m, paletteName: name } : m
+  );
+}
+
+/**
+ * Returns images array with regions updated for the file matching filename.
+ */
+export function applyRegionsToImages(images, filename, regions) {
+  if (!images) return [];
+  return images.map((m) =>
+    getFilenameFromMeta(m) === filename ? { ...m, regions } : m
   );
 }

@@ -8,16 +8,18 @@ A React-based single-page application for extracting and managing color palettes
 
 - **Image Sources**: Upload images from URL or local file
 - **Automatic Palette Extraction**: K-means clustering extracts up to 5 dominant colors
-- **Color Sampling**: Click to sample colors directly from the image and add to the palette
+- **Color Sampling**: Click the empty palette swatch to enter sampling mode (crosshair pointer). Rollover the image to preview the color in the empty swatch; double-click to add it to the palette. Click the swatch again to cancel.
 - **Palette Management**: Rename palettes, delete individual swatches, duplicate palettes, export as JSON
 - **Theme Toggle**: Light and dark mode support
 - **Color Palettes**: Browse, select, delete, reorder, and duplicate stored palettes
 
 ### Key Actions
 
-- **Reorder (▲/▼)**: Use the up/down arrows next to each item in the Color Palettes list to change the display order. Order is persisted to the server.
+- **Reorder (⏫ ⏬ ▲ ▼)**: Use the left column (⏫ move to top, ⏬ move to bottom) or the inner column (▲ move up one, ▼ move down one) next to each item in the Color Palettes list to change the display order. Order is persisted to the server.
 - **Palette Name**: Edit the name in the "Palette Name" input and click away (blur) to save. The name is persisted automatically.
-- **Regenerate (K-means)**: Replace the current palette colors with a freshly computed set from the image using K-means clustering (K=5).
+- **Regenerate (K-means)**: Replace the current palette colors with a freshly computed set from the image using K-means clustering (K=5, 7, or 9).
+- **Detect Regions**: Uses a Python subprocess (OpenCV) to detect large regions in the image. Regions are displayed as overlays; use K-means to extract colors only from masked regions.
+- **Delete Regions**: Clear all detected regions and exit delete mode.
 - **Export**: Download the palette as a JSON file for use in external integrations (design tools, other apps, code). The exported format is `{ name, colors: [...] }`. Palette changes within the app are saved to the server automatically; Export is only for creating downloadable files.
 
 ## Tech Stack
@@ -30,7 +32,8 @@ A React-based single-page application for extracting and managing color palettes
 ## Prerequisites
 
 - Node.js 18+ (20.19+ or 22.12+ recommended for Vite 7)
-- npm or yarn
+- npm
+- **For Region Detection**: Python 3 with OpenCV and NumPy (`python3 -m pip install -r requirements.txt`). The server auto-detects a venv when `VIRTUAL_ENV` is set or when `./venv` exists. Override with `DETECT_REGIONS_PYTHON=/path/to/python`.
 
 ## Installation
 
@@ -41,6 +44,22 @@ npm install
 # Install client dependencies (React app)
 cd client && npm install && cd ..
 ```
+
+### Optional: Region Detection (Python)
+
+To use the "Detect Regions" feature, install Python 3 and its dependencies:
+
+```bash
+# Option A: System Python
+python3 -m pip install -r requirements.txt
+
+# Option B: Virtual environment (recommended)
+python3 -m venv venv
+source venv/bin/activate   # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+With a venv, start the server with it activated (`source venv/bin/activate` before `npm start` or `npm run dev`), or the server will auto-detect `./venv` in the project root.
 
 ## Development
 
@@ -143,10 +162,57 @@ color-palette-maker-react/
 | PUT | `/api/images/order` | Reorder images (body: `{ filenames: [...] }`) |
 | POST | `/api/images/:filename/duplicate` | Duplicate image and palette |
 | POST | `/upload` | Upload image (file or URL) |
-| POST | `/api/palette/:filename` | Generate color palette (add `?regenerate=true` to force recompute) |
+| POST | `/api/regions/:filename` | Detect regions using Python/OpenCV |
+| POST | `/api/palette/:filename` | Generate color palette (add `?regenerate=true` to force recompute; body `{ regions, k }` for masked K-means) |
 | PUT | `/api/palette/:filename` | Save updated palette |
 | PUT | `/api/metadata/:filename` | Update palette name |
 | DELETE | `/api/images/:filename` | Delete image and metadata |
+
+## Region and Palette Pipeline
+
+This section describes how regions, region colors, K-means clustering, and overlays work together.
+
+### 1. How region boundaries are computed
+
+Region detection runs a Python subprocess (`scripts/detect_regions.py`) that uses OpenCV. The script applies adaptive thresholding, Otsu binarization, Canny edge detection, and color-based segmentation (LAB K-means on the color wheel) to identify large, distinct regions in the image. Detected regions are returned as polygons (arrays of `[x, y]` vertices). The server invokes this script via `POST /api/regions/:filename` when you click "Detect Regions."
+
+### 2. How regions can be manually deleted
+
+After detecting regions, the app enters delete mode. Each region polygon is drawn as an overlay on the image. You can click a region to remove it; the polygon is deleted from the region list and the overlay updates immediately. Clicking outside all regions exits delete mode. Regions are saved to the server when you blur the palette name input or when metadata is updated. Use "Delete Regions" to clear all regions at once.
+
+### 3. How region average colors are computed
+
+For each region polygon, the app sums the RGB values of all opaque pixels whose coordinates fall inside the polygon (using point-in-polygon tests). The average is computed as `(sumR/count, sumG/count, sumB/count)` and converted to a hex string (`#RRGGBB`). Pixels with alpha ≤ 128 are skipped. Pixel coordinates are derived from the image buffer using row-major layout: for `get-pixels` shape `[rows, columns, 4]`, column `x = pixelIndex % width` and row `y = Math.floor(pixelIndex / width)`.
+
+### 4. How region boundaries and average hex color are displayed on the overlay
+
+When regions exist, an SVG overlay is drawn on top of the palette image. Each region polygon is rendered with a semi-transparent fill and stroke. For each region, an empty circle (white 1px stroke) is drawn at the polygon centroid, and the region’s average hex color is displayed underneath it. Text uses a dual-layer (black at base, white offset) for visibility on both light and dark backgrounds.
+
+### 5. How K-means cluster swatches are computed
+
+K-means clustering uses the `node-kmeans` library. Two modes apply:
+
+- **a) Regions defined:** If regions exist, only pixels inside at least one region polygon are included in the K-means input. Opaque pixels are filtered by luminance (excluding near-black and near-white). The result is a palette of dominant colors from the masked image.
+- **b) No regions:** If no regions are defined, the entire image is used. Opaque pixels are filtered by luminance, then clustered. The palette size (K) is chosen via the Regenerate action (5, 7, or 9 colors).
+
+### 6. How the most similar (nearest in color space) cluster swatch is computed for each region
+
+For each region, the region average color (RGB) is compared to every color in the K-means palette using the CIEDE2000 (ΔE) perceptual distance via the `color-diff` library. The palette color with the smallest ΔE is the “nearest” cluster swatch for that region. All comparisons use sRGB; the library converts to LAB internally for perceptual distance only.
+
+### 7. How the nearest cluster swatch and its hex color are displayed for a given region
+
+Each region gets a filled circle (the “swatch circle”) drawn near the region centroid (top-right of the empty region circle). The swatch is filled with the nearest palette color, and its hex string is shown underneath. The region circle shows the region average hex; the swatch circle shows the nearest palette hex. Both use the same dual-layer text styling for readability.
+
+### 8. How region boundaries and their average hex colors are stored
+
+Regions and their associated data are persisted in `image_metadata.jsonl`. Each image entry can include:
+
+- `regions`: Array of polygon arrays (`[[x,y], ...]`).
+- `clusterMarkers`: Array of `{ hex, regionColor, x, y }` where `regionColor` is the region average hex, `hex` is the nearest palette color, and `(x, y)` is the centroid. Markers are recomputed when regions change or when the palette is regenerated.
+
+### 9. Nearest swatch color is not persisted
+
+The nearest cluster swatch (`hex` in `clusterMarkers`) is computed on demand whenever you run the Regenerate (K-means) action. It is stored in memory and in metadata only at that moment. It is not recalculated or saved when you load an image, change the palette manually, or edit metadata. To refresh nearest swatch mappings after changing the palette or regions, run Regenerate (K-means 5, 7, or 9) again.
 
 ## License
 

@@ -17,13 +17,25 @@ const api = {
   },
 
   async generatePalette(filename, opts = {}) {
-    const { regenerate = false, k } = opts;
+    const { regenerate = false, k, regions } = opts;
     const params = new URLSearchParams();
     if (regenerate) params.set('regenerate', 'true');
     if (k != null && k >= 2 && k <= 20) params.set('k', String(k));
     const qs = params.toString();
     const url = `/api/palette/${encodeURIComponent(filename)}${qs ? `?${qs}` : ''}`;
-    const response = await fetch(url, { method: 'POST' });
+    const fetchOpts = { method: 'POST' };
+    if (regions && regions.length > 0) {
+      fetchOpts.headers = { 'Content-Type': 'application/json' };
+      fetchOpts.body = JSON.stringify({ regions, k, regenerate });
+    }
+    const response = await fetch(url, fetchOpts);
+    return response.json();
+  },
+
+  async detectRegions(filename) {
+    const response = await fetch(`/api/regions/${encodeURIComponent(filename)}`, {
+      method: 'POST',
+    });
     return response.json();
   },
 
@@ -36,11 +48,16 @@ const api = {
     return response.json();
   },
 
-  async saveMetadata(filename, paletteName) {
+  async saveMetadata(filename, opts = {}) {
+    const { paletteName, regions } = typeof opts === 'string' ? { paletteName: opts } : opts;
+    const body = {};
+    if (paletteName !== undefined) body.paletteName = paletteName;
+    if (regions !== undefined) body.regions = regions;
+    if (Object.keys(body).length === 0) return { success: false, message: 'Nothing to save.' };
     const response = await fetch(`/api/metadata/${encodeURIComponent(filename)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ paletteName }),
+      body: JSON.stringify(body),
     });
     return response.json();
   },

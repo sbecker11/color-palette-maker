@@ -10,6 +10,7 @@ import {
   applyPaletteToMeta,
   applyPaletteToImages,
   applyPaletteNameToImages,
+  applyRegionsToImages,
 } from './AppHelpers';
 import Header from './components/Header';
 import UploadForm from './components/UploadForm';
@@ -29,6 +30,9 @@ function App() {
   const [paletteName, setPaletteName] = useState('');
   const [isSamplingMode, setIsSamplingMode] = useState(false);
   const [currentSampledColor, setCurrentSampledColor] = useState(null);
+  const [regions, setRegions] = useState([]);
+  const [isDeleteRegionMode, setIsDeleteRegionMode] = useState(false);
+  const [regionsDetecting, setRegionsDetecting] = useState(false);
 
   // Apply theme to document
   useEffect(() => {
@@ -57,6 +61,7 @@ function App() {
             setSelectedMeta(first);
             setSelectedImageUrl(`/uploads/${encodeURIComponent(filename)}`);
             setPaletteName(first.paletteName || getFilenameWithoutExt(filename));
+            setRegions(Array.isArray(first.regions) ? first.regions : []);
             if (needsPaletteGeneration(first)) {
               setPaletteGenerating(true);
               api
@@ -112,9 +117,11 @@ function App() {
   const handleSelectImage = useCallback((meta, imageUrl) => {
     setIsSamplingMode(false);
     setCurrentSampledColor(null);
+    setIsDeleteRegionMode(false);
     setSelectedMeta(meta);
     setSelectedImageUrl(imageUrl);
     setPaletteName(meta.paletteName || getFilenameWithoutExt(getFilenameFromMeta(meta) || ''));
+    setRegions(Array.isArray(meta.regions) ? meta.regions : []);
 
     if (needsPaletteGeneration(meta)) {
       const filename = getFilenameFromMeta(meta);
@@ -288,7 +295,7 @@ function App() {
     const filename = getFilenameFromMeta(selectedMeta);
     const name = paletteName.trim();
     api
-      .saveMetadata(filename, name)
+      .saveMetadata(filename, { paletteName: name })
       .then((result) => {
         if (result.success) {
           showMessage('Palette name updated.', false);
@@ -371,21 +378,105 @@ function App() {
     if (!filename) return;
 
     setPaletteGenerating(true);
+    const opts = { regenerate: true, k };
+    if (regions && regions.length > 0) opts.regions = regions;
     api
-      .generatePalette(filename, { regenerate: true, k })
+      .generatePalette(filename, opts)
       .then((result) => {
         if (result.success && result.palette) {
-          const updatedMeta = applyPaletteToMeta(selectedMeta, result.palette);
+          const updatedMeta = {
+            ...applyPaletteToMeta(selectedMeta, result.palette),
+            clusterMarkers: Array.isArray(result.clusterMarkers) ? result.clusterMarkers : [],
+          };
           setSelectedMeta(updatedMeta);
-          setImages((prev) => applyPaletteToImages(prev, filename, result.palette));
-          showMessage(`Palette regenerated with K-means (${k}).`);
+          setImages((prev) =>
+            prev.map((m) =>
+              getFilenameFromMeta(m) === filename
+                ? { ...m, colorPalette: result.palette, clusterMarkers: updatedMeta.clusterMarkers }
+                : m
+            )
+          );
+          showMessage(
+            regions?.length
+              ? `Palette by regions with K-means (${k}).`
+              : `Palette regenerated with K-means (${k}).`
+          );
         } else {
           showMessage(result.message || 'Failed to regenerate palette.', true);
         }
       })
       .catch(() => showMessage('Failed to regenerate palette.', true))
       .finally(() => setPaletteGenerating(false));
+  }, [selectedMeta, regions, showMessage]);
+
+  const handleDetectRegions = useCallback(async () => {
+    if (!selectedMeta) {
+      showMessage('Please select an image first.', true);
+      return;
+    }
+    const filename = getFilenameFromMeta(selectedMeta);
+    if (!filename) return;
+    setRegionsDetecting(true);
+    try {
+      const result = await api.detectRegions(filename);
+      if (result.success && result.regions) {
+        const newRegions = result.regions;
+        setRegions(newRegions);
+        setSelectedMeta((prev) => (prev ? { ...prev, regions: newRegions } : prev));
+        setImages((prev) => applyRegionsToImages(prev, filename, newRegions));
+        setIsDeleteRegionMode(true);
+        showMessage(`Detected ${newRegions.length} region(s). Saved. Click to remove unwanted; click outside to exit.`);
+      } else {
+        showMessage(result.message || result.error || 'Region detection failed.', true);
+      }
+    } catch (err) {
+      showMessage('Region detection failed. Ensure Python 3 and opencv-python are installed.', true);
+    } finally {
+      setRegionsDetecting(false);
+    }
   }, [selectedMeta, showMessage]);
+
+  const handleDeleteRegions = useCallback(async () => {
+    if (!selectedMeta) return;
+    const filename = getFilenameFromMeta(selectedMeta);
+    if (!filename) return;
+    const emptyRegions = [];
+    const emptyMarkers = [];
+    setRegions(emptyRegions);
+    setSelectedMeta((prev) => (prev ? { ...prev, regions: emptyRegions, clusterMarkers: emptyMarkers } : prev));
+    setImages((prev) =>
+      prev.map((m) => (getFilenameFromMeta(m) === filename ? { ...m, regions: emptyRegions, clusterMarkers: emptyMarkers } : m))
+    );
+    setIsDeleteRegionMode(false);
+    try {
+      await api.saveMetadata(filename, { regions: emptyRegions });
+      showMessage('Regions cleared.');
+    } catch {
+      showMessage('Failed to save.', true);
+    }
+  }, [selectedMeta, showMessage]);
+
+  const handleRegionClick = useCallback((index) => {
+    if (!selectedMeta) return;
+    const filename = getFilenameFromMeta(selectedMeta);
+    if (!filename) return;
+    const updated = regions.filter((_, i) => i !== index);
+    const updatedMarkers = (selectedMeta.clusterMarkers || []).filter((_, i) => i !== index);
+    setRegions(updated);
+    setSelectedMeta((prev) => (prev ? { ...prev, regions: updated, clusterMarkers: updatedMarkers } : prev));
+    setImages((prev) =>
+      prev.map((m) =>
+        getFilenameFromMeta(m) === filename ? { ...m, regions: updated, clusterMarkers: updatedMarkers } : m
+      )
+    );
+    api.saveMetadata(filename, { regions: updated }).catch(() => {
+      showMessage('Failed to save region change.', true);
+    });
+  }, [selectedMeta, regions, showMessage]);
+
+  const handleExitDeleteRegionMode = useCallback(() => {
+    setIsDeleteRegionMode(false);
+  }, []);
 
   const palette = selectedMeta?.colorPalette;
   const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
@@ -421,12 +512,21 @@ function App() {
           onDuplicate={handleDuplicate}
           onPaletteNameBlur={handlePaletteNameBlur}
           selectedMeta={selectedMeta}
+          onDetectRegions={handleDetectRegions}
+          onDeleteRegions={handleDeleteRegions}
+          regionsDetecting={regionsDetecting}
+          hasRegions={regions && regions.length > 0}
         />
         <ImageViewer
           imageUrl={selectedImageUrl}
           isSamplingMode={isSamplingMode}
           onSampledColorChange={setCurrentSampledColor}
           onDoubleClickAddColor={handleDoubleClickAddColor}
+          regions={regions}
+          clusterMarkers={selectedMeta?.clusterMarkers}
+          isDeleteRegionMode={isDeleteRegionMode}
+          onRegionClick={handleRegionClick}
+          onExitDeleteRegionMode={handleExitDeleteRegionMode}
         />
       </main>
     </>

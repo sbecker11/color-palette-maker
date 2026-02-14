@@ -67,6 +67,26 @@ describe('AppHelpers', () => {
     it('returns null when moving down at bottom', () => {
       expect(computeReorderedState(images, 2, 'down')).toBe(null);
     });
+    it('returns null when moving to top when already at top', () => {
+      expect(computeReorderedState(images, 0, 'top')).toBe(null);
+    });
+    it('returns null when moving to bottom when already at bottom', () => {
+      expect(computeReorderedState(images, 2, 'bottom')).toBe(null);
+    });
+    it('returns reordered state when moving to top', () => {
+      const result = computeReorderedState(images, 2, 'top');
+      expect(result).not.toBe(null);
+      expect(result.reordered[0]).toBe(images[2]);
+      expect(result.reordered[1]).toBe(images[0]);
+      expect(result.reordered[2]).toBe(images[1]);
+    });
+    it('returns reordered state when moving to bottom', () => {
+      const result = computeReorderedState(images, 0, 'bottom');
+      expect(result).not.toBe(null);
+      expect(result.reordered[0]).toBe(images[1]);
+      expect(result.reordered[1]).toBe(images[2]);
+      expect(result.reordered[2]).toBe(images[0]);
+    });
     it('returns reordered state when moving down', () => {
       const result = computeReorderedState(images, 0, 'down');
       expect(result).not.toBe(null);

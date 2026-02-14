@@ -49,6 +49,8 @@ function ImageLibrary({
           const isSelected = selectedMeta && getFilenameFromMeta(selectedMeta) === filename;
           const canMoveUp = index > 0;
           const canMoveDown = index < images.length - 1;
+          const canMoveToTop = index > 0;
+          const canMoveToBottom = index < images.length - 1;
 
           return (
             <li
@@ -56,6 +58,34 @@ function ImageLibrary({
               className={isSelected ? 'selected-image' : ''}
               data-metadata={JSON.stringify(meta)}
             >
+              <span className="library-item-top-bottom">
+                <button
+                  type="button"
+                  className="order-btn order-top"
+                  title="Move to top"
+                  disabled={!canMoveToTop}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onReorder?.(index, 'top');
+                  }}
+                  aria-label="Move to top"
+                >
+                  ⏫
+                </button>
+                <button
+                  type="button"
+                  className="order-btn order-bottom"
+                  title="Move to bottom"
+                  disabled={!canMoveToBottom}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onReorder?.(index, 'bottom');
+                  }}
+                  aria-label="Move to bottom"
+                >
+                  ⏬
+                </button>
+              </span>
               <span className="library-item-order">
                 <button
                   type="button"
@@ -68,7 +98,7 @@ function ImageLibrary({
                   }}
                   aria-label="Move up"
                 >
-                  ▲
+                  ⬆️
                 </button>
                 <button
                   type="button"
@@ -81,7 +111,7 @@ function ImageLibrary({
                   }}
                   aria-label="Move down"
                 >
-                  ▼
+                  ⬇️
                 </button>
               </span>
               <a
