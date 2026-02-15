@@ -18,6 +18,7 @@ function PaletteDisplay({
   selectedMeta,
   onDetectRegions,
   onDeleteRegions,
+  onEnterDeleteRegionMode,
   regionsDetecting,
   hasRegions,
 }) {
@@ -112,6 +113,7 @@ function PaletteDisplay({
             else if (v === 'duplicate') onDuplicate?.();
             else if (v === 'detectRegions') onDetectRegions?.();
             else if (v === 'deleteRegions') onDeleteRegions?.();
+            else if (v === 'enterDeleteRegionMode') onEnterDeleteRegionMode?.();
             else if (v === 'kmeans5') onRegenerateWithK?.(5);
             else if (v === 'kmeans7') onRegenerateWithK?.(7);
             else if (v === 'kmeans9') onRegenerateWithK?.(9);
@@ -123,7 +125,8 @@ function PaletteDisplay({
           <option value="delete">(Del)ete</option>
           <option value="duplicate">(Dup)licate</option>
           <option value="detectRegions">{regionsDetecting ? 'Detecting…' : 'Detect Regions'}</option>
-          <option value="deleteRegions" disabled={!hasRegions}>Delete Regions</option>
+          <option value="enterDeleteRegionMode" disabled={!hasRegions}>Remove region (click)</option>
+          <option value="deleteRegions" disabled={!hasRegions}>Clear all regions</option>
           <option value="kmeans5">K-means (5){hasRegions ? ' (by regions)' : ''}</option>
           <option value="kmeans7">K-means (7){hasRegions ? ' (by regions)' : ''}</option>
           <option value="kmeans9">K-means (9){hasRegions ? ' (by regions)' : ''}</option>

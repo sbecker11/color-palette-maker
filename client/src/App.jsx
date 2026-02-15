@@ -474,6 +474,11 @@ function App() {
     });
   }, [selectedMeta, regions, showMessage]);
 
+  const handleEnterDeleteRegionMode = useCallback(() => {
+    setIsDeleteRegionMode(true);
+    showMessage('Click a region to remove it; click outside to exit.');
+  }, [showMessage]);
+
   const handleExitDeleteRegionMode = useCallback(() => {
     setIsDeleteRegionMode(false);
   }, []);
@@ -514,6 +519,7 @@ function App() {
           selectedMeta={selectedMeta}
           onDetectRegions={handleDetectRegions}
           onDeleteRegions={handleDeleteRegions}
+          onEnterDeleteRegionMode={handleEnterDeleteRegionMode}
           regionsDetecting={regionsDetecting}
           hasRegions={regions && regions.length > 0}
         />

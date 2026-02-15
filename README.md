@@ -19,7 +19,8 @@ A React-based single-page application for extracting and managing color palettes
 - **Palette Name**: Edit the name in the "Palette Name" input and click away (blur) to save. The name is persisted automatically.
 - **Regenerate (K-means)**: Replace the current palette colors with a freshly computed set from the image using K-means clustering (K=5, 7, or 9).
 - **Detect Regions**: Uses a Python subprocess (OpenCV) to detect large regions in the image. Regions are displayed as overlays; use K-means to extract colors only from masked regions.
-- **Delete Regions**: Clear all detected regions and exit delete mode.
+- **Remove region (click)**: Enter delete mode so you can click individual regions to remove them one at a time. Click outside the image to exit. Requires regions to exist.
+- **Clear all regions**: Remove all detected regions at once.
 - **Export**: Download the palette as a JSON file for use in external integrations (design tools, other apps, code). The exported format is `{ name, colors: [...] }`. Palette changes within the app are saved to the server automatically; Export is only for creating downloadable files.
 
 ## Tech Stack
@@ -178,7 +179,7 @@ Region detection runs a Python subprocess (`scripts/detect_regions.py`) that use
 
 ### 2. How regions can be manually deleted
 
-After detecting regions, the app enters delete mode. Each region polygon is drawn as an overlay on the image. You can click a region to remove it; the polygon is deleted from the region list and the overlay updates immediately. Clicking outside all regions exits delete mode. Regions are saved to the server when you blur the palette name input or when metadata is updated. Use "Delete Regions" to clear all regions at once.
+Choose **Remove region (click)** from the action menu to enter delete mode (detecting regions also enters this mode). Each region polygon is drawn as an overlay on the image. Click a region to remove it; the polygon is deleted and the overlay updates immediately. Click outside the image to exit delete mode. Regions are saved to the server when you remove one. Use **Clear all regions** to remove all regions at once.
 
 ### 3. How region average colors are computed
 
