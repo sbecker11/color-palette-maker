@@ -1,8 +1,10 @@
 # Color Palette Maker (React)
 
-A React-based single-page application for extracting and managing color palettes from images. Upload images via URL or file, extract dominant colors using K-means clustering, and export palettes as JSON.
+<a href="media/gold-blue.mov">
+  <img src="media/gold.png" width="67%" alt="gold" />
+</a>
 
-![Color Palette Maker](media/50.png)
+A React-based single-page application for extracting and managing color palettes from images. Upload images via URL or file, extract dominant colors using K-means clustering, and export palettes as JSON.
 
 ## Features
 
@@ -135,6 +137,10 @@ Tests cover:
 
 Run `npm run test:coverage` to generate a coverage report saved to a timestamped file (e.g. `coverage-report-2025-02-13T15-30-00.html`) in the client directory. Run `npm run build:with-coverage` to build and then generate the coverage report.
 
+## Action Items
+
+See [ACTIONS.md](ACTIONS.md) for improvement items from code review (CI/CD, testing, architecture, server quality).
+
 ## Project Structure
 
 ```
@@ -152,6 +158,7 @@ color-palette-maker-react/
 ├── metadata_handler.js    # Image metadata (JSONL)
 ├── image_processor.js     # K-means palette generation
 ├── uploads/               # Uploaded images
+├── ACTIONS.md             # Action items from code review
 └── package.json
 ```
 
