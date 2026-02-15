@@ -192,8 +192,8 @@ main {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  background-color: var(--button-bg);
-  border: 1px solid var(--border-color);
+  background: transparent;
+  border: none;
   color: var(--button-text);
   box-shadow: none;
   outline: none;
