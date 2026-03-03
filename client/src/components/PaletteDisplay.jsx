@@ -42,7 +42,9 @@ function getLastPaletteAction() {
 function setLastPaletteAction(value) {
   try {
     if (typeof localStorage !== 'undefined') localStorage.setItem(LAST_PALETTE_ACTION_KEY, value);
-  } catch {}
+  } catch {
+    // Ignore localStorage errors (e.g. quota exceeded, private mode)
+  }
 }
 
 function RegionDetectionForm({ selectedMeta, onDetectRegions, regionsDetecting, onRegionStrategyChange, templateDrawPhase }) {
