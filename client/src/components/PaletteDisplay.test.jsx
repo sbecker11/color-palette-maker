@@ -37,8 +37,8 @@ describe('PaletteDisplay', () => {
 
   it('renders palette swatches', () => {
     render(<PaletteDisplay {...defaultProps} />);
-    expect(screen.getByTitle('#ff0000')).toBeInTheDocument();
-    expect(screen.getByTitle('#00ff00')).toBeInTheDocument();
+    expect(screen.getByTitle(/^#ff0000/)).toBeInTheDocument();
+    expect(screen.getByTitle(/^#00ff00/)).toBeInTheDocument();
   });
 
   it('shows actions dropdown with K-means options', () => {

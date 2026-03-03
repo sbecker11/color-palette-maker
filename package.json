@@ -22,7 +22,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node scripts/start-server.js",
-    "build": "cd client && npm run build && node scripts/echo-build-url.js",
+    "build": "cd client && npm run build && cd .. && node scripts/echo-build-url.js",
     "dev": "concurrently \"npm run dev:server\" \"node scripts/wait-and-dev-client.js\"",
     "dev:open": "concurrently \"npm run dev\" \"node scripts/open-dev-client.js\"",
     "dev:server": "node scripts/dev-server.js",

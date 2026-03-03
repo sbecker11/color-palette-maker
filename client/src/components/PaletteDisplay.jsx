@@ -42,8 +42,8 @@ function getLastPaletteAction() {
 function setLastPaletteAction(value) {
   try {
     if (typeof localStorage !== 'undefined') localStorage.setItem(LAST_PALETTE_ACTION_KEY, value);
-  } catch {
-    // Ignore localStorage errors (e.g. quota exceeded, private mode)
+  } catch (_err) {
+    void _err; // Ignore localStorage errors (e.g. quota exceeded, private mode)
   }
 }
 
