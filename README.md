@@ -16,22 +16,18 @@ detect image regions with OpenCV, and export palettes as JSON.
 - **Region Detection**: Python 3, OpenCV, NumPy
 - **Testing**: Vitest, React Testing Library, happy-dom
 
-## Quick Start
+## Quick Start (Docker)
+
+**Prerequisites:** Docker and Docker Compose.
 
 ```bash
-npm install
-cd client && npm install && cd ..
-npm run dev
+mkdir -p docker-data && touch docker-data/image_metadata.jsonl
+docker compose up --build
 ```
 
-Opens at http://localhost:5173 (Vite dev server) with API at http://localhost:3000.
+Open http://localhost:3000. Uploads and metadata persist in `./docker-data/`.
 
-For region detection, also install Python dependencies:
-
-```bash
-python3 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-```
+For production deployment (including VPS), see [VPS Hosting](docs/VPS-HOSTING.md).
 
 ## Documentation
 
@@ -41,7 +37,7 @@ pip install -r requirements.txt
 | [User Guide](docs/USER_GUIDE.md) | Features, key actions, color sampling, region workflow |
 | [API Reference](docs/API.md) | REST endpoints, request/response formats |
 | [Architecture](docs/ARCHITECTURE.md) | Region & palette pipeline, data flow, storage format |
-| [Development](docs/DEVELOPMENT.md) | Setup, build, test, Docker, project structure, contributing |
+| [Development](docs/DEVELOPMENT.md) | Docker workflow, project structure, env vars |
 | [VPS Hosting](docs/VPS-HOSTING.md) | Deploy on a VPS (Ubuntu/Debian, Docker, firewall, reverse proxy) |
 | [Future Work](docs/FUTURE-WORK.md) | Improvement backlog, SPA/SaaS migration outlines |
 | [Single-User SPA → Docker Compose](docs/Single-User-SPA-DockerCompose-migration.md) | Multi-service orchestration outline |

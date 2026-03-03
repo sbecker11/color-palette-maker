@@ -16,7 +16,7 @@ const { computeSwatchLabels } = require('./shared/swatchLabels.cjs');
 const { VALID_STRATEGIES } = require('./shared/regionStrategies.cjs');
 
 const app = express();
-const port = parseInt(process.env.PORT, 10) || 3000;
+const port = parseInt(process.env.EXPRESS_PORT, 10) || 3000;
 
 // Always show about page on first load (dev and prod)
 const showAboutPage = true;

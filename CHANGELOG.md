@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional unit tests for App, ImageViewer, and api modules to improve coverage
 
 ### Changed
+- Server port config: use `EXPRESS_PORT` instead of `PORT` in .env and scripts (clearer architecture)
 - Match Region Swatches: renamed from "Match Palette Swatches"
 - Match Region Swatches: re-pairing only occurs when feature is enabled
 - Deleting regions mode: one region per session, exits after clicking a region

@@ -10,7 +10,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - PORT=3000
+      - EXPRESS_PORT=3000
       - DETECT_REGIONS_PYTHON=python3
     volumes:
       # Persist uploads and metadata across restarts

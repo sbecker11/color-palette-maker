@@ -157,7 +157,7 @@ services:
       dockerfile: Dockerfile
     environment:
       IMAGE_PROCESSOR_URL: http://image-processor:5000
-      PORT: 3000
+      EXPRESS_PORT: 3000
     volumes:
       - uploads_data:/app/uploads
     depends_on:

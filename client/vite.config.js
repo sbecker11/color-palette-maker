@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
 export default defineConfig({
+  envDir: resolve(__dirname, '..'),
   plugins: [react()],
   test: {
     globals: true,
@@ -29,11 +30,11 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
+    port: parseInt(process.env.VITE_DEV_PORT, 10) || 5173,
     proxy: {
-      '/api': 'http://localhost:3000',
-      '/upload': 'http://localhost:3000',
-      '/uploads': 'http://localhost:3000',
+      '/api': `http://localhost:${parseInt(process.env.VITE_API_PORT, 10) || parseInt(process.env.EXPRESS_PORT, 10) || 3000}`,
+      '/upload': `http://localhost:${parseInt(process.env.VITE_API_PORT, 10) || parseInt(process.env.EXPRESS_PORT, 10) || 3000}`,
+      '/uploads': `http://localhost:${parseInt(process.env.VITE_API_PORT, 10) || parseInt(process.env.EXPRESS_PORT, 10) || 3000}`,
     },
   },
 })

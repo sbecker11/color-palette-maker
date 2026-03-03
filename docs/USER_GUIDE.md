@@ -60,7 +60,7 @@ Browse, select, delete, reorder (move to top/bottom or step up/down), and duplic
 | **Reorder (⏫ ⏬ ⬆️ ⬇️)** | Left column: ⏫ move to top, ⏬ move to bottom. Inner column: ⬆️ move up one, ⬇️ move down one. Order persisted to server. Note: New uploads always appear at the top regardless of manual reordering. |
 | **Palette Name** | Edit in the input and blur or press Enter to save. Persisted automatically. |
 | **Regenerate (K-means)** | Replace palette with freshly computed colors from the image. Choose K=5, 7, or 9. |
-| **Detect Regions** | Python/OpenCV detects large regions. Choose a **Detection method** (e.g. Default, Template match), then click **Detect**. For **Template match**: click **Detect** → button shows **Click** → click on image for template center, drag to size box, release to run detection (button shows **Drag** while dragging). Click **Detect** again to clear and draw a new template. When a palette already has regions and Region Detection shows a method (e.g. Template), clicking **Detect** continues with that method. |
+| **Detect Regions** | Python/OpenCV detects large regions. Choose a **Detection method** (e.g. Default, Template match), then click **Detect**. For **Template match**: click **Detect** → button shows **Click** → click at template top-left on the image, drag to bottom-right, release to run detection (button shows **Drag** while dragging). The template can be any rectangle, not just a square. Click **Detect** again to clear and draw a new template. When a palette already has regions and Region Detection shows a method (e.g. Template), clicking **Detect** continues with that method. |
 | **Remove Region (click)** | Enter delete mode; click region boundaries to remove. Click outside to exit. |
 | **Clear all Regions** | Remove all detected regions at once. |
 | **Adding swatches** | Toggle to enter/exit manual swatch creation mode. Cursor shows +; click palette image to add color. |
@@ -84,7 +84,7 @@ If you use the [Dark Reader](https://darkreader.org/) browser extension, it may 
 1. Click the Dark Reader icon in your browser toolbar
 2. Click the gear icon (Settings)
 3. Open the **Site list** tab
-4. Add this site to the **Not inverted** (or **Disabled for**) list — e.g. `localhost`, `localhost:5173`, or your deployed domain
+4. Add this site to the **Not inverted** (or **Disabled for**) list — e.g. `localhost`, `localhost:3000`, or your deployed domain
 5. Apply and refresh the page
 
 ---

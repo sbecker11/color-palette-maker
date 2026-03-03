@@ -18,7 +18,7 @@ function Header({ theme, onToggleTheme, onTitleClick, onAboutClick }) {
               : undefined
           }
         >
-          Color <em>Palette</em> Maker
+          Color <em className="hero-title-palette">Palette</em> Maker
         </span>
         <span className="header-tech">React • Vite</span>
       </h1>

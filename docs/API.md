@@ -151,7 +151,7 @@ Detect regions in an image using a Python/OpenCV subprocess. Persists regions to
 | Field | Type | Description |
 |-------|------|-------------|
 | `strategy` | string | Detection method: `default`, `adaptive`, `otsu`, `canny`, `color`, `watershed`, `grabcut`, `slic`, `saliency`, `meanshift`, `quadtree`, `circles`, `rectangles`, `contour_circles`, `template_match`. Default `default`. |
-| `templateBox` | object | For `template_match` only: `{ x, y, width, height }` (image pixels). User draws a box on the image; correlation runs on gradient magnitude (brightness-invariant). |
+| `templateBox` | object | For `template_match` only: `{ x, y, width, height }` (image pixels, top-left corner and size). User draws a rectangle (click top-left, drag to bottom-right); correlation runs on gradient magnitude (brightness-invariant). |
 
 **Response**
 

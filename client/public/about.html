@@ -86,9 +86,10 @@
     color: #ffffff;
   }
 
-  .app-name em {
-    font-style: italic;
-    color: #E6C23A;
+  /* Palette: italic yellow – high specificity so it wins over .app-name / .app-name:hover */
+  .hero-row .app-name em.app-name-palette {
+    font-style: italic !important;
+    color: #E6C23A !important;
   }
 
   /* Purpose */
@@ -242,7 +243,7 @@
   <!-- Hero: title + Open app button -->
   <div class="hero-row">
     <h1 class="app-name" onclick="window.parent.postMessage({type:'about-close'}, '*')">
-      Color <em>Palette</em> Maker
+      Color <em class="app-name-palette">Palette</em> Maker
     </h1>
     <a href="#" class="open-app-btn" onclick="window.parent.postMessage({type:'about-close'}, '*'); return false;">Open app</a>
   </div>

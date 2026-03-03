@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { formatHexDisplay, getFilenameFromMeta } from '../utils';
 import MetadataDisplay from './MetadataDisplay';
+import BizCardModal from './BizCardModal';
 import { VALID_STRATEGIES, REGION_STRATEGIES, STRATEGIES_WITH_PARAMS } from '../../../shared/regionStrategies.js';
 
 const DEFAULT_REGION_PARAMS = {
@@ -521,6 +522,7 @@ function PaletteDisplay({
   palettePanelRef,
 }) {
   const [actionSelect, setActionSelect] = useState('');
+  const [bizCardSwatchIndex, setBizCardSwatchIndex] = useState(null);
   const paletteNameInputRef = useRef(null);
   const hasPalette = palette && Array.isArray(palette) && palette.length > 0;
   const showPlaceholder = !isGenerating && !hasPalette;
@@ -559,9 +561,21 @@ function PaletteDisplay({
                   backgroundColor: hexColor,
                   boxShadow: `inset 0 0 0 50px ${hexColor}`,
                 }}
-                title={hexColor}
+                title={`${hexColor} — Click to view biz card`}
+                role="button"
+                tabIndex={0}
                 onMouseEnter={() => onSwatchHover?.(idx)}
                 onMouseLeave={() => onSwatchHover?.(null)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setBizCardSwatchIndex(idx);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setBizCardSwatchIndex(idx);
+                  }
+                }}
               />
               <span
                 className="swatch-label"
@@ -569,6 +583,17 @@ function PaletteDisplay({
               >
                 {swatchLabels[idx] ?? String.fromCharCode(65 + (idx % 26))}
               </span>
+              <button
+                type="button"
+                className="swatch-detail-btn"
+                title="View swatch biz card"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setBizCardSwatchIndex(idx);
+                }}
+              >
+                i
+              </button>
             </div>
             <span className="palette-label">{formatHexDisplay(hexColor)}</span>
             <button
@@ -681,6 +706,13 @@ function PaletteDisplay({
         onDeleteRegions={onDeleteRegions}
       />
       <MetadataDisplay meta={selectedMeta} />
+      {bizCardSwatchIndex != null && palette?.[bizCardSwatchIndex] && (
+        <BizCardModal
+          hexColor={palette[bizCardSwatchIndex]}
+          swatchIndex={bizCardSwatchIndex}
+          onClose={() => setBizCardSwatchIndex(null)}
+        />
+      )}
     </div>
   );
 }

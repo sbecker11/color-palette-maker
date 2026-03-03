@@ -267,7 +267,7 @@ If you prefer not to use Docker:
 
    ```bash
    npm run build
-   PORT=3000 npm start
+   EXPRESS_PORT=3000 npm start
    ```
 
 Use a process manager (e.g. `pm2` or systemd) to keep the app running and restart on crash/reboot.

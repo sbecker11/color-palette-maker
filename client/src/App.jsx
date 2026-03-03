@@ -578,14 +578,14 @@ function App() {
     if (strategy === 'template_match' && overrideTemplateBox == null) {
       // Detect button clicked: clear regions and enter draw mode (first or repeat)
       dispatchRegions({ type: 'SET_REGIONS', payload: [] });
-      setSelectedMeta((prev) => (prev ? { ...applyRegionsToMeta(prev, []), paletteRegion: [] } : prev));
+      setSelectedMeta((prev) => (prev ? { ...applyRegionsToMeta(prev, []), paletteRegion: [], regionStrategy: 'template_match' } : prev));
       setImages((prev) =>
-        prev.map((m) => (getFilenameFromMeta(m) === filename ? { ...m, ...applyRegionsToMeta(m, []), paletteRegion: [] } : m))
+        prev.map((m) => (getFilenameFromMeta(m) === filename ? { ...m, ...applyRegionsToMeta(m, []), paletteRegion: [], regionStrategy: 'template_match' } : m))
       );
       setTemplateMatchBox(null);
       setAwaitingTemplateBox(true);
       setTemplateDrawPhase('click');
-      showMessage('Draw a template box on the image: click at center, drag to size, then release.', true);
+      showMessage('Draw a template box: click at top-left, drag to bottom-right, then release.', true);
       return;
     }
     dispatchRegions({ type: 'SET_DETECTING', payload: true });

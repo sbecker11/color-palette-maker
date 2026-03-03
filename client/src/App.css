@@ -78,9 +78,10 @@ header h1 {
   text-decoration: underline;
 }
 
-.hero-title em {
+.hero-title em,
+.hero-title-palette {
   font-style: italic;
-  color: #E6C23A;
+  color: #E6C23A !important;
 }
 
 .header-tech {
@@ -532,6 +533,7 @@ input[type="file"] {
 .palette-swatch-wrapper .palette-swatch.palette-swatch-filled {
   background: var(--swatch-color) !important;
   background-color: var(--swatch-color) !important;
+  cursor: pointer;
 }
 /* Sample swatch: use var for dynamic color; !important overrides Dark Reader extension */
 .palette-swatch-wrapper .palette-swatch.palette-swatch-sample {
@@ -800,4 +802,165 @@ body.sampling-active #imageViewer img {
 .form-actions > button {
   font-size: 0.8em;
   padding: 2px 5px;
+}
+
+/* Swatch detail button - bottom left of swatch circle (opposite delete at top right) */
+.palette-swatch-wrapper .swatch-detail-btn {
+  position: absolute;
+  bottom: -6px;
+  left: -6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #4a6fa5;
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+  font-weight: 700;
+  font-style: italic;
+  font-family: Georgia, serif;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  z-index: 3;
+  transition: background-color 0.2s ease-in-out, transform 0.15s ease;
+}
+.palette-swatch-wrapper .swatch-detail-btn:hover {
+  background-color: #3d5d8c;
+  transform: scale(1.15);
+}
+
+/* BizCard modal overlay - click anywhere to close */
+.biz-card-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  cursor: pointer;
+}
+
+.biz-card {
+  position: relative;
+  max-width: 400px;
+  width: 90%;
+  padding: 1.25rem 3rem 3rem 1.25rem;
+  border: 2px dotted rgba(128, 128, 128, 0.6);
+  border-radius: 6px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  text-align: left;
+}
+
+.biz-card-close-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #c0392b;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+}
+
+.biz-card-forward-btn {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+}
+
+.biz-card-content {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+}
+
+.biz-card-title {
+  margin: 0 0 0.25em 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.biz-card-subtitle {
+  margin: 0 0 0.4em 0;
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+.biz-card-company {
+  margin: 0 0 0.2em 0;
+  font-size: 0.95rem;
+  font-weight: 400;
+}
+
+.biz-card-dates {
+  margin: 0 0 0.75em 0;
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+.biz-card-bullets {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.biz-card-bullets li {
+  margin-bottom: 0.4em;
+}
+
+.biz-card-color-line {
+  margin: 0.75em 0 0 0;
+  font-size: 0.85rem;
+  font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Monaco, "Courier New", monospace;
+}
+.biz-card-color-swatch-part,
+.biz-card-color-highlight-part {
+  display: inline-block;
+  border-radius: 2px;
+}
+
+.biz-card-icon-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0.5em 0 0 0;
+}
+.biz-card-icon {
+  display: inline-block;
+  vertical-align: middle;
+}
+.biz-card-icon-row[data-variant="white"] .biz-card-icon {
+  filter: invert(1);
 }

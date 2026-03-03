@@ -52,7 +52,7 @@ Region detection runs a Python subprocess (`scripts/detect_regions.py`) using Op
 | **Watershed** | Touching objects | Distance transform + watershed |
 | **Default** | Auto fallback | Cascade through strategies until regions found |
 
-Detected regions are returned as polygons (arrays of `[x, y]` vertices). The server invokes this script via `POST /api/regions/:filename` when you click **Detect**. For **Template match**, the client sends a user-drawn `templateBox` (center + drag on the image); the script uses gradient-magnitude correlation so dark and bright regions match equally.
+Detected regions are returned as polygons (arrays of `[x, y]` vertices). The server invokes this script via `POST /api/regions/:filename` when you click **Detect**. For **Template match**, the client sends a user-drawn `templateBox` (click top-left, drag to bottom-right; any rectangle); the script uses gradient-magnitude correlation so dark and bright regions match equally.
 
 ---
 

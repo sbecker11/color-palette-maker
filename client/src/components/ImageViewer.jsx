@@ -10,6 +10,22 @@ const HIGHLIGHT_REGION_ON_ROLLOVER = (() => {
   return v !== 'false' && v !== '0';
 })();
 
+// Highlighted region boundary stroke width (VITE_REGION_HIGHLIGHT_STROKE_WIDTH, default 3)
+const REGION_HIGHLIGHT_STROKE_WIDTH = (() => {
+  const v = import.meta.env.VITE_REGION_HIGHLIGHT_STROKE_WIDTH;
+  if (v === undefined || v === '') return 3;
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? n : 3;
+})();
+
+// Highlighted region interior fill (VITE_REGION_HIGHLIGHT_FILL, default rgba). Use "transparent" or "false" for no fill.
+const REGION_HIGHLIGHT_FILL = (() => {
+  const v = import.meta.env.VITE_REGION_HIGHLIGHT_FILL;
+  if (v === undefined || v === '') return 'rgba(150, 220, 255, 0.45)';
+  if (v === 'false' || v.toLowerCase() === 'transparent') return 'transparent';
+  return String(v);
+})();
+
 // Small "x" cursor for Deleting regions mode when hovering over a region
 const CURSOR_DELETE_X = `url("data:image/svg+xml,${encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path stroke="#000" stroke-width="2" d="M4 4l12 12M16 4L4 16" fill="none"/></svg>'
@@ -390,18 +406,13 @@ const ImageViewer = forwardRef(function ImageViewer({
     if (!isTemplateDrawMode || !templateDrawStart) return;
     event.preventDefault();
     event.stopPropagation();
-    const center = templateDrawStart;
+    const topLeft = templateDrawStart;
     const current = getCanvasCoords(event);
     if (current && imageSize.w > 0 && imageSize.h > 0) {
-      const dx = current.x - center.x;
-      const dy = current.y - center.y;
-      const r = Math.max(2, Math.max(Math.abs(dx), Math.abs(dy)));
-      let x = center.x - r;
-      let y = center.y - r;
-      let w = 2 * r;
-      let h = 2 * r;
-      x = Math.max(0, Math.min(x, imageSize.w - 1));
-      y = Math.max(0, Math.min(y, imageSize.h - 1));
+      const x = Math.max(0, Math.min(topLeft.x, current.x));
+      const y = Math.max(0, Math.min(topLeft.y, current.y));
+      let w = Math.abs(current.x - topLeft.x);
+      let h = Math.abs(current.y - topLeft.y);
       w = Math.min(w, imageSize.w - x);
       h = Math.min(h, imageSize.h - y);
       if (w >= 5 && h >= 5) {
@@ -472,7 +483,7 @@ const ImageViewer = forwardRef(function ImageViewer({
               />
               {isTemplateDrawMode && (
                 <p className="image-viewer-template-draw-hint" aria-live="polite">
-                  Click at the template center, drag to set the box size, then release. Template match will run automatically.
+                  Click at top-left, drag to bottom-right, then release. Template match will run automatically.
                 </p>
               )}
               <div
@@ -499,15 +510,12 @@ const ImageViewer = forwardRef(function ImageViewer({
                   aria-hidden="true"
                 >
                   {(() => {
-                    const center = templateDrawStart;
-                    const current = templateDrawCurrent ?? center;
-                    const dx = current.x - center.x;
-                    const dy = current.y - center.y;
-                    const r = Math.max(2, Math.max(Math.abs(dx), Math.abs(dy)));
-                    const x = Math.max(0, center.x - r);
-                    const y = Math.max(0, center.y - r);
-                    const w = Math.min(2 * r, imageSize.w - x);
-                    const h = Math.min(2 * r, imageSize.h - y);
+                    const topLeft = templateDrawStart;
+                    const current = templateDrawCurrent ?? topLeft;
+                    const x = Math.max(0, Math.min(topLeft.x, current.x));
+                    const y = Math.max(0, Math.min(topLeft.y, current.y));
+                    const w = Math.min(imageSize.w - x, Math.abs(current.x - topLeft.x));
+                    const h = Math.min(imageSize.h - y, Math.abs(current.y - topLeft.y));
                     if (w < 2 || h < 2) return null;
                     return (
                       <rect
@@ -567,9 +575,9 @@ const ImageViewer = forwardRef(function ImageViewer({
                         className="region-boundary"
                         data-region-index={i}
                         d={d}
-                        fill={isBoundaryHighlighted ? 'rgba(150, 220, 255, 0.45)' : 'rgba(100, 180, 255, 0.2)'}
+                        fill={isBoundaryHighlighted ? REGION_HIGHLIGHT_FILL : 'transparent'}
                         stroke={isBoundaryHighlighted ? 'rgba(80, 160, 255, 1)' : 'rgba(50, 120, 200, 0.9)'}
-                        strokeWidth={isBoundaryHighlighted ? 4 : 3}
+                        strokeWidth={isBoundaryHighlighted ? REGION_HIGHLIGHT_STROKE_WIDTH : 1}
                         style={{ cursor: isDeleteRegionMode ? CURSOR_DELETE_X : 'default' }}
                         onMouseEnter={() => {
                           setHoveredRegionIndex(i);
