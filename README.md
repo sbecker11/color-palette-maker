@@ -40,8 +40,8 @@ For production deployment (including VPS), see [VPS Hosting](docs/VPS-HOSTING.md
 | [Development](docs/DEVELOPMENT.md) | Docker workflow, project structure, env vars |
 | [VPS Hosting](docs/VPS-HOSTING.md) | Deploy on a VPS (Ubuntu/Debian, Docker, firewall, reverse proxy) |
 | [Future Work](docs/FUTURE-WORK.md) | Improvement backlog, SPA/SaaS migration outlines |
-| [Single-User SPA → Docker Compose](docs/Single-User-SPA-DockerCompose-migration.md) | Multi-service orchestration outline |
-| [Multi-User SaaS → Kubernetes](docs/Multi-User-SaaS-Kubernetes-migration.md) | Kubernetes migration outline |
+| [Single-User SPA → Docker Compose](docs/archive/Single-User-SPA-DockerCompose-migration.md) | Multi-service orchestration outline |
+| [Multi-User SaaS → Kubernetes](docs/archive/Multi-User-SaaS-Kubernetes-migration.md) | Kubernetes migration outline |
 
 ## License
 

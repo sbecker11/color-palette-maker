@@ -28,6 +28,23 @@ const DEFAULT_REGION_PARAMS = {
   rectanglesEpsilonRatio: 0.05,
 };
 
+const LAST_PALETTE_ACTION_KEY = 'color-palette-maker.lastPaletteAction';
+const ACTION_DETECT_REGIONS = 'detectRegions';
+
+function getLastPaletteAction() {
+  try {
+    return typeof localStorage !== 'undefined' ? localStorage.getItem(LAST_PALETTE_ACTION_KEY) : null;
+  } catch {
+    return null;
+  }
+}
+
+function setLastPaletteAction(value) {
+  try {
+    if (typeof localStorage !== 'undefined') localStorage.setItem(LAST_PALETTE_ACTION_KEY, value);
+  } catch {}
+}
+
 function RegionDetectionForm({ selectedMeta, onDetectRegions, regionsDetecting, onRegionStrategyChange, templateDrawPhase }) {
   const s = selectedMeta?.regionStrategy;
   const p = selectedMeta?.regionParams;
@@ -409,6 +426,7 @@ function RegionDetectionForm({ selectedMeta, onDetectRegions, regionsDetecting, 
 function RegionDetectionAndActions({
   selectedMeta,
   hasRegions,
+  regionCount = 0,
   hasPalette,
   isGenerating,
   regionsDetecting,
@@ -428,7 +446,9 @@ function RegionDetectionAndActions({
   onDeleteRegions,
 }) {
   const hasStoredRegions = selectedMeta?.regions && Array.isArray(selectedMeta.regions) && selectedMeta.regions.length > 0;
-  const [showRegionDetection, setShowRegionDetection] = useState(hasStoredRegions);
+  const [showRegionDetection, setShowRegionDetection] = useState(
+    hasStoredRegions || getLastPaletteAction() === ACTION_DETECT_REGIONS
+  );
 
   return (
     <>
@@ -440,6 +460,11 @@ function RegionDetectionAndActions({
           regionsDetecting={regionsDetecting}
           templateDrawPhase={templateDrawPhase}
         />
+      )}
+      {selectedMeta != null && !regionsDetecting && (
+        <p id="regionCountMessage" className="region-count-message" aria-live="polite">
+          # regions detected: {regionCount}
+        </p>
       )}
       <div id="paletteActionsRow">
         <select
@@ -461,7 +486,10 @@ function RegionDetectionAndActions({
             else if (v === 'kmeans9') onRegenerateWithK?.(9);
             else if (v === 'enterAddingSwatches') onToggleSamplingMode?.();
             else if (v === 'clearSwatches') onClearAllSwatches?.();
-            else if (v === 'detectRegions') setShowRegionDetection(true);
+            else if (v === 'detectRegions') {
+              setLastPaletteAction(ACTION_DETECT_REGIONS);
+              setShowRegionDetection(true);
+            }
             else if (v === 'enterDeleteRegionMode') onEnterDeleteRegionMode?.();
             else if (v === 'deleteRegions') onDeleteRegions?.();
           }}
@@ -515,13 +543,18 @@ function PaletteDisplay({
   onDeleteRegionModeChange,
   regionsDetecting,
   hasRegions,
+  regionCount = 0,
   showMatchPaletteSwatches = false,
   onShowMatchPaletteSwatchesChange,
+  showRegionBoundaries = true,
+  onShowRegionBoundariesChange,
   hoveredSwatchIndex = null,
   onSwatchHover,
   palettePanelRef,
 }) {
-  const [actionSelect, setActionSelect] = useState('');
+  const [actionSelect, setActionSelect] = useState(() =>
+    getLastPaletteAction() === ACTION_DETECT_REGIONS ? ACTION_DETECT_REGIONS : ''
+  );
   const [bizCardSwatchIndex, setBizCardSwatchIndex] = useState(null);
   const paletteNameInputRef = useRef(null);
   const hasPalette = palette && Array.isArray(palette) && palette.length > 0;
@@ -655,6 +688,16 @@ function PaletteDisplay({
         <label>
           <input
             type="checkbox"
+            checked={showRegionBoundaries}
+            onChange={(e) => onShowRegionBoundariesChange?.(e.target.checked)}
+            disabled={!hasRegions}
+            aria-label="Show region boundaries"
+          />
+          Show region boundaries
+        </label>
+        <label>
+          <input
+            type="checkbox"
             checked={showMatchPaletteSwatches}
             onChange={(e) => onShowMatchPaletteSwatchesChange?.(e.target.checked)}
             disabled={!hasRegions || !hasPalette}
@@ -687,6 +730,7 @@ function PaletteDisplay({
         key={getFilenameFromMeta(selectedMeta) ?? 'none'}
         selectedMeta={selectedMeta}
         hasRegions={hasRegions}
+        regionCount={regionCount}
         hasPalette={hasPalette}
         isGenerating={isGenerating}
         regionsDetecting={regionsDetecting}

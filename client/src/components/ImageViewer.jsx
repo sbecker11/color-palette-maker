@@ -10,12 +10,32 @@ const HIGHLIGHT_REGION_ON_ROLLOVER = (() => {
   return v !== 'false' && v !== '0';
 })();
 
+// Default (non-highlighted) region boundary stroke width (VITE_REGION_BOUNDARY_STROKE_WIDTH, default 1)
+const REGION_BOUNDARY_STROKE_WIDTH = (() => {
+  const v = import.meta.env.VITE_REGION_BOUNDARY_STROKE_WIDTH;
+  if (v === undefined || v === '') return 1;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 ? n : 1;
+})();
+
+// Default (non-highlighted) region boundary stroke color (VITE_REGION_BOUNDARY_STROKE_COLOR)
+const REGION_BOUNDARY_STROKE_COLOR = (() => {
+  const v = import.meta.env.VITE_REGION_BOUNDARY_STROKE_COLOR;
+  return (v !== undefined && v !== '') ? String(v) : 'rgba(50, 120, 200, 0.9)';
+})();
+
 // Highlighted region boundary stroke width (VITE_REGION_HIGHLIGHT_STROKE_WIDTH, default 3)
 const REGION_HIGHLIGHT_STROKE_WIDTH = (() => {
   const v = import.meta.env.VITE_REGION_HIGHLIGHT_STROKE_WIDTH;
   if (v === undefined || v === '') return 3;
   const n = Number(v);
   return Number.isFinite(n) && n > 0 ? n : 3;
+})();
+
+// Highlighted region boundary stroke color (VITE_REGION_HIGHLIGHT_STROKE_COLOR)
+const REGION_HIGHLIGHT_STROKE_COLOR = (() => {
+  const v = import.meta.env.VITE_REGION_HIGHLIGHT_STROKE_COLOR;
+  return (v !== undefined && v !== '') ? String(v) : 'rgba(80, 160, 255, 1)';
 })();
 
 // Highlighted region interior fill (VITE_REGION_HIGHLIGHT_FILL, default rgba). Use "transparent" or "false" for no fill.
@@ -59,6 +79,7 @@ const ImageViewer = forwardRef(function ImageViewer({
   onRegionClick,
   onExitDeleteRegionMode,
   showMatchPaletteSwatches = false,
+  showRegionBoundaries = true,
   palette = [],
   swatchLabels = [],
   hoveredSwatchIndex = null,
@@ -569,6 +590,7 @@ const ImageViewer = forwardRef(function ImageViewer({
                     const isRegionHovered = hoveredRegionIndex === i;
                     const isSwatchMatchHighlighted = showMatchPaletteSwatches && hoveredSwatchIndex === paletteIdxForRegion;
                     const isBoundaryHighlighted = HIGHLIGHT_REGION_ON_ROLLOVER && (isRegionHovered || isSwatchMatchHighlighted);
+                    const showBoundary = showRegionBoundaries || isBoundaryHighlighted;
                     return (
                       <path
                         key={`region-${i}`}
@@ -576,8 +598,8 @@ const ImageViewer = forwardRef(function ImageViewer({
                         data-region-index={i}
                         d={d}
                         fill={isBoundaryHighlighted ? REGION_HIGHLIGHT_FILL : 'transparent'}
-                        stroke={isBoundaryHighlighted ? 'rgba(80, 160, 255, 1)' : 'rgba(50, 120, 200, 0.9)'}
-                        strokeWidth={isBoundaryHighlighted ? REGION_HIGHLIGHT_STROKE_WIDTH : 1}
+                        stroke={showBoundary ? (isBoundaryHighlighted ? REGION_HIGHLIGHT_STROKE_COLOR : REGION_BOUNDARY_STROKE_COLOR) : 'transparent'}
+                        strokeWidth={showBoundary ? (isBoundaryHighlighted ? REGION_HIGHLIGHT_STROKE_WIDTH : REGION_BOUNDARY_STROKE_WIDTH) : 0}
                         style={{ cursor: isDeleteRegionMode ? CURSOR_DELETE_X : 'default' }}
                         onMouseEnter={() => {
                           setHoveredRegionIndex(i);

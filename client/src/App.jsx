@@ -53,6 +53,7 @@ function App() {
   const [regionsState, dispatchRegions] = useReducer(regionsReducer, initialRegionsState);
   const { regions, isDeleteRegionMode, regionsDetecting } = regionsState;
   const [showMatchPaletteSwatches, setShowMatchPaletteSwatches] = useState(false);
+  const [showRegionBoundaries, setShowRegionBoundaries] = useState(true);
   const [pairingsNeeded, setPairingsNeeded] = useState(false);
   const [showAbout, setShowAbout] = useState(true);
   // One palette swatch may map to zero or more overlays (sync highlight between panel swatch and image overlays)
@@ -793,11 +794,14 @@ function App() {
           onDeleteRegionModeChange={handleDeleteRegionModeChange}
           regionsDetecting={regionsDetecting}
           hasRegions={regions && regions.length > 0}
+          regionCount={regions?.length ?? 0}
           showMatchPaletteSwatches={showMatchPaletteSwatches}
           onShowMatchPaletteSwatchesChange={(checked) => {
             setShowMatchPaletteSwatches(checked);
             if (checked) setPairingsNeeded(true);
           }}
+          showRegionBoundaries={showRegionBoundaries}
+          onShowRegionBoundariesChange={setShowRegionBoundaries}
           hoveredSwatchIndex={hoveredSwatchIndex}
           onSwatchHover={setHoveredSwatchIndex}
         />
@@ -826,6 +830,7 @@ function App() {
           onRegionClick={handleRegionClick}
           onExitDeleteRegionMode={handleExitDeleteRegionMode}
           showMatchPaletteSwatches={showMatchPaletteSwatches}
+          showRegionBoundaries={showRegionBoundaries}
           palette={palette}
           swatchLabels={swatchLabels}
           hoveredSwatchIndex={hoveredSwatchIndex}

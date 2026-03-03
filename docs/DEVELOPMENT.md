@@ -102,6 +102,24 @@ CI must pass before merging pull requests.
 
 ---
 
+## Python / region detection
+
+Region detection runs in a Python subprocess and needs OpenCV and NumPy. Use a virtualenv and install from the repo root:
+
+```bash
+pip install -r requirements.txt
+```
+
+**SLIC** (superpixels) requires **opencv-contrib-python** (not plain opencv-python). If you see an error when using SLIC:
+
+```bash
+pip install opencv-contrib-python
+```
+
+This replaces opencv-python. Other detection strategies work with opencv-python only.
+
+---
+
 ## Project Structure
 
 ```
@@ -147,5 +165,8 @@ The React app reads `VITE_*` variables at **build time** (when the image is buil
 | Variable | Description |
 |----------|-------------|
 | `VITE_HIGHLIGHT_REGION_ON_ROLLOVER` | Highlight region on hover. Default `true`. |
+| `VITE_REGION_BOUNDARY_STROKE_WIDTH` | Default (non-highlighted) region boundary stroke width (px). Default `1`. |
+| `VITE_REGION_BOUNDARY_STROKE_COLOR` | Default region boundary stroke color (CSS color). Default `rgba(50, 120, 200, 0.9)`. |
 | `VITE_REGION_HIGHLIGHT_STROKE_WIDTH` | Highlighted region stroke width (px). Default `3`. |
+| `VITE_REGION_HIGHLIGHT_STROKE_COLOR` | Highlighted region stroke color (CSS color). Default `rgba(80, 160, 255, 1)`. |
 | `VITE_REGION_HIGHLIGHT_FILL` | Highlighted region fill (CSS color). Default `rgba(150, 220, 255, 0.45)`. |

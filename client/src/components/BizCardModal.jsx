@@ -37,10 +37,10 @@ function BizCardContent({ bizcardDivId, fgColor, swatchHex, highlightHex, textCo
         </span>
       </p>
       {iconSet && (
-        <p className="biz-card-icon-row" data-variant={iconSet.variant} aria-hidden="true">
-          <img src={iconSet.url} alt="" width={16} height={16} className="biz-card-icon" />
-          <img src={iconSet.back} alt="" width={16} height={16} className="biz-card-icon" />
-          <img src={iconSet.img} alt="" width={16} height={16} className="biz-card-icon" />
+        <p className="palette-icon-row biz-card-icon-row" data-variant={iconSet.variant} aria-hidden="true">
+          <img src={iconSet.url} alt="" width={16} height={16} className="palette-icon biz-card-icon" />
+          <img src={iconSet.back} alt="" width={16} height={16} className="palette-icon biz-card-icon" />
+          <img src={iconSet.img} alt="" width={16} height={16} className="palette-icon biz-card-icon" />
         </p>
       )}
     </div>

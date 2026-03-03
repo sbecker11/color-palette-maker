@@ -54,7 +54,7 @@ Migrate the SPA to a multi-service Docker Compose deployment: React frontend (ng
 - Image-processor: Flask wrapper around `detect_regions.py`; reads from shared `uploads/` volume.
 - Shared volume for uploads; backward compatibility with subprocess when `IMAGE_PROCESSOR_URL` not set.
 
-See [Single-User-SPA-DockerCompose-migration.md](Single-User-SPA-DockerCompose-migration.md) for implementation steps and file changes.
+See [archive/Single-User-SPA-DockerCompose-migration.md](archive/Single-User-SPA-DockerCompose-migration.md) for implementation steps and file changes.
 
 ---
 
@@ -68,4 +68,4 @@ Migrate to a multi-user SaaS on Kubernetes: add auth, PostgreSQL, object storage
 - Per-user data isolation; rate limits; quotas.
 - K8s manifests: deployments, services, ingress (TLS), ConfigMaps, Secrets, HPA for backend and image-processor.
 
-See [Multi-User-SaaS-Kubernetes-migration.md](Multi-User-SaaS-Kubernetes-migration.md) for prerequisites, implementation order, and manifest summary.
+See [archive/Multi-User-SaaS-Kubernetes-migration.md](archive/Multi-User-SaaS-Kubernetes-migration.md) for prerequisites, implementation order, and manifest summary.

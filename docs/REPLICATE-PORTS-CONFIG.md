@@ -4,6 +4,16 @@ Use this as a checklist to give another Node + Vite + Express (or similar) app t
 
 ---
 
+## Which parts need ports?
+
+| Element | Typical env var | Role |
+|--------|------------------|------|
+| **Backend / API** | `EXPRESS_PORT` | Express, FastAPI, etc. Serves API and built frontend. |
+| **Frontend dev server** | `VITE_DEV_PORT` | Hot-reload (Vite). Development only. |
+| **API proxy target** | `VITE_API_PORT` or `EXPRESS_PORT` | Where Vite proxies `/api` in dev. |
+
+---
+
 ## 1. Env var names
 
 | Var | Default | Purpose |
@@ -102,8 +112,7 @@ No `PORT` or raw `3000`/`5173` in these script commands; everything goes through
 ## 9. Optional: shared port utils
 
 - **Node:** e.g. `scripts/env-ports.js` with `getPortsFromEnv(envPath, { EXPRESS_PORT: 3000, VITE_DEV_PORT: 5173 })` and optionally `loadEnvAndGetPorts` that uses `dotenv` then returns the same shape.
-- **Python:** e.g. `scripts/env_ports.py` with `get_ports_from_env(path, defaults={"EXPRESS_PORT": 3000, "VITE_DEV_PORT": 5173 })`.
-- Use these in any script that needs port numbers from `.env` so defaults and parsing live in one place.
+- Use in any script that needs port numbers from `.env` so defaults and parsing live in one place.
 
 ---
 

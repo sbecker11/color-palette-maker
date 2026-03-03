@@ -1,3 +1,4 @@
+# SLIC requires opencv-contrib-python. Run: pip install opencv-contrib-python (replaces opencv-python)
 # Use opencv-contrib-python for SLIC superpixels (includes opencv-python + contrib modules).
 # If SLIC is not needed, opencv-python is sufficient for other strategies.
 opencv-contrib-python>=4.8.0

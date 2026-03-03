@@ -1,0 +1,23 @@
+/**
+ * Palette utils CSS - contrast-aware icon styling.
+ * Import in React/Vue/static HTML. Use with getContrastIconSet() from colors.js.
+ *
+ * Light backgrounds: black icons as-is.
+ * Dark backgrounds: add data-variant="white" to the icon row for filter: invert(1).
+ */
+
+.palette-icon-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.palette-icon {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* When variant is 'white', invert black icons so they appear white on dark bg */
+.palette-icon-row[data-variant="white"] .palette-icon {
+  filter: invert(1);
+}
