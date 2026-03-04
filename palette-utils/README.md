@@ -67,6 +67,29 @@ icons = get_contrast_icon_set("#c1543c", icon_base="/palette-utils/icons/anchors
 # icons["url"], icons["back"], icons["img"], icons["variant"]
 ```
 
+### Python tests
+
+Unit tests live in `palette_utils/test_colors.py` and `palette_utils/test_main.py` (stdlib `unittest`). From the `palette-utils` directory:
+
+```bash
+PYTHONPATH=. python -m unittest discover -s palette_utils -p "test_*.py" -v
+```
+
+From the repo root:
+
+```bash
+PYTHONPATH=palette-utils python -m unittest discover -s palette_utils -p "test_*.py" -v
+```
+
+Line coverage (≥80% for package source files):
+
+```bash
+cd palette-utils
+pip install coverage  # if needed
+PYTHONPATH=. python -m coverage run --source=palette_utils -m unittest discover -s palette_utils -p "test_*.py" -v
+python -m coverage report -m --include="palette_utils/*.py"
+```
+
 ## Porting to TypeScript
 
 Rename `colors.js` to `colors.ts` and add types. All functions are pure and take simple types (`string`, `number`). No behavioral changes needed.

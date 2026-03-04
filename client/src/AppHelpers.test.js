@@ -5,9 +5,11 @@ import {
   computeReorderedState,
   shouldSavePaletteName,
   buildExportData,
+  adjustBackgroundSwatchIndexAfterDelete,
   applyPaletteToMeta,
   applyPaletteToImages,
   applyPaletteNameToImages,
+  applyBackgroundSwatchIndexToImages,
   indexToLabel,
   computeSwatchLabels,
   computeRegionLabels,
@@ -139,11 +141,12 @@ describe('AppHelpers', () => {
     it('returns null when colorPalette is not array', () => {
       expect(buildExportData({ colorPalette: 'invalid' }, 'name')).toBe(null);
     });
-    it('returns { name, colors } when valid', () => {
+    it('returns { name, colors, backgroundSwatchIndex } when valid (default 0)', () => {
       const meta = { cachedFilePath: '/x.jpeg', colorPalette: ['#ff0000', '#00ff00'] };
       expect(buildExportData(meta, 'My Palette')).toEqual({
         name: 'My Palette',
         colors: ['#ff0000', '#00ff00'],
+        backgroundSwatchIndex: 0,
       });
     });
     it('uses getFilenameWithoutExt when paletteName empty', () => {
@@ -151,6 +154,7 @@ describe('AppHelpers', () => {
       expect(buildExportData(meta, '')).toEqual({
         name: 'my-image',
         colors: ['#ff0000'],
+        backgroundSwatchIndex: 0,
       });
     });
     it('uses palette fallback when meta has no filename', () => {
@@ -158,7 +162,62 @@ describe('AppHelpers', () => {
       expect(buildExportData(meta, '')).toEqual({
         name: 'palette',
         colors: ['#ff0000'],
+        backgroundSwatchIndex: 0,
       });
+    });
+    it('includes backgroundSwatchIndex when in range', () => {
+      const meta = { cachedFilePath: '/x.jpeg', colorPalette: ['#ff0000', '#00ff00'], backgroundSwatchIndex: 1 };
+      expect(buildExportData(meta, 'P')).toEqual({
+        name: 'P',
+        colors: ['#ff0000', '#00ff00'],
+        backgroundSwatchIndex: 1,
+      });
+    });
+    it('defaults backgroundSwatchIndex to 0 when undefined', () => {
+      const meta = { cachedFilePath: '/x.jpeg', colorPalette: ['#ff0000', '#00ff00'] };
+      expect(buildExportData(meta, 'P')).toEqual({
+        name: 'P',
+        colors: ['#ff0000', '#00ff00'],
+        backgroundSwatchIndex: 0,
+      });
+    });
+    it('defaults backgroundSwatchIndex to 0 when out of range', () => {
+      const meta = { cachedFilePath: '/x.jpeg', colorPalette: ['#ff0000'], backgroundSwatchIndex: 1 };
+      expect(buildExportData(meta, 'P')).toEqual({ name: 'P', colors: ['#ff0000'], backgroundSwatchIndex: 0 });
+    });
+    it('omits backgroundSwatchIndex when explicitly null (None)', () => {
+      const meta = { cachedFilePath: '/x.jpeg', colorPalette: ['#ff0000'], backgroundSwatchIndex: null };
+      expect(buildExportData(meta, 'P')).toEqual({ name: 'P', colors: ['#ff0000'] });
+    });
+  });
+
+  describe('adjustBackgroundSwatchIndexAfterDelete', () => {
+    it('returns undefined when backgroundSwatchIndex is undefined', () => {
+      expect(adjustBackgroundSwatchIndexAfterDelete(undefined, 0)).toBe(undefined);
+    });
+    it('returns undefined when deleted index was the background', () => {
+      expect(adjustBackgroundSwatchIndexAfterDelete(1, 1)).toBe(undefined);
+    });
+    it('decrements when background index is after deleted', () => {
+      expect(adjustBackgroundSwatchIndexAfterDelete(2, 0)).toBe(1);
+    });
+    it('keeps index when background index is before deleted', () => {
+      expect(adjustBackgroundSwatchIndexAfterDelete(0, 1)).toBe(0);
+    });
+  });
+
+  describe('applyBackgroundSwatchIndexToImages', () => {
+    it('returns [] when images is null', () => {
+      expect(applyBackgroundSwatchIndexToImages(null, 'a.jpeg', 0)).toEqual([]);
+    });
+    it('updates only matching image backgroundSwatchIndex', () => {
+      const images = [
+        { cachedFilePath: '/a.jpeg', paletteName: 'A' },
+        { cachedFilePath: '/b.jpeg', paletteName: 'B' },
+      ];
+      const result = applyBackgroundSwatchIndexToImages(images, 'b.jpeg', 1);
+      expect(result[0]).toBe(images[0]);
+      expect(result[1]).toEqual({ cachedFilePath: '/b.jpeg', paletteName: 'B', backgroundSwatchIndex: 1 });
     });
   });
 

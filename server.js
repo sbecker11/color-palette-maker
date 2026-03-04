@@ -490,10 +490,10 @@ app.post('/api/pairings/:filename', async (req, res) => {
     }
 });
 
-// PUT /api/metadata/:filename - Update specific metadata fields (paletteName, regions, regionLabels)
+// PUT /api/metadata/:filename - Update specific metadata fields (paletteName, regions, regionLabels, backgroundSwatchIndex)
 app.put('/api/metadata/:filename', express.json(), async (req, res) => {
     const filename = req.params.filename;
-    const { paletteName, regions, regionLabels } = req.body;
+    const { paletteName, regions, regionLabels, backgroundSwatchIndex } = req.body;
     console.log(`[API PUT /metadata] Request received for ${filename}`);
 
     if (!validateFilename(filename)) {
@@ -507,8 +507,13 @@ app.put('/api/metadata/:filename', express.json(), async (req, res) => {
     if (regions !== undefined && !Array.isArray(regions)) {
         return res.status(400).json({ success: false, message: 'Regions must be an array.' });
     }
-    if (paletteName === undefined && regions === undefined) {
-        return res.status(400).json({ success: false, message: 'Provide paletteName and/or regions.' });
+    if (backgroundSwatchIndex !== undefined && backgroundSwatchIndex !== null &&
+        (typeof backgroundSwatchIndex !== 'number' || !Number.isInteger(backgroundSwatchIndex) || backgroundSwatchIndex < 0)) {
+        return res.status(400).json({ success: false, message: 'backgroundSwatchIndex must be a non-negative integer or null.' });
+    }
+    const hasBackgroundSwatchIndex = 'backgroundSwatchIndex' in req.body;
+    if (paletteName === undefined && regions === undefined && !hasBackgroundSwatchIndex) {
+        return res.status(400).json({ success: false, message: 'Provide paletteName, regions, and/or backgroundSwatchIndex.' });
     }
 
     let metaResult;
@@ -524,6 +529,9 @@ app.put('/api/metadata/:filename', express.json(), async (req, res) => {
     const { allMetadata, idx: imageIndex } = metaResult;
     if (paletteName !== undefined) {
         allMetadata[imageIndex].paletteName = paletteName.trim();
+    }
+    if (hasBackgroundSwatchIndex) {
+        allMetadata[imageIndex].backgroundSwatchIndex = backgroundSwatchIndex ?? undefined;
     }
     if (regions !== undefined) {
         allMetadata[imageIndex].regions = regions;
@@ -686,7 +694,8 @@ app.post('/api/images/:filename/duplicate', async (req, res) => {
                 : (Array.isArray(sourceMeta.regions) ? sourceMeta.regions.map((_, i) => String(i).padStart(2, '0')) : []),
             paletteRegion: JSON.parse(JSON.stringify(getPaletteRegion(sourceMeta))),
             regionStrategy: sourceMeta.regionStrategy ?? 'default',
-            regionParams: sourceMeta.regionParams ? { ...sourceMeta.regionParams } : {}
+            regionParams: sourceMeta.regionParams ? { ...sourceMeta.regionParams } : {},
+            backgroundSwatchIndex: sourceMeta.backgroundSwatchIndex !== undefined ? sourceMeta.backgroundSwatchIndex : undefined
         };
 
         // 4. Append (puts at end of file; GET reverses so new item appears at top)

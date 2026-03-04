@@ -9,8 +9,10 @@ import {
   buildExportData,
   applyPaletteToMeta,
   applyPaletteToImages,
-  computeSwatchLabels,
   applyPaletteNameToImages,
+  applyBackgroundSwatchIndexToImages,
+  adjustBackgroundSwatchIndexAfterDelete,
+  computeSwatchLabels,
   applyRegionsToMeta,
   computeRegionLabels,
   normalizeMetaPaletteRegion,
@@ -327,11 +329,15 @@ function App() {
       const palette = selectedMeta.colorPalette || [];
       if (!Array.isArray(palette) || !palette.includes(hexColor)) return;
 
+      const deletedIndex = palette.indexOf(hexColor);
       const newPalette = palette.filter((c) => c !== hexColor);
       const filename = getFilenameFromMeta(selectedMeta);
-      const updatedMeta = applyPaletteToMeta(selectedMeta, newPalette);
+      const nextBg = adjustBackgroundSwatchIndexAfterDelete(selectedMeta.backgroundSwatchIndex, deletedIndex);
+      const updatedMeta = { ...applyPaletteToMeta(selectedMeta, newPalette), backgroundSwatchIndex: nextBg };
       setSelectedMeta(updatedMeta);
-      setImages((prev) => applyPaletteToImages(prev, filename, newPalette));
+      setImages((prev) =>
+        applyBackgroundSwatchIndexToImages(applyPaletteToImages(prev, filename, newPalette), filename, nextBg)
+      );
       if (filename) {
         try {
           const labels = computeSwatchLabels(newPalette);
@@ -340,6 +346,9 @@ function App() {
             showMessage(result.message || 'Error saving palette.', true);
           } else if (showMatchPaletteSwatches) {
             setPairingsNeeded(true);
+          }
+          if (nextBg !== selectedMeta.backgroundSwatchIndex) {
+            await api.saveMetadata(filename, { backgroundSwatchIndex: nextBg ?? null });
           }
         } catch {
           showMessage('Network error saving palette update.', true);
@@ -357,11 +366,19 @@ function App() {
     const clearedPaletteRegion = (selectedMeta.paletteRegion ?? []).map(({ x, y, regionColor, hex }) =>
       ({ x, y, regionColor: regionColor ?? hex })
     );
-    const updatedMeta = { ...applyPaletteToMeta(selectedMeta, newPalette), paletteRegion: clearedPaletteRegion };
+    const updatedMeta = {
+      ...applyPaletteToMeta(selectedMeta, newPalette),
+      paletteRegion: clearedPaletteRegion,
+      backgroundSwatchIndex: undefined,
+    };
     setSelectedMeta(updatedMeta);
     setImages((prev) =>
-      applyPaletteToImages(prev, filename, newPalette).map((m) =>
-        getFilenameFromMeta(m) === filename ? { ...m, paletteRegion: clearedPaletteRegion } : m
+      applyBackgroundSwatchIndexToImages(
+        applyPaletteToImages(prev, filename, newPalette).map((m) =>
+          getFilenameFromMeta(m) === filename ? { ...m, paletteRegion: clearedPaletteRegion } : m
+        ),
+        filename,
+        undefined
       )
     );
     if (filename) {
@@ -371,6 +388,9 @@ function App() {
         else {
           showMessage('All swatches cleared.');
           if (showMatchPaletteSwatches) setPairingsNeeded(true);
+        }
+        if (selectedMeta.backgroundSwatchIndex != null) {
+          await api.saveMetadata(filename, { backgroundSwatchIndex: null });
         }
       } catch {
         showMessage('Network error clearing palette.', true);
@@ -465,6 +485,28 @@ function App() {
       .catch(() => showMessage('Network error saving palette name.', true));
   }, [selectedMeta, paletteName, showMessage]);
 
+  const handleBackgroundSwatchIndexChange = useCallback(
+    (index) => {
+      if (!selectedMeta) return;
+      const filename = getFilenameFromMeta(selectedMeta);
+      const value = index === '' || index == null ? null : Number(index);
+      api
+        .saveMetadata(filename, { backgroundSwatchIndex: value })
+        .then((result) => {
+          if (result.success) {
+            const next = value != null ? value : undefined;
+            setSelectedMeta((prev) => (prev ? { ...prev, backgroundSwatchIndex: next } : prev));
+            setImages((prev) => applyBackgroundSwatchIndexToImages(prev, filename, next));
+            showMessage(next != null ? 'Background swatch updated.' : 'Background swatch cleared.', false);
+          } else {
+            showMessage(result.message || 'Error saving background swatch.', true);
+          }
+        })
+        .catch(() => showMessage('Network error saving background swatch.', true));
+    },
+    [selectedMeta, showMessage]
+  );
+
   const handleExport = useCallback(() => {
     const payload = buildExportData(selectedMeta, paletteName);
     if (!payload) {
@@ -475,8 +517,9 @@ function App() {
       return;
     }
 
-    const { name, colors } = payload;
+    const { name, colors, backgroundSwatchIndex } = payload;
     const jsonData = { name, colors };
+    if (typeof backgroundSwatchIndex === 'number') jsonData.backgroundSwatchIndex = backgroundSwatchIndex;
     const blob = new Blob([JSON.stringify(jsonData, null, 2) + '\n'], {
       type: 'application/json',
     });
@@ -759,7 +802,7 @@ function App() {
             onReorder={handleReorder}
             isLoading={isLoading}
           />
-        </div>
+      </div>
         <PaletteDisplay
           palettePanelRef={palettePanelRef}
           palette={palette}
@@ -773,11 +816,16 @@ function App() {
           onClearAllSwatches={handleClearAllSwatches}
           paletteName={paletteName}
           onPaletteNameChange={setPaletteName}
+          onPaletteNameBlur={handlePaletteNameBlur}
+          backgroundSwatchIndex={selectedMeta?.backgroundSwatchIndex}
+          onBackgroundSwatchIndexChange={handleBackgroundSwatchIndexChange}
+          onSelectingBackgroundSwatchChange={(isSelecting) => {
+            showMessage(isSelecting ? 'Click a swatch to set as background' : '');
+          }}
           onExport={handleExport}
           onRegenerateWithK={handleRegenerateWithK}
           onDelete={handleDelete}
           onDuplicate={handleDuplicate}
-          onPaletteNameBlur={handlePaletteNameBlur}
           selectedMeta={selectedMeta}
           onDetectRegions={handleDetectRegions}
           templateDrawPhase={templateDrawPhase}

@@ -19,6 +19,8 @@ describe('PaletteDisplay', () => {
     onDelete: vi.fn(),
     onDuplicate: vi.fn(),
     onPaletteNameBlur: vi.fn(),
+    backgroundSwatchIndex: undefined,
+    onBackgroundSwatchIndexChange: vi.fn(),
     selectedMeta: { paletteName: 'Test Palette' },
     onDetectRegions: vi.fn(),
     onDeleteRegions: vi.fn(),
@@ -188,6 +190,71 @@ describe('PaletteDisplay', () => {
     expect(defaultProps.onPaletteNameChange).toHaveBeenCalledWith('New Name');
   });
 
+  it('shows bg button when palette has colors and enters select mode when clicked', () => {
+    render(<PaletteDisplay {...defaultProps} />);
+    const bgBtn = screen.getByRole('button', { name: 'bg' });
+    expect(bgBtn).toBeInTheDocument();
+    fireEvent.click(bgBtn);
+    expect(screen.getByText(/select bg swatch or/i)).toBeInTheDocument();
+    expect(bgBtn).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('calls onBackgroundSwatchIndexChange when in bg mode and user clicks a swatch', () => {
+    const onBackground = vi.fn();
+    render(
+      <PaletteDisplay
+        {...defaultProps}
+        backgroundSwatchIndex={undefined}
+        onBackgroundSwatchIndexChange={onBackground}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'bg' }));
+    const setBgSwatches = screen.getAllByTitle(/set as background swatch/i);
+    fireEvent.click(setBgSwatches[1]);
+    expect(onBackground).toHaveBeenCalledWith(1);
+  });
+
+  it('displays background swatch (grey border on .palette-item-background)', () => {
+    render(
+      <PaletteDisplay
+        {...defaultProps}
+        backgroundSwatchIndex={1}
+      />
+    );
+    expect(screen.getByText('B')).toBeInTheDocument();
+    expect(screen.getByText('#00ff00')).toBeInTheDocument();
+    const items = document.querySelectorAll('.palette-item.palette-item-background');
+    expect(items).toHaveLength(1);
+  });
+
+  it('defaults to first swatch (index 0) as background when backgroundSwatchIndex is undefined', () => {
+    render(
+      <PaletteDisplay
+        {...defaultProps}
+        backgroundSwatchIndex={undefined}
+      />
+    );
+    expect(screen.getByText('A')).toBeInTheDocument();
+    expect(screen.getByText('#ff0000')).toBeInTheDocument();
+    const items = document.querySelectorAll('.palette-item.palette-item-background');
+    expect(items).toHaveLength(1);
+  });
+
+  it('when in bg mode, none button clears background and exits mode', () => {
+    const onBackground = vi.fn();
+    render(
+      <PaletteDisplay
+        {...defaultProps}
+        backgroundSwatchIndex={0}
+        onBackgroundSwatchIndexChange={onBackground}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'bg' }));
+    fireEvent.click(screen.getByRole('button', { name: 'none' }));
+    expect(onBackground).toHaveBeenCalledWith(null);
+    expect(screen.queryByText(/select bg swatch or/i)).not.toBeInTheDocument();
+  });
+
   it('shows no palette placeholder when no palette and not generating', () => {
     render(
       <PaletteDisplay
@@ -308,5 +375,186 @@ describe('PaletteDisplay', () => {
     expect(onSwatchHover).toHaveBeenCalledWith(0);
     fireEvent.mouseLeave(swatches[0]);
     expect(onSwatchHover).toHaveBeenCalledWith(null);
+  });
+
+  it('shows region detection section when selectedMeta has regions', () => {
+    const metaWithRegions = {
+      ...defaultProps.selectedMeta,
+      regions: [[[0, 0], [10, 0], [10, 10], [0, 10]]],
+    };
+    render(<PaletteDisplay {...defaultProps} selectedMeta={metaWithRegions} />);
+    expect(screen.getByLabelText('Region detection approach')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Detect regions' })).toBeInTheDocument();
+  });
+
+  it('calls onRegionStrategyChange when region strategy dropdown changes', () => {
+    const metaWithRegions = {
+      ...defaultProps.selectedMeta,
+      regions: [[[0, 0], [10, 0], [10, 10], [0, 10]]],
+    };
+    const onRegionStrategyChange = vi.fn();
+    render(
+      <PaletteDisplay
+        {...defaultProps}
+        selectedMeta={metaWithRegions}
+        onRegionStrategyChange={onRegionStrategyChange}
+      />
+    );
+    const strategySelect = screen.getByLabelText('Region detection approach');
+    fireEvent.change(strategySelect, { target: { value: 'adaptive' } });
+    expect(onRegionStrategyChange).toHaveBeenCalledWith('adaptive');
+  });
+
+  it('calls onDetectRegions with strategy and params when strategy has params', () => {
+    const metaWithRegions = {
+      ...defaultProps.selectedMeta,
+      regions: [[[0, 0], [10, 0], [10, 10], [0, 10]]],
+    };
+    const onDetectRegions = vi.fn();
+    render(
+      <PaletteDisplay
+        {...defaultProps}
+        selectedMeta={metaWithRegions}
+        onDetectRegions={onDetectRegions}
+      />
+    );
+    const strategySelect = screen.getByLabelText('Region detection approach');
+    fireEvent.change(strategySelect, { target: { value: 'adaptive' } });
+    const detectBtn = screen.getByRole('button', { name: 'Detect regions' });
+    fireEvent.click(detectBtn);
+    expect(onDetectRegions).toHaveBeenCalledWith(
+      'adaptive',
+      expect.objectContaining({ adaptiveBlockSize: expect.any(Number), adaptiveC: expect.any(Number) })
+    );
+  });
+
+  it('shows Detect button as "Click" when templateDrawPhase is click and strategy is template_match', () => {
+    render(
+      <PaletteDisplay
+        {...defaultProps}
+        templateDrawPhase="click"
+      />
+    );
+    fireEvent.change(screen.getByRole('combobox', { name: 'Choose action' }), { target: { value: 'detectRegions' } });
+    fireEvent.change(screen.getByLabelText('Region detection approach'), { target: { value: 'template_match' } });
+    expect(screen.getByRole('button', { name: 'Click' })).toBeInTheDocument();
+  });
+
+  it('shows Detect button as "Drag" when templateDrawPhase is drag and strategy is template_match', () => {
+    render(
+      <PaletteDisplay
+        {...defaultProps}
+        templateDrawPhase="drag"
+      />
+    );
+    fireEvent.change(screen.getByRole('combobox', { name: 'Choose action' }), { target: { value: 'detectRegions' } });
+    fireEvent.change(screen.getByLabelText('Region detection approach'), { target: { value: 'template_match' } });
+    expect(screen.getByRole('button', { name: 'Drag' })).toBeInTheDocument();
+  });
+
+  it('opens BizCardModal when swatch is clicked and closes on close', () => {
+    render(<PaletteDisplay {...defaultProps} />);
+    expect(screen.queryByRole('dialog', { name: 'Swatch biz card' })).not.toBeInTheDocument();
+    const swatch = document.querySelector('.palette-swatch-filled');
+    fireEvent.click(swatch);
+    expect(screen.getByRole('dialog', { name: 'Swatch biz card' })).toBeInTheDocument();
+    const closeBtn = screen.getByRole('button', { name: 'Close' });
+    fireEvent.click(closeBtn);
+    expect(screen.queryByRole('dialog', { name: 'Swatch biz card' })).not.toBeInTheDocument();
+  });
+
+  it('opens BizCardModal when swatch "i" button is clicked', () => {
+    render(<PaletteDisplay {...defaultProps} />);
+    const detailBtns = screen.getAllByTitle('View swatch biz card');
+    fireEvent.click(detailBtns[0]);
+    expect(screen.getByRole('dialog', { name: 'Swatch biz card' })).toBeInTheDocument();
+  });
+
+  it('opens BizCardModal when Enter key on swatch', () => {
+    render(<PaletteDisplay {...defaultProps} />);
+    const swatch = document.querySelector('.palette-swatch-filled');
+    fireEvent.keyDown(swatch, { key: 'Enter' });
+    expect(screen.getByRole('dialog', { name: 'Swatch biz card' })).toBeInTheDocument();
+  });
+
+  it('calls onShowRegionBoundariesChange when Show region boundaries is toggled', () => {
+    const onShowRegionBoundariesChange = vi.fn();
+    render(
+      <PaletteDisplay
+        {...defaultProps}
+        hasRegions={true}
+        showRegionBoundaries={true}
+        onShowRegionBoundariesChange={onShowRegionBoundariesChange}
+      />
+    );
+    const checkbox = screen.getByRole('checkbox', { name: 'Show region boundaries' });
+    fireEvent.click(checkbox);
+    expect(onShowRegionBoundariesChange).toHaveBeenCalledWith(false);
+  });
+
+  it('calls onShowMatchPaletteSwatchesChange when Match Region Swatches is toggled', () => {
+    const onShowMatchPaletteSwatchesChange = vi.fn();
+    render(
+      <PaletteDisplay
+        {...defaultProps}
+        hasRegions={true}
+        hasPalette={true}
+        showMatchPaletteSwatches={false}
+        onShowMatchPaletteSwatchesChange={onShowMatchPaletteSwatchesChange}
+      />
+    );
+    const checkbox = screen.getByRole('checkbox', { name: 'Match Region Swatches' });
+    fireEvent.click(checkbox);
+    expect(onShowMatchPaletteSwatchesChange).toHaveBeenCalledWith(true);
+  });
+
+  it('shows (by regions) in K-means options when hasRegions', () => {
+    render(<PaletteDisplay {...defaultProps} hasRegions={true} />);
+    expect(screen.getByRole('option', { name: /find k-means swatches \(5\) \(by regions\)/i })).toBeInTheDocument();
+  });
+
+  it('renders region count message when selectedMeta and not detecting', () => {
+    render(<PaletteDisplay {...defaultProps} regionCount={3} />);
+    expect(screen.getByText(/# regions detected:\s*3/)).toBeInTheDocument();
+  });
+
+  it('renders MetadataDisplay with selectedMeta', () => {
+    render(<PaletteDisplay {...defaultProps} />);
+    expect(screen.getByRole('heading', { name: 'Palette Info' })).toBeInTheDocument();
+  });
+
+  it('initializes region strategy from selectedMeta.regionStrategy', () => {
+    const metaWithStrategy = {
+      ...defaultProps.selectedMeta,
+      regions: [[[0, 0], [10, 0], [10, 10], [0, 10]]],
+      regionStrategy: 'canny',
+      regionParams: { cannyLow: 30, cannyHigh: 100 },
+    };
+    render(<PaletteDisplay {...defaultProps} selectedMeta={metaWithStrategy} />);
+    const strategySelect = screen.getByLabelText('Region detection approach');
+    expect(strategySelect).toHaveValue('canny');
+    expect(screen.getByLabelText('Low:')).toBeInTheDocument();
+    expect(screen.getByLabelText('High:')).toBeInTheDocument();
+  });
+
+  it('calls onDetectRegions with canny params when strategy is canny', () => {
+    const metaWithRegions = {
+      ...defaultProps.selectedMeta,
+      regions: [[[0, 0], [10, 0], [10, 10], [0, 10]]],
+    };
+    const onDetectRegions = vi.fn();
+    render(
+      <PaletteDisplay
+        {...defaultProps}
+        selectedMeta={metaWithRegions}
+        onDetectRegions={onDetectRegions}
+      />
+    );
+    fireEvent.change(screen.getByLabelText('Region detection approach'), { target: { value: 'canny' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Detect regions' }));
+    expect(onDetectRegions).toHaveBeenCalledWith(
+      'canny',
+      expect.objectContaining({ cannyLow: expect.any(Number), cannyHigh: expect.any(Number) })
+    );
   });
 });

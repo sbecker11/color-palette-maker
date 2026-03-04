@@ -362,4 +362,244 @@ describe('ImageViewer', () => {
     });
     global.Image = OriginalImage;
   });
+
+  it('uses imageAlt for img alt and title when provided', () => {
+    render(
+      <ImageViewer
+        imageUrl="/uploads/test.jpg"
+        imageAlt="My palette"
+        isSamplingMode={false}
+        onSampledColorChange={vi.fn()}
+        onAddColorClick={vi.fn()}
+      />
+    );
+    const img = document.querySelector('#displayedImage');
+    expect(img).toHaveAttribute('alt', 'My palette');
+    expect(img).toHaveAttribute('title', 'My palette');
+  });
+
+  it('renders template draw hint when isTemplateDrawMode', async () => {
+    render(
+      <ImageViewer
+        imageUrl="/uploads/test.jpg"
+        isSamplingMode={false}
+        onSampledColorChange={vi.fn()}
+        onAddColorClick={vi.fn()}
+        isTemplateDrawMode={true}
+        onTemplateBoxDrawn={vi.fn()}
+        onTemplateDrawPhaseChange={vi.fn()}
+      />
+    );
+    await waitFor(() => {
+      expect(document.querySelector('#displayedImage')).toBeInTheDocument();
+    });
+    expect(screen.getByText(/click at top-left.*drag to bottom-right/i)).toBeInTheDocument();
+  });
+
+  it('calls onTemplateDrawPhaseChange when template draw mode is on', async () => {
+    const onTemplateDrawPhaseChange = vi.fn();
+    render(
+      <ImageViewer
+        imageUrl="/uploads/test.jpg"
+        isSamplingMode={false}
+        onSampledColorChange={vi.fn()}
+        onAddColorClick={vi.fn()}
+        isTemplateDrawMode={true}
+        onTemplateBoxDrawn={vi.fn()}
+        onTemplateDrawPhaseChange={onTemplateDrawPhaseChange}
+      />
+    );
+    await waitFor(() => {
+      expect(document.querySelector('.image-viewer-overlay')).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(onTemplateDrawPhaseChange).toHaveBeenCalledWith('click');
+    });
+  });
+
+  it('calls onTemplateBoxDrawn when template box is drawn (mouse down then up with valid size)', async () => {
+    const onTemplateBoxDrawn = vi.fn();
+    render(
+      <ImageViewer
+        imageUrl="/uploads/test.jpg"
+        isSamplingMode={false}
+        onSampledColorChange={vi.fn()}
+        onAddColorClick={vi.fn()}
+        isTemplateDrawMode={true}
+        onTemplateBoxDrawn={onTemplateBoxDrawn}
+        onTemplateDrawPhaseChange={vi.fn()}
+      />
+    );
+    await waitFor(() => {
+      const canvas = document.querySelector('#imageCanvas');
+      expect(canvas).toBeInTheDocument();
+      expect(canvas.width).toBe(100);
+    });
+    const img = document.querySelector('#displayedImage');
+    Object.defineProperty(img, 'complete', { value: true, configurable: true });
+    Object.defineProperty(img, 'naturalWidth', { value: 100, configurable: true });
+    Object.defineProperty(img, 'naturalHeight', { value: 80, configurable: true });
+    img.getBoundingClientRect = () => ({ left: 0, top: 0, width: 100, height: 80 });
+
+    const overlay = document.querySelector('.image-viewer-overlay');
+    fireEvent.mouseDown(overlay, { clientX: 10, clientY: 10 });
+    fireEvent.mouseUp(overlay, { clientX: 50, clientY: 40 });
+    expect(onTemplateBoxDrawn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        x: expect.any(Number),
+        y: expect.any(Number),
+        width: expect.any(Number),
+        height: expect.any(Number),
+      })
+    );
+  });
+
+  it('does not call onTemplateBoxDrawn when drawn box is too small', async () => {
+    const onTemplateBoxDrawn = vi.fn();
+    render(
+      <ImageViewer
+        imageUrl="/uploads/test.jpg"
+        isSamplingMode={false}
+        onSampledColorChange={vi.fn()}
+        onAddColorClick={vi.fn()}
+        isTemplateDrawMode={true}
+        onTemplateBoxDrawn={onTemplateBoxDrawn}
+        onTemplateDrawPhaseChange={vi.fn()}
+      />
+    );
+    await waitFor(() => {
+      const canvas = document.querySelector('#imageCanvas');
+      expect(canvas).toBeInTheDocument();
+    });
+    const img = document.querySelector('#displayedImage');
+    Object.defineProperty(img, 'complete', { value: true, configurable: true });
+    Object.defineProperty(img, 'naturalWidth', { value: 100, configurable: true });
+    Object.defineProperty(img, 'naturalHeight', { value: 80, configurable: true });
+    img.getBoundingClientRect = () => ({ left: 0, top: 0, width: 100, height: 80 });
+
+    const overlay = document.querySelector('.image-viewer-overlay');
+    fireEvent.mouseDown(overlay, { clientX: 10, clientY: 10 });
+    fireEvent.mouseUp(overlay, { clientX: 12, clientY: 12 });
+    expect(onTemplateBoxDrawn).not.toHaveBeenCalled();
+  });
+
+  it('clears template draw state on mouse leave when in template draw mode', async () => {
+    render(
+      <ImageViewer
+        imageUrl="/uploads/test.jpg"
+        isSamplingMode={false}
+        onSampledColorChange={vi.fn()}
+        onAddColorClick={vi.fn()}
+        isTemplateDrawMode={true}
+        onTemplateBoxDrawn={vi.fn()}
+        onTemplateDrawPhaseChange={vi.fn()}
+      />
+    );
+    await waitFor(() => {
+      expect(document.querySelector('.image-viewer-overlay')).toBeInTheDocument();
+    });
+    const img = document.querySelector('#displayedImage');
+    Object.defineProperty(img, 'complete', { value: true, configurable: true });
+    Object.defineProperty(img, 'naturalWidth', { value: 100, configurable: true });
+    Object.defineProperty(img, 'naturalHeight', { value: 80, configurable: true });
+    img.getBoundingClientRect = () => ({ left: 0, top: 0, width: 100, height: 80 });
+    const overlay = document.querySelector('.image-viewer-overlay');
+    fireEvent.mouseDown(overlay, { clientX: 10, clientY: 10 });
+    fireEvent.mouseLeave(overlay);
+    await waitFor(() => {
+      expect(document.querySelector('.template-draw-overlay')).not.toBeInTheDocument();
+    });
+  });
+
+  it('does not call onAddColorClick when getImageData throws', async () => {
+    mockGetImageData.mockImplementationOnce(() => {
+      throw new Error('CORS');
+    });
+    const onAddColorClick = vi.fn();
+    render(
+      <ImageViewer
+        imageUrl="/uploads/test.jpg"
+        isSamplingMode={true}
+        onSampledColorChange={vi.fn()}
+        onAddColorClick={onAddColorClick}
+      />
+    );
+    await waitFor(() => {
+      const canvas = document.querySelector('#imageCanvas');
+      expect(canvas).toBeInTheDocument();
+    });
+    const img = document.querySelector('#displayedImage');
+    Object.defineProperty(img, 'complete', { value: true, configurable: true });
+    Object.defineProperty(img, 'naturalWidth', { value: 100, configurable: true });
+    Object.defineProperty(img, 'naturalHeight', { value: 80, configurable: true });
+    img.getBoundingClientRect = () => ({ left: 0, top: 0, width: 100, height: 80 });
+    const overlay = document.querySelector('.image-viewer-overlay');
+    fireEvent.click(overlay, { clientX: 50, clientY: 40 });
+    expect(onAddColorClick).not.toHaveBeenCalled();
+  });
+
+  it('does not call onAddColorClick when in template draw mode', async () => {
+    const onAddColorClick = vi.fn();
+    render(
+      <ImageViewer
+        imageUrl="/uploads/test.jpg"
+        isSamplingMode={true}
+        onSampledColorChange={vi.fn()}
+        onAddColorClick={onAddColorClick}
+        isTemplateDrawMode={true}
+        onTemplateBoxDrawn={vi.fn()}
+      />
+    );
+    await waitFor(() => {
+      expect(document.querySelector('.image-viewer-overlay')).toBeInTheDocument();
+    });
+    const overlay = document.querySelector('.image-viewer-overlay');
+    fireEvent.click(overlay, { clientX: 50, clientY: 40 });
+    expect(onAddColorClick).not.toHaveBeenCalled();
+  });
+
+  it('calls onSwatchHover(null) when mouse leaves region in Match Region Swatches mode', async () => {
+    const onSwatchHover = vi.fn();
+    const paletteRegion = [{ x: 50, y: 40, hex: '#ff0000', regionColor: '#ff0000' }];
+    const palette = ['#ff0000'];
+    render(
+      <ImageViewer
+        imageUrl="/uploads/test.jpg"
+        isSamplingMode={false}
+        onSampledColorChange={vi.fn()}
+        onAddColorClick={vi.fn()}
+        paletteRegion={paletteRegion}
+        palette={palette}
+        showMatchPaletteSwatches={true}
+        onSwatchHover={onSwatchHover}
+      />
+    );
+    await waitFor(() => {
+      expect(document.querySelector('.region-display')).toBeInTheDocument();
+    });
+    const regionDisplay = document.querySelector('.region-display');
+    fireEvent.mouseEnter(regionDisplay);
+    fireEvent.mouseLeave(regionDisplay);
+    expect(onSwatchHover).toHaveBeenCalledWith(null);
+  });
+
+  it('renders region boundary path with data-region-index for each region', async () => {
+    const regions = [
+      [[0, 0], [10, 0], [10, 10], [0, 10]],
+      [[20, 20], [30, 20], [30, 30], [20, 30]],
+    ];
+    render(
+      <ImageViewer
+        imageUrl="/uploads/test.jpg"
+        isSamplingMode={false}
+        onSampledColorChange={vi.fn()}
+        onAddColorClick={vi.fn()}
+        regions={regions}
+      />
+    );
+    await waitFor(() => {
+      expect(document.querySelector('.region-boundary[data-region-index="0"]')).toBeInTheDocument();
+      expect(document.querySelector('.region-boundary[data-region-index="1"]')).toBeInTheDocument();
+    });
+  });
 });

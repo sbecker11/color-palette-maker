@@ -515,6 +515,11 @@ input[type="file"] {
   align-items: center;
   gap: calc(var(--gap) * 0.4);
   position: relative;
+  border: 1px solid transparent;
+  padding: 1px;
+}
+.palette-item-background {
+  border-color: #888;
 }
 .palette-swatch-wrapper {
   position: relative;
@@ -620,6 +625,58 @@ input[type="file"] {
   color: var(--text-color);
   border: 1px solid var(--input-border);
   border-radius: 3px;
+}
+
+.palette-display-subtitle-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: calc(var(--gap) * 0.5);
+  margin-bottom: 0.25em;
+}
+.palette-display-subtitle-row .palette-display-subtitle {
+  margin: 0;
+}
+.bg-swatch-btn {
+  padding: 1px 0.5em;
+  font-size: 0.85em;
+  background: var(--bg-color);
+  color: var(--text-color);
+  border: 1px solid #888;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.bg-swatch-btn:hover {
+  background: var(--input-border);
+}
+.bg-swatch-btn-active {
+  border-color: #888;
+}
+.bg-swatch-hint {
+  font-size: 0.9em;
+  color: var(--text-color);
+  opacity: 0.9;
+}
+.bg-swatch-none-btn {
+  padding: 0;
+  font-size: 1em;
+  background: none;
+  border: none;
+  color: var(--accent-color, #4a90d9);
+  cursor: pointer;
+  text-decoration: underline;
+}
+.bg-swatch-none-btn:hover {
+  opacity: 0.85;
+}
+.palette-item-background .swatch-label,
+.palette-item-background .palette-label {
+  font-weight: 600;
+}
+.palette-item-select-bg .palette-swatch {
+  cursor: pointer;
+  outline: 2px dashed var(--accent-color, #4a90d9);
+  outline-offset: 2px;
 }
 
 #paletteMatchSwatchesRow.palette-toggle-row {

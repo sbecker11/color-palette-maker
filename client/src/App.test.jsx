@@ -392,4 +392,232 @@ describe('App', () => {
       expect(screen.getByText(/click a region to remove/i)).toBeInTheDocument()
     );
   });
+
+  it('does not call deleteImage when user cancels confirm', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    api.deleteImage.mockResolvedValue({ success: true });
+    render(<App />);
+    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole('button', { name: /del/i }));
+    expect(api.deleteImage).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
+  });
+
+  it('shows message when deleteImage throws', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    api.deleteImage.mockRejectedValue(new Error('Network error'));
+    render(<App />);
+    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole('button', { name: /del/i }));
+    await waitFor(() =>
+      expect(screen.getByText(/failed to delete image/i)).toBeInTheDocument()
+    );
+    confirmSpy.mockRestore();
+  });
+
+  it('shows Export message when selected image has no colors', async () => {
+    api.getImages.mockResolvedValue({
+      success: true,
+      images: [{
+        cachedFilePath: '/uploads/img-1.jpeg',
+        paletteName: 'img-1',
+        colorPalette: [],
+      }],
+    });
+    api.generatePalette.mockResolvedValue({ success: true, palette: [] });
+    render(<App />);
+    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
+    const select = screen.getByRole('combobox', { name: 'Choose action' });
+    fireEvent.change(select, { target: { value: 'export' } });
+    expect(screen.getByText(/no colors in the current palette/i)).toBeInTheDocument();
+  });
+
+  it('shows message when reorderImages fails', async () => {
+    api.getImages.mockResolvedValue({
+      success: true,
+      images: [
+        { cachedFilePath: '/uploads/img-1.jpeg', paletteName: 'img-1', colorPalette: [] },
+        { cachedFilePath: '/uploads/img-2.jpeg', paletteName: 'img-2', colorPalette: [] },
+      ],
+    });
+    api.reorderImages.mockResolvedValue({ success: false, message: 'Reorder failed' });
+    render(<App />);
+    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
+    fireEvent.click(screen.getAllByRole('button', { name: /move down/i })[0]);
+    await waitFor(() =>
+      expect(screen.getByText(/failed to reorder|reorder failed/i)).toBeInTheDocument()
+    );
+  });
+
+  it('shows message when reorderImages throws', async () => {
+    api.getImages.mockResolvedValue({
+      success: true,
+      images: [
+        { cachedFilePath: '/uploads/img-1.jpeg', paletteName: 'img-1', colorPalette: [] },
+        { cachedFilePath: '/uploads/img-2.jpeg', paletteName: 'img-2', colorPalette: [] },
+      ],
+    });
+    api.reorderImages.mockRejectedValue(new Error('Network error'));
+    render(<App />);
+    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
+    fireEvent.click(screen.getAllByRole('button', { name: /move down/i })[0]);
+    await waitFor(() =>
+      expect(screen.getByText(/failed to reorder/i)).toBeInTheDocument()
+    );
+  });
+
+  it('shows message when upload throws', async () => {
+    api.upload.mockRejectedValue(new Error('Network error'));
+    render(<App />);
+    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
+    const urlInput = screen.getByLabelText(/image url/i);
+    fireEvent.change(urlInput, { target: { value: 'https://example.com/img.jpg' } });
+    fireEvent.submit(document.querySelector('form'));
+    await waitFor(() =>
+      expect(screen.getByText(/submission failed|check console/i)).toBeInTheDocument()
+    );
+  });
+
+  it('shows message when duplicateImage returns failure', async () => {
+    api.duplicateImage.mockResolvedValue({ success: false, message: 'Duplicate failed' });
+    render(<App />);
+    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
+    const select = screen.getByRole('combobox', { name: 'Choose action' });
+    fireEvent.change(select, { target: { value: 'duplicate' } });
+    await waitFor(() =>
+      expect(screen.getByText(/failed to duplicate|duplicate failed/i)).toBeInTheDocument()
+    );
+  });
+
+  it('shows message when duplicateImage throws', async () => {
+    api.duplicateImage.mockRejectedValue(new Error('Network error'));
+    render(<App />);
+    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
+    const select = screen.getByRole('combobox', { name: 'Choose action' });
+    fireEvent.change(select, { target: { value: 'duplicate' } });
+    await waitFor(() =>
+      expect(screen.getByText(/failed to duplicate/i)).toBeInTheDocument()
+    );
+  });
+
+  it('shows Please select an image first when Duplicate with no selection', async () => {
+    api.getImages.mockResolvedValue({ success: true, images: [] });
+    render(<App />);
+    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
+    const select = screen.getByRole('combobox', { name: 'Choose action' });
+    fireEvent.change(select, { target: { value: 'duplicate' } });
+    expect(screen.getByText(/please select an image first/i)).toBeInTheDocument();
+  });
+
+  it('shows message when detectRegions throws', async () => {
+    api.detectRegions.mockRejectedValue(new Error('Detection failed'));
+    render(<App />);
+    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
+    const actionSelect = screen.getByRole('combobox', { name: 'Choose action' });
+    fireEvent.change(actionSelect, { target: { value: 'detectRegions' } });
+    const detectBtn = await screen.findByRole('button', { name: 'Detect regions' });
+    fireEvent.click(detectBtn);
+    await waitFor(() =>
+      expect(screen.getByText(/region detection failed|opencv|numpy/i)).toBeInTheDocument()
+    );
+  });
+
+  it('shows message when Clear all Regions saveMetadata throws', async () => {
+    api.getImages.mockResolvedValue({
+      success: true,
+      images: [{
+        cachedFilePath: '/uploads/img-1.jpeg',
+        paletteName: 'img-1',
+        colorPalette: ['#ff0000'],
+        regions: [[[0, 0], [10, 0], [10, 10]]],
+      }],
+    });
+    api.saveMetadata.mockRejectedValue(new Error('Network error'));
+    render(<App />);
+    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
+    const select = screen.getByRole('combobox', { name: 'Choose action' });
+    fireEvent.change(select, { target: { value: 'deleteRegions' } });
+    await waitFor(() =>
+      expect(screen.getByText(/failed to save/i)).toBeInTheDocument()
+    );
+  });
+
+  it('shows message when Clear all Swatches savePalette fails', async () => {
+    api.savePalette.mockResolvedValue({ success: false, message: 'Save failed' });
+    render(<App />);
+    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
+    const select = screen.getByRole('combobox', { name: 'Choose action' });
+    fireEvent.change(select, { target: { value: 'clearSwatches' } });
+    await waitFor(() =>
+      expect(screen.getByText(/error clearing palette|save failed/i)).toBeInTheDocument()
+    );
+  });
+
+  it('shows message when Clear all Swatches savePalette throws', async () => {
+    api.savePalette.mockRejectedValue(new Error('Network error'));
+    render(<App />);
+    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
+    const select = screen.getByRole('combobox', { name: 'Choose action' });
+    fireEvent.change(select, { target: { value: 'clearSwatches' } });
+    await waitFor(() =>
+      expect(screen.getByText(/network error clearing palette/i)).toBeInTheDocument()
+    );
+  });
+
+  it('shows message when palette name saveMetadata fails', async () => {
+    api.saveMetadata.mockResolvedValue({ success: false, message: 'Name save failed' });
+    render(<App />);
+    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
+    const input = screen.getByLabelText(/name/i);
+    fireEvent.change(input, { target: { value: 'New Name' } });
+    fireEvent.blur(input);
+    await waitFor(() =>
+      expect(screen.getByText(/error saving name|name save failed/i)).toBeInTheDocument()
+    );
+  });
+
+  it('shows message when palette name saveMetadata throws', async () => {
+    api.saveMetadata.mockRejectedValue(new Error('Network error'));
+    render(<App />);
+    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
+    const input = screen.getByLabelText(/name/i);
+    fireEvent.change(input, { target: { value: 'New Name' } });
+    fireEvent.blur(input);
+    await waitFor(() =>
+      expect(screen.getByText(/network error saving palette name/i)).toBeInTheDocument()
+    );
+  });
+
+  it('shows Please select an image first when K-means with no selection', async () => {
+    api.getImages.mockResolvedValue({ success: true, images: [] });
+    render(<App />);
+    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
+    const select = screen.getByRole('combobox', { name: 'Choose action' });
+    fireEvent.change(select, { target: { value: 'kmeans7' } });
+    expect(screen.getByText(/please select an image first/i)).toBeInTheDocument();
+  });
+
+  it('handles detectRegions result success false', async () => {
+    api.detectRegions.mockResolvedValue({ success: false, message: 'Detection failed' });
+    render(<App />);
+    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
+    const actionSelect = screen.getByRole('combobox', { name: 'Choose action' });
+    fireEvent.change(actionSelect, { target: { value: 'detectRegions' } });
+    const detectBtn = await screen.findByRole('button', { name: 'Detect regions' });
+    fireEvent.click(detectBtn);
+    await waitFor(() =>
+      expect(screen.getByText(/region detection failed|detection failed/i)).toBeInTheDocument()
+    );
+  });
+
+  it('handles handleDeleteSwatch savePalette network error', async () => {
+    api.savePalette.mockRejectedValue(new Error('Network error'));
+    render(<App />);
+    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
+    const deleteButtons = screen.getAllByTitle('Delete palette swatch');
+    fireEvent.click(deleteButtons[0]);
+    await waitFor(() =>
+      expect(screen.getByText(/network error saving palette/i)).toBeInTheDocument()
+    );
+  });
 });

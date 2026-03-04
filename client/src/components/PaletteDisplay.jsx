@@ -530,11 +530,14 @@ function PaletteDisplay({
   onClearAllSwatches,
   paletteName,
   onPaletteNameChange,
+  onPaletteNameBlur,
+  backgroundSwatchIndex,
+  onBackgroundSwatchIndexChange,
+  onSelectingBackgroundSwatchChange,
   onExport,
   onRegenerateWithK,
   onDelete,
   onDuplicate,
-  onPaletteNameBlur,
   selectedMeta,
   onDetectRegions,
   onRegionStrategyChange,
@@ -558,9 +561,16 @@ function PaletteDisplay({
     getLastPaletteAction() === ACTION_DETECT_REGIONS ? ACTION_DETECT_REGIONS : ''
   );
   const [bizCardSwatchIndex, setBizCardSwatchIndex] = useState(null);
+  const [selectingBackgroundSwatch, setSelectingBackgroundSwatch] = useState(false);
   const paletteNameInputRef = useRef(null);
   const hasPalette = palette && Array.isArray(palette) && palette.length > 0;
   const showPlaceholder = !isGenerating && !hasPalette;
+  const len = palette?.length ?? 0;
+  const isBackgroundIndex = (idx) => {
+    if (backgroundSwatchIndex === null) return false;
+    const effective = (backgroundSwatchIndex === undefined || typeof backgroundSwatchIndex !== 'number' || backgroundSwatchIndex < 0 || backgroundSwatchIndex >= len) ? 0 : backgroundSwatchIndex;
+    return effective === idx;
+  };
 
   return (
     <div id="middlePanel" ref={palettePanelRef}>
@@ -580,70 +590,125 @@ function PaletteDisplay({
         />
       </div>
       <div id="palette-display">
-        <h3 className="palette-display-subtitle">Palette swatches</h3>
+        <div className="palette-display-subtitle-row">
+          <h3 className="palette-display-subtitle">Palette swatches</h3>
+          {hasPalette && selectedMeta && (
+            <>
+              <button
+                type="button"
+                className={`bg-swatch-btn ${selectingBackgroundSwatch ? 'bg-swatch-btn-active' : ''}`}
+                title={selectingBackgroundSwatch ? 'Click a swatch to set as background, or click again to cancel' : 'Set which swatch is the background (exported in palette JSON)'}
+                onClick={() => {
+                  const next = !selectingBackgroundSwatch;
+                  setSelectingBackgroundSwatch(next);
+                  onSelectingBackgroundSwatchChange?.(next);
+                }}
+                aria-pressed={selectingBackgroundSwatch}
+              >
+                bg
+              </button>
+              {selectingBackgroundSwatch && (
+                <span className="bg-swatch-hint">
+                  select bg swatch or{' '}
+                  <button
+                    type="button"
+                    className="bg-swatch-none-btn"
+                    onClick={() => {
+                      onBackgroundSwatchIndexChange?.(null);
+                      setSelectingBackgroundSwatch(false);
+                      onSelectingBackgroundSwatchChange?.(false);
+                    }}
+                  >
+                    none
+                  </button>
+                </span>
+              )}
+            </>
+          )}
+        </div>
         {isGenerating && (
           <span className="placeholder">Generating palette...</span>
         )}
-        {!isGenerating && hasPalette && palette.map((hexColor, idx) => (
-          <div key={`${idx}-${String(hexColor)}`} className="palette-item">
+        {!isGenerating && hasPalette && palette.map((hexColor, idx) => {
+          const label = swatchLabels[idx] ?? String.fromCharCode(65 + (idx % 26));
+          const isBg = isBackgroundIndex(idx);
+          const handleSwatchClick = (e) => {
+            e.stopPropagation();
+            if (selectingBackgroundSwatch) {
+              onBackgroundSwatchIndexChange?.(isBg ? null : idx);
+              setSelectingBackgroundSwatch(false);
+              onSelectingBackgroundSwatchChange?.(false);
+            } else {
+              setBizCardSwatchIndex(idx);
+            }
+          };
+          return (
             <div
-              className="palette-swatch-wrapper"
-              style={{ '--swatch-color': hexColor, colorScheme: 'light' }}
+              key={`${idx}-${String(hexColor)}`}
+              className={`palette-item ${isBg ? 'palette-item-background' : ''} ${selectingBackgroundSwatch ? 'palette-item-select-bg' : ''}`}
             >
               <div
-                className={`palette-swatch palette-swatch-filled ${hoveredSwatchIndex === idx ? 'highlighted' : ''}`}
-                style={{
-                  backgroundColor: hexColor,
-                  boxShadow: `inset 0 0 0 50px ${hexColor}`,
-                }}
-                title={`${hexColor} — Click to view biz card`}
-                role="button"
-                tabIndex={0}
-                onMouseEnter={() => onSwatchHover?.(idx)}
-                onMouseLeave={() => onSwatchHover?.(null)}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setBizCardSwatchIndex(idx);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setBizCardSwatchIndex(idx);
+                className="palette-swatch-wrapper"
+                style={{ '--swatch-color': hexColor, colorScheme: 'light' }}
+              >
+                <div
+                  className={`palette-swatch palette-swatch-filled ${hoveredSwatchIndex === idx ? 'highlighted' : ''}`}
+                  style={{
+                    backgroundColor: hexColor,
+                    boxShadow: `inset 0 0 0 50px ${hexColor}`,
+                  }}
+                  title={
+                    selectingBackgroundSwatch
+                      ? `Set as background swatch`
+                      : `${hexColor} — Click to view biz card`
                   }
-                }}
-              />
+                  role="button"
+                  tabIndex={0}
+                  onMouseEnter={() => onSwatchHover?.(idx)}
+                  onMouseLeave={() => onSwatchHover?.(null)}
+                  onClick={handleSwatchClick}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleSwatchClick(e);
+                    }
+                  }}
+                />
               <span
                 className="swatch-label"
                 aria-hidden="true"
               >
-                {swatchLabels[idx] ?? String.fromCharCode(65 + (idx % 26))}
+                {label}
               </span>
+                {!selectingBackgroundSwatch && (
+                  <button
+                    type="button"
+                    className="swatch-detail-btn"
+                    title="View swatch biz card"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setBizCardSwatchIndex(idx);
+                    }}
+                  >
+                    i
+                  </button>
+                )}
+              </div>
+              <span className="palette-label">{formatHexDisplay(hexColor)}</span>
               <button
                 type="button"
-                className="swatch-detail-btn"
-                title="View swatch biz card"
+                className="swatch-delete-btn"
+                title="Delete palette swatch"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setBizCardSwatchIndex(idx);
+                  onDeleteSwatch?.(hexColor);
                 }}
               >
-                i
+                ×
               </button>
             </div>
-            <span className="palette-label">{formatHexDisplay(hexColor)}</span>
-            <button
-              type="button"
-              className="swatch-delete-btn"
-              title="Delete palette swatch"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDeleteSwatch?.(hexColor);
-              }}
-            >
-              ×
-            </button>
-          </div>
-        ))}
+          );
+        })}
         {!isGenerating && showPlaceholder && (
           <span className="placeholder">
             No color palette extracted for this image.

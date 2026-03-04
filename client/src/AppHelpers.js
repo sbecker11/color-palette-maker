@@ -74,7 +74,7 @@ export function shouldSavePaletteName(selectedMeta, paletteName) {
 }
 
 /**
- * Builds export payload. Returns { name, colors } or null if nothing to export.
+ * Builds export payload. Returns { name, colors, backgroundSwatchIndex? } or null if nothing to export.
  */
 export function buildExportData(selectedMeta, paletteName) {
   if (!selectedMeta) return null;
@@ -85,7 +85,25 @@ export function buildExportData(selectedMeta, paletteName) {
     paletteName?.trim() ||
     getFilenameWithoutExt(getFilenameFromMeta(selectedMeta) || '') ||
     'palette';
-  return { name, colors: palette };
+  const payload = { name, colors: palette };
+  const idx = selectedMeta.backgroundSwatchIndex;
+  if (idx === null) {
+    // Explicit "None" — omit from export
+  } else {
+    const effective = (idx === undefined || (typeof idx !== 'number' || idx < 0 || idx >= palette.length)) ? 0 : idx;
+    payload.backgroundSwatchIndex = effective;
+  }
+  return payload;
+}
+
+/**
+ * After removing the swatch at deletedIndex, return the new backgroundSwatchIndex (or undefined).
+ */
+export function adjustBackgroundSwatchIndexAfterDelete(backgroundSwatchIndex, deletedIndex) {
+  if (backgroundSwatchIndex == null || typeof backgroundSwatchIndex !== 'number') return undefined;
+  if (backgroundSwatchIndex === deletedIndex) return undefined;
+  if (backgroundSwatchIndex > deletedIndex) return backgroundSwatchIndex - 1;
+  return backgroundSwatchIndex;
 }
 
 /**
@@ -116,6 +134,16 @@ export function applyPaletteNameToImages(images, filename, paletteName) {
   const name = paletteName.trim();
   return images.map((m) =>
     getFilenameFromMeta(m) === filename ? { ...m, paletteName: name } : m
+  );
+}
+
+/**
+ * Returns images array with backgroundSwatchIndex updated for the file matching filename.
+ */
+export function applyBackgroundSwatchIndexToImages(images, filename, backgroundSwatchIndex) {
+  if (!images) return [];
+  return images.map((m) =>
+    getFilenameFromMeta(m) === filename ? { ...m, backgroundSwatchIndex } : m
   );
 }
 
