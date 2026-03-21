@@ -102,6 +102,49 @@ app.get('/api/images', async (req, res) => {
     }
 });
 
+// GET /api/image-proxy - Proxy S3/external images to avoid CORS (same-origin for <img> and canvas)
+app.get('/api/image-proxy', async (req, res) => {
+    const rawUrl = req.query.url;
+    if (!rawUrl || typeof rawUrl !== 'string') {
+        return res.status(400).json({ success: false, message: 'Missing url query parameter.' });
+    }
+    let targetUrl;
+    try {
+        targetUrl = new URL(rawUrl);
+    } catch {
+        return res.status(400).json({ success: false, message: 'Invalid url.' });
+    }
+    if (targetUrl.protocol !== 'https:') {
+        return res.status(400).json({ success: false, message: 'Only https URLs are allowed.' });
+    }
+    const bucket = process.env.S3_IMAGES_BUCKET;
+    if (bucket && !targetUrl.hostname.includes(bucket)) {
+        return res.status(403).json({ success: false, message: 'URL must point to configured S3 bucket.' });
+    }
+    try {
+        const response = await axios({
+            method: 'get',
+            url: targetUrl.toString(),
+            responseType: 'stream',
+            timeout: 30000,
+            validateStatus: () => true,
+        });
+        if (response.status !== 200) {
+            return res.status(502).json({ success: false, message: `Upstream returned ${response.status}.` });
+        }
+        const contentType = response.headers['content-type'] || 'image/jpeg';
+        if (!contentType.startsWith('image/')) {
+            return res.status(415).json({ success: false, message: 'Upstream is not an image.' });
+        }
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        response.data.pipe(res);
+    } catch (err) {
+        console.error('[API image-proxy] Error:', err.message);
+        res.status(502).json({ success: false, message: 'Failed to fetch image.' });
+    }
+});
+
 // POST /upload - Handle image upload/download
 app.post('/upload', upload.single('imageFile'), async (req, res) => {
     console.log('[API POST /upload] Request received.');

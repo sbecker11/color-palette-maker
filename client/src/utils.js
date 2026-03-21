@@ -18,10 +18,10 @@ export function getFilenameFromMeta(meta) {
   return meta.cachedFilePath.split(/[/\\]/).pop();
 }
 
-/** Image URL for <img src>: S3 public URL when present, else same-origin /uploads/... */
+/** Image URL for <img src>: proxied S3 URL when imagePublicUrl present (avoids CORS), else same-origin /uploads/... */
 export function getImageUrlForMeta(meta) {
   if (meta?.imagePublicUrl && typeof meta.imagePublicUrl === 'string') {
-    return meta.imagePublicUrl;
+    return `/api/image-proxy?url=${encodeURIComponent(meta.imagePublicUrl)}`;
   }
   const fn = getFilenameFromMeta(meta) || 'unknown';
   return `/uploads/${encodeURIComponent(fn)}`;

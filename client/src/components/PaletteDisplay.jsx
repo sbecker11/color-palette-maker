@@ -607,6 +607,86 @@ function PaletteDisplay({
               >
                 bg
               </button>
+              {(() => {
+                const effectiveBg = backgroundSwatchIndex === null
+                  ? -1
+                  : (backgroundSwatchIndex === undefined || typeof backgroundSwatchIndex !== 'number' || backgroundSwatchIndex < 0 || backgroundSwatchIndex >= len)
+                    ? 0
+                    : backgroundSwatchIndex;
+                if (effectiveBg < 0) return null;
+                const hexColor = palette[effectiveBg];
+                const label = swatchLabels[effectiveBg] ?? String.fromCharCode(65 + (effectiveBg % 26));
+                const handleSwatchClick = (e) => {
+                  e.stopPropagation();
+                  if (selectingBackgroundSwatch) {
+                    onBackgroundSwatchIndexChange?.(null);
+                    setSelectingBackgroundSwatch(false);
+                    onSelectingBackgroundSwatchChange?.(false);
+                  } else {
+                    setBizCardSwatchIndex(effectiveBg);
+                  }
+                };
+                return (
+                  <div
+                    className={`palette-item palette-item-background ${selectingBackgroundSwatch ? 'palette-item-select-bg' : ''}`}
+                  >
+                    <div
+                      className="palette-swatch-wrapper"
+                      style={{ '--swatch-color': hexColor, colorScheme: 'light' }}
+                    >
+                      <div
+                        className={`palette-swatch palette-swatch-filled ${hoveredSwatchIndex === effectiveBg ? 'highlighted' : ''}`}
+                        style={{
+                          backgroundColor: hexColor,
+                          boxShadow: `inset 0 0 0 50px ${hexColor}`,
+                        }}
+                        title={
+                          selectingBackgroundSwatch
+                            ? 'Set as background swatch'
+                            : `${hexColor} — Click to view biz card`
+                        }
+                        role="button"
+                        tabIndex={0}
+                        onMouseEnter={() => onSwatchHover?.(effectiveBg)}
+                        onMouseLeave={() => onSwatchHover?.(null)}
+                        onClick={handleSwatchClick}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleSwatchClick(e);
+                          }
+                        }}
+                      />
+                      <span className="swatch-label" aria-hidden="true">{label}</span>
+                      {!selectingBackgroundSwatch && (
+                        <button
+                          type="button"
+                          className="swatch-detail-btn"
+                          title="View swatch biz card"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setBizCardSwatchIndex(effectiveBg);
+                          }}
+                        >
+                          i
+                        </button>
+                      )}
+                    </div>
+                    <span className="palette-label">{formatHexDisplay(hexColor)}</span>
+                    <button
+                      type="button"
+                      className="swatch-delete-btn"
+                      title="Delete palette swatch"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteSwatch?.(hexColor);
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })()}
               {selectingBackgroundSwatch && (
                 <span className="bg-swatch-hint">
                   select bg swatch or{' '}
@@ -630,8 +710,9 @@ function PaletteDisplay({
           <span className="placeholder">Generating palette...</span>
         )}
         {!isGenerating && hasPalette && palette.map((hexColor, idx) => {
-          const label = swatchLabels[idx] ?? String.fromCharCode(65 + (idx % 26));
           const isBg = isBackgroundIndex(idx);
+          if (isBg) return null;
+          const label = swatchLabels[idx] ?? String.fromCharCode(65 + (idx % 26));
           const handleSwatchClick = (e) => {
             e.stopPropagation();
             if (selectingBackgroundSwatch) {

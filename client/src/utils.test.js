@@ -30,13 +30,14 @@ describe('utils', () => {
   });
 
   describe('getImageUrlForMeta', () => {
-    it('returns imagePublicUrl when set', () => {
+    it('returns proxied URL when imagePublicUrl is set (avoids CORS)', () => {
+      const url = 'https://cdn.example.com/images/x.jpeg';
       expect(
         getImageUrlForMeta({
           cachedFilePath: '/uploads/x.jpeg',
-          imagePublicUrl: 'https://cdn.example.com/images/x.jpeg',
+          imagePublicUrl: url,
         })
-      ).toBe('https://cdn.example.com/images/x.jpeg');
+      ).toBe(`/api/image-proxy?url=${encodeURIComponent(url)}`);
     });
     it('returns /uploads/ URL when no imagePublicUrl', () => {
       expect(getImageUrlForMeta({ cachedFilePath: '/uploads/img-1.jpeg' })).toBe('/uploads/img-1.jpeg');

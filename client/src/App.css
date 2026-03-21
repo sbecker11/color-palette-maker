@@ -501,9 +501,8 @@ input[type="file"] {
 }
 #palette-display .palette-display-subtitle,
 #paletteDisplay .palette-display-subtitle {
-  width: 100%;
-  margin: 0 0 calc(var(--gap) * 0.5) 0;
-  text-align: left;
+  margin: 0;
+  flex-shrink: 0;
   font-size: 0.95em;
   font-weight: 600;
   color: var(--text-color);
@@ -631,11 +630,10 @@ input[type="file"] {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: calc(var(--gap) * 0.5);
+  gap: var(--gap);
+  width: 100%;
+  justify-content: flex-start;
   margin-bottom: 0.25em;
-}
-.palette-display-subtitle-row .palette-display-subtitle {
-  margin: 0;
 }
 .bg-swatch-btn {
   padding: 1px 0.5em;
