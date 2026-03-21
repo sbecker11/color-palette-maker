@@ -29,6 +29,7 @@
     "dev:client": "cd client && npm run dev",
     "test": "cd client && npm run lint && npm run test",
     "test:coverage": "cd client && npm run lint && npm run test:coverage",
+    "migrate:s3": "node scripts/migrate-uploads-to-s3.js",
     "open:app": "node -e \"require('dotenv').config(); require('child_process').spawnSync('open', ['-a','Google Chrome','http://localhost:'+(process.env.EXPRESS_PORT||3000)], {stdio:'inherit'});\"",
     "start:open": "npm run start & node scripts/open-after-wait.js",
     "open:coverage": "open \"$(ls -t client/coverage-reports/*.html 2>/dev/null | head -1)\"",
@@ -38,6 +39,9 @@
     "ready": "npm test && npm run check"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1014.0",
+    "@smithy/config-resolver": "^4.4.13",
+    "@smithy/node-config-provider": "^4.3.12",
     "axios": "^1.7.2",
     "color-diff": "^1.4.0",
     "dotenv": "^17.3.1",

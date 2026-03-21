@@ -12,6 +12,7 @@ const sharp = require('sharp');
 // Import modularized handlers
 const metadataHandler = require('./metadata_handler');
 const imageProcessor = require('./image_processor');
+const s3Storage = require('./s3-storage');
 const { computeSwatchLabels } = require('./shared/swatchLabels.cjs');
 const { VALID_STRATEGIES } = require('./shared/regionStrategies.cjs');
 
@@ -147,8 +148,12 @@ app.post('/upload', upload.single('imageFile'), async (req, res) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         const outputFilename = `img-${uniqueSuffix}.${outputFormat}`;
         const outputFilePath = path.join(uploadsDir, outputFilename);
-        const outputInfo = await image.toFile(outputFilePath);
+        const imageBuffer = await sharp(inputBuffer).toFormat(outputFormat).toBuffer();
+        await fsp.writeFile(outputFilePath, imageBuffer);
+        const outputInfo = { size: imageBuffer.length };
         console.log(`[Upload] Saved processed image to: ${outputFilePath}`);
+
+        const s3Put = await s3Storage.putImageFromBuffer(outputFilename, imageBuffer, outputFormat);
 
         // 3. Create Metadata Record
         const defaultPaletteName = path.parse(outputFilename).name; // Filename without extension
@@ -162,7 +167,8 @@ app.post('/upload', upload.single('imageFile'), async (req, res) => {
             format: outputFormat,
             fileSizeBytes: outputInfo.size,
             colorPalette: [], // Initialize empty
-            paletteName: defaultPaletteName // Add default palette name
+            paletteName: defaultPaletteName, // Add default palette name
+            ...(s3Put ? { s3Key: s3Put.s3Key, imagePublicUrl: s3Put.imagePublicUrl } : {})
         };
 
         // 4. Append Metadata
@@ -656,6 +662,10 @@ app.post('/api/images/:filename/duplicate', async (req, res) => {
         await fsp.copyFile(sourcePath, newFilePath);
         const newFileStat = await fsp.stat(newFilePath);
 
+        const s3Dup = sourceMeta.s3Key
+            ? await s3Storage.copyObjectToNewFilename(sourceMeta.s3Key, newFilename)
+            : null;
+
         // 2. Determine original name and next copy number
         const baseName = path.parse(filename).name;
         const originalName = sourceMeta.paletteName || baseName;
@@ -695,7 +705,8 @@ app.post('/api/images/:filename/duplicate', async (req, res) => {
             paletteRegion: JSON.parse(JSON.stringify(getPaletteRegion(sourceMeta))),
             regionStrategy: sourceMeta.regionStrategy ?? 'default',
             regionParams: sourceMeta.regionParams ? { ...sourceMeta.regionParams } : {},
-            backgroundSwatchIndex: sourceMeta.backgroundSwatchIndex !== undefined ? sourceMeta.backgroundSwatchIndex : undefined
+            backgroundSwatchIndex: sourceMeta.backgroundSwatchIndex !== undefined ? sourceMeta.backgroundSwatchIndex : undefined,
+            ...(s3Dup ? { s3Key: s3Dup.s3Key, imagePublicUrl: s3Dup.imagePublicUrl } : {})
         };
 
         // 4. Append (puts at end of file; GET reverses so new item appears at top)
@@ -729,9 +740,15 @@ app.delete('/api/images/:filename', async (req, res) => {
         return res.status(404).json({ success: false, message: 'Image metadata not found.' });
     }
     const { allMetadata } = metaResult;
+    const entryToDelete = allMetadata.find(
+        (entry) => path.basename(entry.cachedFilePath || '') === filenameToDelete
+    );
     const filteredMetadata = allMetadata.filter((entry) => path.basename(entry.cachedFilePath || '') !== filenameToDelete);
 
     try {
+        if (entryToDelete?.s3Key) {
+            await s3Storage.deleteObjectByKey(entryToDelete.s3Key);
+        }
         // 1. Delete the actual image file
         const filePathToDelete = path.join(uploadsDir, filenameToDelete); // Construct path
         console.log(`[API DELETE /images] Deleting image file: ${filePathToDelete}`);
@@ -765,8 +782,11 @@ app.get('/', (req, res) => {
 // --- Server Start Logic with Port Check ---
 const startApp = () => {
     ensureUploadsDir().then(() => {
-        const expressServer = app.listen(port, () => {
+        const expressServer = app.listen(port, async () => {
             console.log(`Server is running on port ${port}. Access it at http://localhost:${port}`);
+            if (await s3Storage.isS3Enabled()) {
+                console.log(`[S3] Image uploads also go to bucket: ${process.env.S3_IMAGES_BUCKET || process.env.AWS_S3_BUCKET}`);
+            }
             console.log('\nChrome (copy/paste):');
             console.log(`  App mode:   chrome --app=http://localhost:${port}`);
             console.log(`  App mode:   open -a "Google Chrome" --args --app=http://localhost:${port}   # macOS`);

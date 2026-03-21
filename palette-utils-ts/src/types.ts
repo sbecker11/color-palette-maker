@@ -3,12 +3,18 @@
  * Use these when loading and consuming .json files exported from the app.
  */
 
-/** Exported palette file shape: { name, colors, backgroundSwatchIndex? } as written by Export Palette. */
+/** Exported palette file shape: { name, colors, backgroundSwatchIndex?, imagePath?, imageUrl? } as written by Export Palette. */
 export interface ExportedPalette {
   name: string;
   colors: string[];
   /** Optional 0-based index into colors to use as background. Omitted when not set. */
   backgroundSwatchIndex?: number;
+  /** Optional path to the source image (e.g. /uploads/img-xxx.jpeg). Omitted when not available. */
+  imagePath?: string;
+  /** Optional URL the image was loaded from. Omitted when not available. */
+  imageUrl?: string;
+  /** Optional public HTTPS URL of the image in S3 (or CDN). Omitted when not using S3. */
+  imagePublicUrl?: string;
 }
 
 /** RGB channels 0–255. */

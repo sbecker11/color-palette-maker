@@ -18,6 +18,15 @@ export function getFilenameFromMeta(meta) {
   return meta.cachedFilePath.split(/[/\\]/).pop();
 }
 
+/** Image URL for <img src>: S3 public URL when present, else same-origin /uploads/... */
+export function getImageUrlForMeta(meta) {
+  if (meta?.imagePublicUrl && typeof meta.imagePublicUrl === 'string') {
+    return meta.imagePublicUrl;
+  }
+  const fn = getFilenameFromMeta(meta) || 'unknown';
+  return `/uploads/${encodeURIComponent(fn)}`;
+}
+
 /** Returns true if meta corresponds to the given filename. */
 export function isSelectedImage(meta, filename) {
   return meta != null && getFilenameFromMeta(meta) === filename;

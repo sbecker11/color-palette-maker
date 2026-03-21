@@ -61,6 +61,17 @@ function MetadataDisplay({ meta }) {
         <li><strong>Palette name:</strong> {meta.paletteName ?? 'N/A'}</li>
         <li><strong>Filename:</strong> {filename}</li>
         <li><strong>Cached path:</strong> {meta.cachedFilePath ?? 'N/A'}</li>
+        {meta.s3Key && (
+          <li><strong>S3 key:</strong> {meta.s3Key}</li>
+        )}
+        {meta.imagePublicUrl && (
+          <li>
+            <strong>Public image URL:</strong>{' '}
+            <a href={meta.imagePublicUrl} target="_blank" rel="noopener noreferrer">
+              {meta.imagePublicUrl}
+            </a>
+          </li>
+        )}
         <li><strong># Swatches:</strong> {numSwatches}</li>
         <li><strong>Swatch labels:</strong> {swatchLabelsStr}</li>
         <li><strong>Dimensions:</strong> {dimensions}</li>

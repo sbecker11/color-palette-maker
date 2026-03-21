@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useReducer, useRef } from 'react';
 import api from './api';
-import { getFilenameFromMeta, getFilenameWithoutExt, isSelectedImage } from './utils';
+import { getFilenameFromMeta, getFilenameWithoutExt, getImageUrlForMeta, isSelectedImage } from './utils';
 import {
   needsPaletteGeneration,
   getNextSelectionAfterDeletion,
@@ -120,7 +120,7 @@ function App() {
           const filename = getFilenameFromMeta(first);
           if (filename) {
             setSelectedMeta(first);
-            setSelectedImageUrl(`/uploads/${encodeURIComponent(filename)}`);
+            setSelectedImageUrl(getImageUrlForMeta(first));
             setPaletteName(first.paletteName || getFilenameWithoutExt(filename));
             dispatchRegions({ type: 'SET_REGIONS', payload: Array.isArray(first.regions) ? first.regions : [] });
             if (needsPaletteGeneration(first)) {
@@ -231,7 +231,7 @@ function App() {
           if (result.metadata) {
             const filename = getFilenameFromMeta(result.metadata);
             if (filename) {
-              handleSelectImage(result.metadata, `/uploads/${encodeURIComponent(filename)}`, {
+              handleSelectImage(result.metadata, getImageUrlForMeta(result.metadata), {
                 skipPaletteGeneration: true,
               });
             }
@@ -273,7 +273,7 @@ function App() {
         const movedMeta = reordered[newIndex];
         const filename = getFilenameFromMeta(movedMeta);
         if (filename) {
-          handleSelectImage(movedMeta, `/uploads/${encodeURIComponent(filename)}`, {
+          handleSelectImage(movedMeta, getImageUrlForMeta(movedMeta), {
             skipPaletteGeneration: true,
           });
         }
@@ -517,9 +517,12 @@ function App() {
       return;
     }
 
-    const { name, colors, backgroundSwatchIndex } = payload;
+    const { name, colors, backgroundSwatchIndex, imagePath, imageUrl, imagePublicUrl } = payload;
     const jsonData = { name, colors };
     if (typeof backgroundSwatchIndex === 'number') jsonData.backgroundSwatchIndex = backgroundSwatchIndex;
+    if (imagePath) jsonData.imagePath = imagePath;
+    if (imageUrl) jsonData.imageUrl = imageUrl;
+    if (imagePublicUrl) jsonData.imagePublicUrl = imagePublicUrl;
     const blob = new Blob([JSON.stringify(jsonData, null, 2) + '\n'], {
       type: 'application/json',
     });
@@ -544,7 +547,7 @@ function App() {
         await loadImages({ selectFirst: false });
         const newFilename = result.filename;
         const newMeta = result.metadata;
-        handleSelectImage(newMeta, `/uploads/${encodeURIComponent(newFilename)}`);
+        handleSelectImage(newMeta, getImageUrlForMeta(newMeta));
         showMessage(`Created duplicate: ${result.metadata.paletteName || newFilename}`);
       } else {
         showMessage(result.message || 'Failed to duplicate.', true);

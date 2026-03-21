@@ -141,12 +141,13 @@ describe('AppHelpers', () => {
     it('returns null when colorPalette is not array', () => {
       expect(buildExportData({ colorPalette: 'invalid' }, 'name')).toBe(null);
     });
-    it('returns { name, colors, backgroundSwatchIndex } when valid (default 0)', () => {
+    it('returns { name, colors, backgroundSwatchIndex, imagePath } when valid (default 0)', () => {
       const meta = { cachedFilePath: '/x.jpeg', colorPalette: ['#ff0000', '#00ff00'] };
       expect(buildExportData(meta, 'My Palette')).toEqual({
         name: 'My Palette',
         colors: ['#ff0000', '#00ff00'],
         backgroundSwatchIndex: 0,
+        imagePath: '/x.jpeg',
       });
     });
     it('uses getFilenameWithoutExt when paletteName empty', () => {
@@ -155,6 +156,7 @@ describe('AppHelpers', () => {
         name: 'my-image',
         colors: ['#ff0000'],
         backgroundSwatchIndex: 0,
+        imagePath: '/uploads/my-image.jpeg',
       });
     });
     it('uses palette fallback when meta has no filename', () => {
@@ -171,6 +173,7 @@ describe('AppHelpers', () => {
         name: 'P',
         colors: ['#ff0000', '#00ff00'],
         backgroundSwatchIndex: 1,
+        imagePath: '/x.jpeg',
       });
     });
     it('defaults backgroundSwatchIndex to 0 when undefined', () => {
@@ -179,15 +182,53 @@ describe('AppHelpers', () => {
         name: 'P',
         colors: ['#ff0000', '#00ff00'],
         backgroundSwatchIndex: 0,
+        imagePath: '/x.jpeg',
       });
     });
     it('defaults backgroundSwatchIndex to 0 when out of range', () => {
       const meta = { cachedFilePath: '/x.jpeg', colorPalette: ['#ff0000'], backgroundSwatchIndex: 1 };
-      expect(buildExportData(meta, 'P')).toEqual({ name: 'P', colors: ['#ff0000'], backgroundSwatchIndex: 0 });
+      expect(buildExportData(meta, 'P')).toEqual({
+        name: 'P',
+        colors: ['#ff0000'],
+        backgroundSwatchIndex: 0,
+        imagePath: '/x.jpeg',
+      });
     });
     it('omits backgroundSwatchIndex when explicitly null (None)', () => {
       const meta = { cachedFilePath: '/x.jpeg', colorPalette: ['#ff0000'], backgroundSwatchIndex: null };
-      expect(buildExportData(meta, 'P')).toEqual({ name: 'P', colors: ['#ff0000'] });
+      expect(buildExportData(meta, 'P')).toEqual({ name: 'P', colors: ['#ff0000'], imagePath: '/x.jpeg' });
+    });
+    it('includes imagePath and imageUrl when available', () => {
+      const meta = {
+        cachedFilePath: '/uploads/img-123.jpeg',
+        uploadedURL: 'https://example.com/photo.jpg',
+        colorPalette: ['#ff0000'],
+      };
+      expect(buildExportData(meta, 'P')).toEqual({
+        name: 'P',
+        colors: ['#ff0000'],
+        backgroundSwatchIndex: 0,
+        imagePath: '/uploads/img-123.jpeg',
+        imageUrl: 'https://example.com/photo.jpg',
+      });
+    });
+    it('includes imagePublicUrl when set (S3)', () => {
+      const meta = {
+        cachedFilePath: '/uploads/img-123.jpeg',
+        imagePublicUrl: 'https://bucket.s3.us-east-1.amazonaws.com/images/img-123.jpeg',
+        colorPalette: ['#ff0000'],
+      };
+      expect(buildExportData(meta, 'P')).toMatchObject({
+        name: 'P',
+        colors: ['#ff0000'],
+        imagePublicUrl: 'https://bucket.s3.us-east-1.amazonaws.com/images/img-123.jpeg',
+      });
+    });
+    it('omits imagePath when cachedFilePath missing, omits imageUrl when uploadedURL missing', () => {
+      const meta = { colorPalette: ['#ff0000'] };
+      const result = buildExportData(meta, 'P');
+      expect(result).not.toHaveProperty('imagePath');
+      expect(result).not.toHaveProperty('imageUrl');
     });
   });
 

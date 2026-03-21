@@ -1,4 +1,4 @@
-import { getFilenameFromMeta, getFilenameWithoutExt } from '../utils';
+import { getFilenameFromMeta, getFilenameWithoutExt, getImageUrlForMeta } from '../utils';
 
 function ImageLibrary({
   images,
@@ -37,7 +37,7 @@ function ImageLibrary({
       <ul id="fileList">
         {images.map((meta, index) => {
           const filename = getFilenameFromMeta(meta) || 'unknown';
-          const imageUrl = '/uploads/' + encodeURIComponent(filename);
+          const imageUrl = getImageUrlForMeta(meta);
           const filenameWithoutExt = getFilenameWithoutExt(filename);
           const displayName =
             meta.paletteName && meta.paletteName !== filenameWithoutExt

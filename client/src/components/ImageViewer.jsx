@@ -499,6 +499,7 @@ const ImageViewer = forwardRef(function ImageViewer({
                 src={imageUrl}
                 alt={imageAlt || 'Palette image'}
                 title={imageAlt || 'Palette image'}
+                crossOrigin={/^https?:\/\//i.test(imageUrl) ? 'anonymous' : undefined}
                 draggable={false}
                 onDragStart={(e) => e.preventDefault()}
               />

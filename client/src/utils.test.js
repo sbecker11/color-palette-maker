@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   getFilenameFromMeta,
   getFilenameWithoutExt,
+  getImageUrlForMeta,
   formatFileSize,
   rgbToHex,
   formatHexDisplay,
@@ -25,6 +26,23 @@ describe('utils', () => {
 
     it('handles Windows-style path with backslash', () => {
       expect(getFilenameFromMeta({ cachedFilePath: 'C:\\uploads\\img-123.jpeg' })).toBe('img-123.jpeg');
+    });
+  });
+
+  describe('getImageUrlForMeta', () => {
+    it('returns imagePublicUrl when set', () => {
+      expect(
+        getImageUrlForMeta({
+          cachedFilePath: '/uploads/x.jpeg',
+          imagePublicUrl: 'https://cdn.example.com/images/x.jpeg',
+        })
+      ).toBe('https://cdn.example.com/images/x.jpeg');
+    });
+    it('returns /uploads/ URL when no imagePublicUrl', () => {
+      expect(getImageUrlForMeta({ cachedFilePath: '/uploads/img-1.jpeg' })).toBe('/uploads/img-1.jpeg');
+    });
+    it('uses unknown filename when cachedFilePath missing (library edge case)', () => {
+      expect(getImageUrlForMeta({ paletteName: 'x' })).toBe('/uploads/unknown');
     });
   });
 

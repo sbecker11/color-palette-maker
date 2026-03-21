@@ -10,11 +10,16 @@ Files exported via "Export Palette" in Color Palette Maker look like:
 {
   "name": "My Palette",
   "colors": ["#ff0000", "#00ff00", "#0000ff"],
-  "backgroundSwatchIndex": 0
+  "backgroundSwatchIndex": 0,
+  "imagePath": "/uploads/img-123.jpeg",
+  "imageUrl": "https://example.com/source.jpg"
 }
 ```
 
-`backgroundSwatchIndex` is optional (0-based index into `colors` for the background swatch); it is omitted when not set.
+- `backgroundSwatchIndex` — optional (0-based index into `colors` for the background swatch); omitted when not set.
+- `imagePath` — optional path to the source image; omitted when not available.
+- `imageUrl` — optional URL the image was loaded from; omitted when not available.
+- `imagePublicUrl` — optional public HTTPS URL (e.g. S3/CloudFront) when the app stores images in object storage; omitted when not available.
 
 ## Installation
 
@@ -97,6 +102,33 @@ Use these steps to add Color Palette Maker–style palettes to an existing TypeS
    ```
 
 Place exported `.json` files (from Color Palette Maker's "Export Palette") in your app's static assets or serve them from your backend, then load them as above.
+
+### Biz card using background swatch
+
+When a biz card (or any panel) should use the palette’s background swatch, use `backgroundSwatchIndex` to get the hex, then the same helpers for contrast text and icons:
+
+```ts
+import {
+  getHighContrastMono,
+  getContrastIconSet,
+  formatHexDisplay,
+} from 'color-palette-utils-ts';
+
+// After loading palette (ExportedPalette with optional backgroundSwatchIndex)
+const idx = palette.backgroundSwatchIndex ?? 0;
+const bgHex = palette.colors[idx];
+const backgroundColor = formatHexDisplay(bgHex) ?? bgHex;
+
+const textColor = getHighContrastMono(backgroundColor);  // '#ffffff' or '#000000'
+const icons = getContrastIconSet(backgroundColor, { iconBase: '/icons/anchors' });
+// icons: { url, back, img, variant: 'black' | 'white' }
+```
+
+Use them when rendering the card:
+
+- **Background:** `style={{ backgroundColor }}` or `backgroundColor` in CSS.
+- **Text:** `style={{ color: textColor }}` or `color: textColor`.
+- **Icons:** use `icons.url`, `icons.back`, `icons.img` for image `src` or CSS `background-image`; use `icons.variant === 'white'` to apply `filter: invert(1)` (or equivalent) when the icon should be light on dark.
 
 ## Usage
 

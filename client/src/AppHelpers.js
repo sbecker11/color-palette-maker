@@ -1,7 +1,7 @@
 /**
  * Pure helper functions extracted from App.jsx for better testability and branch coverage.
  */
-import { getFilenameFromMeta, getFilenameWithoutExt } from './utils';
+import { getFilenameFromMeta, getFilenameWithoutExt, getImageUrlForMeta } from './utils';
 import { indexToLabel, computeSwatchLabels } from '../../shared/swatchLabels.js';
 
 // Re-export for tests and consumers
@@ -28,7 +28,7 @@ export function getNextSelectionAfterDeletion(remaining) {
   if (!fn) return null;
   return {
     meta: first,
-    imageUrl: `/uploads/${encodeURIComponent(fn)}`,
+    imageUrl: getImageUrlForMeta(first),
   };
 }
 
@@ -86,6 +86,9 @@ export function buildExportData(selectedMeta, paletteName) {
     getFilenameWithoutExt(getFilenameFromMeta(selectedMeta) || '') ||
     'palette';
   const payload = { name, colors: palette };
+  if (selectedMeta.imagePublicUrl) payload.imagePublicUrl = selectedMeta.imagePublicUrl;
+  if (selectedMeta.cachedFilePath) payload.imagePath = selectedMeta.cachedFilePath;
+  if (selectedMeta.uploadedURL) payload.imageUrl = selectedMeta.uploadedURL;
   const idx = selectedMeta.backgroundSwatchIndex;
   if (idx === null) {
     // Explicit "None" — omit from export
