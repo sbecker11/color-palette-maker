@@ -36,4 +36,8 @@ export default defineConfig([
       globals: { ...globals.browser, global: 'readonly' },
     },
   },
+  {
+    files: ['**/s3-storage.test.js'],
+    languageOptions: { globals: { ...globals.node } },
+  },
 ])

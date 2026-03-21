@@ -21,7 +21,7 @@ This document describes how regions, region colors, K-means clustering, and over
        │             └────────┬────────┘
        │                      │
        │                      ▼
-       │             image_metadata.jsonl
+       │             color_palettes.jsonl
        │             uploads/
        └──────────────────────┘
 ```
@@ -99,7 +99,7 @@ Each region gets a filled circle (the "swatch circle") drawn near the region cen
 
 ## 8. How region boundaries and their average hex colors are stored
 
-Regions and their associated data are persisted in `image_metadata.jsonl`. Each image entry can include:
+Regions and their associated data are persisted in `color_palettes.jsonl`. Each image entry can include:
 
 - **regions**: Array of polygon arrays (`[[x,y], ...]`).
 - **paletteRegion**: Array of `{ hex, regionColor, x, y }` per region, where `regionColor` is the region average hex, `hex` is the nearest palette color, and `(x, y)` is the region centroid. Palette region data is recomputed when regions change or when the palette is regenerated.

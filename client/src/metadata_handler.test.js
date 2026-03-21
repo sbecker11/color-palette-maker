@@ -15,7 +15,7 @@ describe('metadata_handler', () => {
 
   beforeEach(async () => {
     tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'metadata-test-'));
-    tempFile = path.join(tempDir, 'image_metadata.jsonl');
+    tempFile = path.join(tempDir, 'color_palettes.jsonl');
   });
 
   afterEach(async () => {

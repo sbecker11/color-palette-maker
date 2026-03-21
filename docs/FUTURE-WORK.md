@@ -64,7 +64,7 @@ Migrate to a multi-user SaaS on Kubernetes: add auth, PostgreSQL, object storage
 
 **Highlights:**
 - Auth (JWT/sessions), sign-up/login, protected routes.
-- Replace `image_metadata.jsonl` with PostgreSQL; replace `uploads/` with S3/GCS.
+- Replace `color_palettes.jsonl` with PostgreSQL; replace `uploads/` with S3/GCS.
 - Per-user data isolation; rate limits; quotas.
 - K8s manifests: deployments, services, ingress (TLS), ConfigMaps, Secrets, HPA for backend and image-processor.
 

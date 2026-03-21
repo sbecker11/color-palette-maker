@@ -111,7 +111,7 @@ Ensure the metadata file exists on the host (Docker creates it as a directory if
 
 ```bash
 mkdir -p docker-data
-touch docker-data/image_metadata.jsonl
+touch docker-data/color_palettes.jsonl
 ```
 
 Then start the app:

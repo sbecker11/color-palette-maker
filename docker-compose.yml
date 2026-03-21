@@ -1,5 +1,5 @@
 # Color Palette Maker — run locally with Docker Compose
-# Usage: mkdir -p docker-data && touch docker-data/image_metadata.jsonl
+# Usage: mkdir -p docker-data && touch docker-data/color_palettes.jsonl
 #        docker compose up --build
 # Then open http://localhost:3000
 
@@ -15,4 +15,4 @@ services:
     volumes:
       # Persist uploads and metadata across restarts
       - ./docker-data/uploads:/app/uploads
-      - ./docker-data/image_metadata.jsonl:/app/image_metadata.jsonl
+      - ./docker-data/color_palettes.jsonl:/app/color_palettes.jsonl

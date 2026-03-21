@@ -12,8 +12,8 @@
  *   node scripts/migrate-uploads-to-s3.js --dry-run    # print plan only
  *   node scripts/migrate-uploads-to-s3.js --force      # re-upload and refresh URLs even if s3Key exists
  *
- * Always back up image_metadata.jsonl first:
- *   cp image_metadata.jsonl image_metadata.jsonl.bak
+ * Always back up color_palettes.jsonl first:
+ *   cp color_palettes.jsonl color_palettes.jsonl.bak
  */
 
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });

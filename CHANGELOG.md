@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **S3 storage**: Optional S3 bucket for palette images. Region from `AWS_REGION` or `~/.aws/config` default profile; credentials from env or `~/.aws/credentials`. See [docs/S3-STORAGE.md](docs/S3-STORAGE.md).
+- **S3 scripts**: `create-s3-palette-bucket.sh` (bucket + policy + CORS), `migrate-uploads-to-s3.js` (`npm run migrate:s3`), `open-s3-jpegs-in-chrome.sh`, `import-resume-flock-monotone-palettes.js` (`npm run import:resume-flock-monotone`).
+- **Import resume-flock monotone palettes**: White_Monotone, Medium_Grey_Monotone, Black_Monotone from resume-flock as swatch images (no source images). Generates 360×80 JPEG, appends metadata, uploads to S3.
+- **Background swatch index**: `backgroundSwatchIndex` in metadata and exports for contrast text.
 - **Template match (draw box)**: For region detection method "Template match", click **Detect** → draw a box on the image (click center, drag to size, release); detection runs on release. Button label cycles **Click** → **Drag** → **Detect**. Click **Detect** again to clear regions and repeat with a new box. Correlation uses gradient magnitude (brightness-invariant).
 - When a palette already has regions and Region Detection shows a method (e.g. Template), app syncs that method so clicking **Detect** immediately continues with it (no need to re-select the method).
 - Auto-select moved palette after reordering (top/bottom/up/down buttons)
@@ -25,6 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Mutual exclusivity: entering one mode (Adding/Deleting) exits the other
 - Click outside palette image exits active mode and clears checkbox
 - MetadataDisplay: added "# Swatches" and "# Regions" fields
+
+### Documentation
+- API: JSONL metadata fields `s3Key`, `imagePublicUrl`, `backgroundSwatchIndex`
+- S3-STORAGE: Scripts table (create bucket, migrate, open in Chrome, import resume-flock)
+- DEVELOPMENT: Project structure (s3-storage.js, scripts), npm scripts (migrate:s3, import:resume-flock-monotone), S3 env vars
+- README: S3 `aws s3 ls` and browser URL format
 
 ### Fixed
 - Checkbox toggle now properly exits mode (fixed race condition with click-outside handler)

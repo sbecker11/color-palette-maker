@@ -6,12 +6,23 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   envDir: resolve(__dirname, '..'),
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@root/s3-storage': resolve(__dirname, '../s3-storage.js'),
+    },
+  },
   test: {
     globals: true,
     environment: 'happy-dom',
     setupFiles: './src/test/setup.js',
     coverage: {
       provider: 'v8',
+      thresholds: {
+        statements: 80,
+        branches: 80,
+        functions: 75,
+        lines: 80,
+      },
       exclude: [
         'scripts/**',
         'src/main.jsx',

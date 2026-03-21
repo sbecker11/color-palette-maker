@@ -9,7 +9,7 @@ This document outlines the steps and considerations for migrating the Color Pale
 The current app is a single-user SPA with local file storage. A SaaS version would add:
 
 - **Authentication**: Sign-up, login, sessions (JWT or session cookies).
-- **Database**: PostgreSQL (or similar) for users, palettes, metadata — replacing `image_metadata.jsonl`.
+- **Database**: PostgreSQL (or similar) for users, palettes, metadata — replacing `color_palettes.jsonl`.
 - **Object storage**: S3 or GCS for images — replacing local `uploads/` directory.
 - **Multi-tenancy**: Per-user data isolation; rate limits; quotas.
 - **Stateless backend**: Backend and image-processor read/write to DB and object storage, not local disk. Pods can scale horizontally.
@@ -98,7 +98,7 @@ With these changes, Kubernetes becomes a strong fit: scaling, high availability,
 ### 1. Data Layer Migration
 
 - Define schema: `users`, `palettes`, `images`, `metadata`.
-- Migrate `image_metadata.jsonl` logic to DB queries.
+- Migrate `color_palettes.jsonl` logic to DB queries.
 - Replace `uploads/` with S3/GCS; backend generates upload URLs and stores keys in DB.
 
 ### 2. Authentication

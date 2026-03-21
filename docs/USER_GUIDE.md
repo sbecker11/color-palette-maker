@@ -91,7 +91,7 @@ If you use the [Dark Reader](https://darkreader.org/) browser extension, it may 
 
 ## Metadata
 
-Data is persisted to `image_metadata.jsonl`. Each image record includes:
+Data is persisted to `color_palettes.jsonl`. Each image record includes:
 
 - **Image info**: `createdDateTime`, `uploadedURL`, `uploadedFilePath`, `cachedFilePath`, `width`, `height`, `format`, `fileSizeBytes`
 - **Palette**: `colorPalette` (hex array), `paletteName`

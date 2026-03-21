@@ -34,14 +34,14 @@ If images were added **before** S3 was enabled, they exist only under `uploads/`
 
 1. **Back up metadata** (required):
    ```bash
-   cp image_metadata.jsonl image_metadata.jsonl.bak
+   cp color_palettes.jsonl color_palettes.jsonl.bak
    ```
 2. Ensure `.env` has `S3_IMAGES_BUCKET` (and region/credentials as usual). Bucket policy + CORS should match **docs/S3-STORAGE.md** / `create-s3-palette-bucket.sh`.
 3. **Dry run** (prints what would upload):
    ```bash
    npm run migrate:s3 -- --dry-run
    ```
-4. **Run migration** (uploads each file referenced in `image_metadata.jsonl`, then rewrites the file with S3 fields):
+4. **Run migration** (uploads each file referenced in `color_palettes.jsonl`, then rewrites the file with S3 fields):
    ```bash
    npm run migrate:s3
    ```
@@ -49,7 +49,7 @@ If images were added **before** S3 was enabled, they exist only under `uploads/`
 
 Rows that **already** have both `s3Key` and `imagePublicUrl` are skipped. To **re-upload** everything (e.g. new bucket), use `--force`.
 
-Files in `uploads/` that are **not** listed in `image_metadata.jsonl` are not migrated by this script (no app metadata to update).
+Files in `uploads/` that are **not** listed in `color_palettes.jsonl` are not migrated by this script (no app metadata to update).
 
 ## Permission model (public read-only vs app read-write)
 
@@ -72,12 +72,21 @@ The public never receives AWS keys; they only open `imagePublicUrl` in a browser
 | `AWS_REGION` | No* | e.g. `us-east-1`; if unset, uses `region` from `~/.aws/config` for the profile (`AWS_PROFILE` or `default`) |
 | `AWS_ACCESS_KEY_ID` | No* | Or omit and use `~/.aws/credentials` / IAM role (SDK default chain) |
 | `AWS_SECRET_ACCESS_KEY` | No* | Same as above |
-
-\*You need **some** way to supply region (env or config) and credentials (env, credentials file, or role).
 | `S3_IMAGES_PREFIX` | No | Default `images` |
 | `S3_PUBLIC_URL_BASE` | No | CloudFront or custom origin base URL (no trailing slash). If unset, URLs use virtual-hosted style `https://{bucket}.s3.{region}.amazonaws.com/{key}` |
 
+\*You need **some** way to supply region (env or config) and credentials (env, credentials file, or role).
+
 See `.env.example` for a template.
+
+## Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/create-s3-palette-bucket.sh` | Create bucket, apply public read policy and CORS. Run with `S3_IMAGES_BUCKET` and `AWS_REGION` in env. |
+| `scripts/migrate-uploads-to-s3.js` | Upload existing `uploads/` files to S3 and set `s3Key` / `imagePublicUrl` on metadata. `npm run migrate:s3` (use `--dry-run` or `--force`). |
+| `scripts/open-s3-jpegs-in-chrome.sh` | Open each `.jpg` / `.jpeg` in `uploads/` (or a given dir) in Chrome, one at a time; press Enter to advance. |
+| `scripts/import-resume-flock-monotone-palettes.js` | Import White_Monotone, Medium_Grey_Monotone, Black_Monotone from resume-flock: generates 360×80 swatch images, appends metadata, uploads to S3. `npm run import:resume-flock-monotone`. Requires resume-flock at `../../workspace-flock/resume-flock/static_content/colorPalettes`. |
 
 ## Bucket policy (public **read-only**)
 

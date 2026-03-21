@@ -1,10 +1,10 @@
-// Handles metadata reading and writing for image_metadata.jsonl
+// Handles metadata reading and writing for color_palettes.jsonl
 
 const fs = require('fs').promises;
 const path = require('path');
 
 const NEWLINE = '\n';
-const metadataFile = path.join(__dirname, 'image_metadata.jsonl');
+const metadataFile = path.join(__dirname, 'color_palettes.jsonl');
 
 // --- Metadata Reading ---
 async function readMetadata(overridePath) {

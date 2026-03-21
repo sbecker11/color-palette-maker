@@ -557,4 +557,305 @@ describe('PaletteDisplay', () => {
       expect.objectContaining({ cannyLow: expect.any(Number), cannyHigh: expect.any(Number) })
     );
   });
+
+  it('calls onDetectRegions with watershed params when strategy is watershed', () => {
+    const metaWithRegions = {
+      ...defaultProps.selectedMeta,
+      regions: [[[0, 0], [10, 0], [10, 10], [0, 10]]],
+    };
+    const onDetectRegions = vi.fn();
+    render(
+      <PaletteDisplay
+        {...defaultProps}
+        selectedMeta={metaWithRegions}
+        onDetectRegions={onDetectRegions}
+      />
+    );
+    fireEvent.change(screen.getByLabelText('Region detection approach'), { target: { value: 'watershed' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Detect regions' }));
+    expect(onDetectRegions).toHaveBeenCalledWith(
+      'watershed',
+      expect.objectContaining({ watershedDistRatio: expect.any(Number) })
+    );
+  });
+
+  it('calls onDetectRegions with grabcut params when strategy is grabcut', () => {
+    const metaWithRegions = {
+      ...defaultProps.selectedMeta,
+      regions: [[[0, 0], [10, 0], [10, 10], [0, 10]]],
+    };
+    const onDetectRegions = vi.fn();
+    render(
+      <PaletteDisplay
+        {...defaultProps}
+        selectedMeta={metaWithRegions}
+        onDetectRegions={onDetectRegions}
+      />
+    );
+    fireEvent.change(screen.getByLabelText('Region detection approach'), { target: { value: 'grabcut' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Detect regions' }));
+    expect(onDetectRegions).toHaveBeenCalledWith(
+      'grabcut',
+      expect.objectContaining({ grabcutRectPad: expect.any(Number), grabcutIterCount: expect.any(Number) })
+    );
+  });
+
+  it('calls onDetectRegions with slic params when strategy is slic', () => {
+    const metaWithRegions = {
+      ...defaultProps.selectedMeta,
+      regions: [[[0, 0], [10, 0], [10, 10], [0, 10]]],
+    };
+    const onDetectRegions = vi.fn();
+    render(
+      <PaletteDisplay
+        {...defaultProps}
+        selectedMeta={metaWithRegions}
+        onDetectRegions={onDetectRegions}
+      />
+    );
+    fireEvent.change(screen.getByLabelText('Region detection approach'), { target: { value: 'slic' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Detect regions' }));
+    expect(onDetectRegions).toHaveBeenCalledWith(
+      'slic',
+      expect.objectContaining({ slicRegionSize: expect.any(Number), slicRuler: expect.any(Number) })
+    );
+  });
+
+  it('calls onDetectRegions with adaptive params when strategy is adaptive', () => {
+    const metaWithRegions = {
+      ...defaultProps.selectedMeta,
+      regions: [[[0, 0], [10, 0], [10, 10], [0, 10]]],
+    };
+    const onDetectRegions = vi.fn();
+    render(
+      <PaletteDisplay
+        {...defaultProps}
+        selectedMeta={metaWithRegions}
+        onDetectRegions={onDetectRegions}
+      />
+    );
+    fireEvent.change(screen.getByLabelText('Region detection approach'), { target: { value: 'adaptive' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Detect regions' }));
+    expect(onDetectRegions).toHaveBeenCalledWith(
+      'adaptive',
+      expect.objectContaining({ adaptiveBlockSize: expect.any(Number), adaptiveC: expect.any(Number) })
+    );
+  });
+
+  it('calls onDetectRegions with meanshift params when strategy is meanshift', () => {
+    const metaWithRegions = {
+      ...defaultProps.selectedMeta,
+      regions: [[[0, 0], [10, 0], [10, 10], [0, 10]]],
+    };
+    const onDetectRegions = vi.fn();
+    render(
+      <PaletteDisplay
+        {...defaultProps}
+        selectedMeta={metaWithRegions}
+        onDetectRegions={onDetectRegions}
+      />
+    );
+    fireEvent.change(screen.getByLabelText('Region detection approach'), { target: { value: 'meanshift' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Detect regions' }));
+    expect(onDetectRegions).toHaveBeenCalledWith(
+      'meanshift',
+      expect.objectContaining({ meanshiftSpatial: expect.any(Number), meanshiftColor: expect.any(Number) })
+    );
+  });
+
+  it('calls onDetectRegions with quadtree params when strategy is quadtree', () => {
+    const metaWithRegions = {
+      ...defaultProps.selectedMeta,
+      regions: [[[0, 0], [10, 0], [10, 10], [0, 10]]],
+    };
+    const onDetectRegions = vi.fn();
+    render(
+      <PaletteDisplay
+        {...defaultProps}
+        selectedMeta={metaWithRegions}
+        onDetectRegions={onDetectRegions}
+      />
+    );
+    fireEvent.change(screen.getByLabelText('Region detection approach'), { target: { value: 'quadtree' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Detect regions' }));
+    expect(onDetectRegions).toHaveBeenCalledWith(
+      'quadtree',
+      expect.objectContaining({ quadtreeVariance: expect.any(Number), quadtreeMinSize: expect.any(Number) })
+    );
+  });
+
+  it('calls onDetectRegions with rectangles params when strategy is rectangles', () => {
+    const metaWithRegions = {
+      ...defaultProps.selectedMeta,
+      regions: [[[0, 0], [10, 0], [10, 10], [0, 10]]],
+    };
+    const onDetectRegions = vi.fn();
+    render(
+      <PaletteDisplay
+        {...defaultProps}
+        selectedMeta={metaWithRegions}
+        onDetectRegions={onDetectRegions}
+      />
+    );
+    fireEvent.change(screen.getByLabelText('Region detection approach'), { target: { value: 'rectangles' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Detect regions' }));
+    expect(onDetectRegions).toHaveBeenCalledWith(
+      'rectangles',
+      expect.objectContaining({ rectanglesEpsilonRatio: expect.any(Number) })
+    );
+  });
+
+  it('calls onDetectRegions with template_match strategy (no extra params)', () => {
+    const metaWithRegions = {
+      ...defaultProps.selectedMeta,
+      regions: [[[0, 0], [10, 0], [10, 10], [0, 10]]],
+    };
+    const onDetectRegions = vi.fn();
+    render(
+      <PaletteDisplay
+        {...defaultProps}
+        selectedMeta={metaWithRegions}
+        onDetectRegions={onDetectRegions}
+      />
+    );
+    fireEvent.change(screen.getByLabelText('Region detection approach'), { target: { value: 'template_match' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Detect regions' }));
+    expect(onDetectRegions).toHaveBeenCalledWith('template_match', {});
+  });
+
+  it('calls onDetectRegions with circles params when strategy is circles', () => {
+    const metaWithRegions = {
+      ...defaultProps.selectedMeta,
+      regions: [[[0, 0], [10, 0], [10, 10], [0, 10]]],
+    };
+    const onDetectRegions = vi.fn();
+    render(
+      <PaletteDisplay
+        {...defaultProps}
+        selectedMeta={metaWithRegions}
+        onDetectRegions={onDetectRegions}
+      />
+    );
+    fireEvent.change(screen.getByLabelText('Region detection approach'), { target: { value: 'circles' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Detect regions' }));
+    expect(onDetectRegions).toHaveBeenCalledWith(
+      'circles',
+      expect.objectContaining({
+        circlesMinRadiusRatio: expect.any(Number),
+        circlesMaxRadiusRatio: expect.any(Number),
+        circlesParam1: expect.any(Number),
+        circlesParam2: expect.any(Number),
+        circlesMinDistRatio: expect.any(Number),
+      })
+    );
+  });
+
+  it('calls onDetectRegions with contour_circles params when strategy is contour_circles', () => {
+    const metaWithRegions = {
+      ...defaultProps.selectedMeta,
+      regions: [[[0, 0], [10, 0], [10, 10], [0, 10]]],
+    };
+    const onDetectRegions = vi.fn();
+    render(
+      <PaletteDisplay
+        {...defaultProps}
+        selectedMeta={metaWithRegions}
+        onDetectRegions={onDetectRegions}
+      />
+    );
+    fireEvent.change(screen.getByLabelText('Region detection approach'), { target: { value: 'contour_circles' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Detect regions' }));
+    expect(onDetectRegions).toHaveBeenCalledWith(
+      'contour_circles',
+      expect.objectContaining({
+        circlesMinRadiusRatio: expect.any(Number),
+        circlesMaxRadiusRatio: expect.any(Number),
+        contourCirclesCircularity: expect.any(Number),
+      })
+    );
+  });
+
+  it('when in bg mode and clicking same swatch sets background to null', () => {
+    const onBackground = vi.fn();
+    render(
+      <PaletteDisplay
+        {...defaultProps}
+        backgroundSwatchIndex={0}
+        onBackgroundSwatchIndexChange={onBackground}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'bg' }));
+    const setBgSwatches = screen.getAllByTitle(/set as background swatch/i);
+    fireEvent.click(setBgSwatches[0]);
+    expect(onBackground).toHaveBeenCalledWith(null);
+  });
+
+  it('region detection select and Detect button are disabled when regionsDetecting', () => {
+    const metaWithRegions = {
+      ...defaultProps.selectedMeta,
+      regions: [[[0, 0], [10, 0], [10, 10], [0, 10]]],
+    };
+    render(
+      <PaletteDisplay
+        {...defaultProps}
+        selectedMeta={metaWithRegions}
+        regionsDetecting={true}
+      />
+    );
+    expect(screen.getByLabelText('Region detection approach')).toBeDisabled();
+    const detectBtn = screen.getByRole('button', { name: 'Detect regions' });
+    expect(detectBtn).toBeDisabled();
+  });
+
+  it('handles localStorage.getItem throwing (e.g. private mode)', () => {
+    const orig = Storage.prototype.getItem;
+    Storage.prototype.getItem = () => { throw new Error('SecurityError'); };
+    const metaWithRegions = { ...defaultProps.selectedMeta, regions: [[[0, 0], [1, 0], [1, 1], [0, 1]]] };
+    render(<PaletteDisplay {...defaultProps} selectedMeta={metaWithRegions} />);
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Color Palette');
+    Storage.prototype.getItem = orig;
+  });
+
+  it('handles localStorage.setItem throwing when Detect All Regions selected', async () => {
+    const orig = Storage.prototype.setItem;
+    Storage.prototype.setItem = () => { throw new Error('QuotaExceeded'); };
+    const metaWithRegions = { ...defaultProps.selectedMeta, regions: [[[0, 0], [1, 0], [1, 1], [0, 1]]] };
+    render(<PaletteDisplay {...defaultProps} selectedMeta={metaWithRegions} />);
+    const select = screen.getByRole('combobox', { name: 'Choose action' });
+    fireEvent.change(select, { target: { value: 'detectRegions' } });
+    await waitFor(() => expect(screen.getByLabelText('Region detection approach')).toBeInTheDocument());
+    Storage.prototype.setItem = orig;
+  });
+
+  it('shows Drag/Click button labels when template_match and templateDrawPhase set', () => {
+    const metaWithRegions = {
+      ...defaultProps.selectedMeta,
+      regions: [[[0, 0], [10, 0], [10, 10], [0, 10]]],
+      regionStrategy: 'template_match',
+    };
+    render(
+      <PaletteDisplay
+        {...defaultProps}
+        selectedMeta={metaWithRegions}
+        templateDrawPhase="drag"
+      />
+    );
+    expect(screen.getByRole('button', { name: 'Drag' })).toBeInTheDocument();
+  });
+
+  it('shows Click button when templateDrawPhase is click', () => {
+    const metaWithRegions = {
+      ...defaultProps.selectedMeta,
+      regions: [[[0, 0], [10, 0], [10, 10], [0, 10]]],
+      regionStrategy: 'template_match',
+    };
+    render(
+      <PaletteDisplay
+        {...defaultProps}
+        selectedMeta={metaWithRegions}
+        templateDrawPhase="click"
+      />
+    );
+    expect(screen.getByRole('button', { name: 'Click' })).toBeInTheDocument();
+  });
 });

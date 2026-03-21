@@ -344,4 +344,61 @@ describe('api', () => {
       })
     );
   });
+
+  it('detectRegions includes optional params when provided', async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ success: true, regions: [] }),
+    });
+    await api.detectRegions('img.jpeg', {
+      strategy: 'adaptive',
+      adaptiveBlockSize: 11,
+      adaptiveC: 2,
+      cannyLow: 50,
+      cannyHigh: 150,
+      colorClusters: 12,
+      watershedDistRatio: 0.5,
+      grabcutRectPad: 0.1,
+      grabcutIterCount: 5,
+      slicRegionSize: 25,
+      slicRuler: 10,
+      meanshiftSpatial: 15,
+      meanshiftColor: 40,
+      quadtreeVariance: 500,
+      quadtreeMinSize: 32,
+      circlesMinRadiusRatio: 0.02,
+      circlesMaxRadiusRatio: 0.45,
+      circlesParam1: 80,
+      circlesParam2: 35,
+      circlesMinDistRatio: 0.07,
+      contourCirclesCircularity: 0.75,
+      templateMatchThreshold: 0.8,
+      templateMatchMinDistRatio: 0.1,
+      rectanglesEpsilonRatio: 0.05,
+      templateBox: { x: 0, y: 0, w: 50, h: 50 },
+    });
+    const callBody = JSON.parse(global.fetch.mock.calls[0][1].body);
+    expect(callBody.adaptiveBlockSize).toBe(11);
+    expect(callBody.cannyLow).toBe(50);
+    expect(callBody.templateBox).toEqual({ x: 0, y: 0, w: 50, h: 50 });
+    expect(callBody.rectanglesEpsilonRatio).toBe(0.05);
+  });
+
+  it('detectRegions omits templateBox when not object', async () => {
+    global.fetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ success: true, regions: [] }) });
+    await api.detectRegions('img.jpeg', { strategy: 'template_match', templateBox: null });
+    const callBody = JSON.parse(global.fetch.mock.calls[0][1].body);
+    expect(callBody.templateBox).toBeUndefined();
+  });
+
+  it('saveMetadata with backgroundSwatchIndex', async () => {
+    global.fetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ success: true }) });
+    await api.saveMetadata('img.jpeg', { backgroundSwatchIndex: 2 });
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        body: JSON.stringify({ backgroundSwatchIndex: 2 }),
+      })
+    );
+  });
 });

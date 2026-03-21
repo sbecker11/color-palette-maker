@@ -620,4 +620,56 @@ describe('App', () => {
       expect(screen.getByText(/network error saving palette/i)).toBeInTheDocument()
     );
   });
+
+  it('calls generatePalette with regions when K-means with regions', async () => {
+    api.getImages.mockResolvedValue({
+      success: true,
+      images: [{
+        cachedFilePath: '/uploads/img-1.jpeg',
+        paletteName: 'img-1',
+        colorPalette: ['#ff0000'],
+        regions: [[[0, 0], [10, 0], [10, 10], [0, 10]]],
+      }],
+    });
+    api.generatePalette.mockResolvedValue({ success: true, palette: ['#ff0000', '#00ff00'] });
+    render(<App />);
+    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
+    const select = screen.getByRole('combobox', { name: 'Choose action' });
+    fireEvent.change(select, { target: { value: 'kmeans5' } });
+    await waitFor(() =>
+      expect(api.generatePalette).toHaveBeenCalledWith(
+        'img-1.jpeg',
+        expect.objectContaining({ k: 5, regions: expect.any(Array), regenerate: true })
+      )
+    );
+  });
+
+  it('calls generatePalette with k=9 when K-means (9) selected', async () => {
+    api.generatePalette.mockResolvedValue({ success: true, palette: ['#111', '#222', '#333'] });
+    render(<App />);
+    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
+    const select = screen.getByRole('combobox', { name: 'Choose action' });
+    fireEvent.change(select, { target: { value: 'kmeans9' } });
+    await waitFor(() =>
+      expect(api.generatePalette).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ k: 9 }))
+    );
+  });
+
+  it('hides AboutOverlay when getConfig returns about: false', async () => {
+    api.getConfig = vi.fn().mockResolvedValue({ about: false });
+    render(<App />);
+    await waitFor(() => expect(api.getConfig).toHaveBeenCalled());
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+  });
+
+  it('shows Please select an image first when Export with no selection', async () => {
+    api.getImages.mockResolvedValue({ success: true, images: [] });
+    render(<App />);
+    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
+    const select = screen.getByRole('combobox', { name: 'Choose action' });
+    fireEvent.change(select, { target: { value: 'export' } });
+    expect(screen.getByText(/please select an image first/i)).toBeInTheDocument();
+  });
 });

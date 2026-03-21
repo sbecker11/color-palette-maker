@@ -312,7 +312,7 @@ Delete an image file and its metadata record.
 
 ## JSONL Metadata Format
 
-Metadata is stored in `image_metadata.jsonl`. Each line is a JSON object representing one image:
+Metadata is stored in `color_palettes.jsonl`. Each line is a JSON object representing one image:
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -331,3 +331,6 @@ Metadata is stored in `image_metadata.jsonl`. Each line is a JSON object represe
 | `paletteRegion` | object[] | `{ hex, regionColor, x, y }` per region (nearest palette swatch) |
 | `regionStrategy` | string | Last detection strategy: `default`, `adaptive`, `otsu`, `canny`, `color`, `watershed`, `grabcut`, `slic`, `saliency`, `meanshift`, `quadtree`, `circles`, `rectangles`, `contour_circles`, `template_match` |
 | `regionParams` | object | Strategy-specific params (e.g. `adaptiveBlockSize`, `grabcutRectPad`, `slicRegionSize`) saved when regions were detected |
+| `s3Key` | string | S3 object key (e.g. `images/img-xxx.jpeg`) when image is stored in S3 |
+| `imagePublicUrl` | string | Public HTTPS URL for the image (S3 or CloudFront); used by `<img src>` and exports when set |
+| `backgroundSwatchIndex` | number | Zero-based index of the palette swatch used as background in exports (e.g. for contrast text) |

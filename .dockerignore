@@ -8,4 +8,4 @@ uploads
 .DS_Store
 client/coverage
 client/coverage-reports
-image_metadata.jsonl
+color_palettes.jsonl

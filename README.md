@@ -21,7 +21,7 @@ detect image regions with OpenCV, and export palettes as JSON.
 **Prerequisites:** Docker and Docker Compose.
 
 ```bash
-mkdir -p docker-data && touch docker-data/image_metadata.jsonl
+mkdir -p docker-data && touch docker-data/color_palettes.jsonl
 docker compose up --build
 ```
 

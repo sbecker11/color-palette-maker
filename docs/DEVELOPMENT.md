@@ -16,7 +16,7 @@ Create the metadata file on the host (so Docker does not create it as a director
 
 ```bash
 mkdir -p docker-data
-touch docker-data/image_metadata.jsonl
+touch docker-data/color_palettes.jsonl
 docker compose up --build
 ```
 
@@ -51,7 +51,7 @@ For persistence, use volumes (see [VPS Hosting](VPS-HOSTING.md) for a full examp
 ```bash
 docker run -d -p 3000:3000 \
   -v $(pwd)/docker-data/uploads:/app/uploads \
-  -v $(pwd)/docker-data/image_metadata.jsonl:/app/image_metadata.jsonl \
+  -v $(pwd)/docker-data/color_palettes.jsonl:/app/color_palettes.jsonl \
   --name color-palette-maker-react your-registry/color-palette-maker-react:latest
 ```
 
@@ -132,16 +132,30 @@ color-palette-maker-react/
 │   └── package.json
 ├── docs/
 ├── scripts/
-│   └── detect_regions.py   # Python/OpenCV region detection
+│   ├── detect_regions.py              # Python/OpenCV region detection
+│   ├── create-s3-palette-bucket.sh    # Create S3 bucket, policy, CORS
+│   ├── migrate-uploads-to-s3.js       # Upload uploads/ to S3, update metadata
+│   ├── open-s3-jpegs-in-chrome.sh     # Open JPEGs in Chrome (Enter to advance)
+│   └── import-resume-flock-monotone-palettes.js  # Import monotone palettes from resume-flock
 ├── server.js               # Express server
 ├── metadata_handler.js
 ├── image_processor.js
+├── s3-storage.js             # S3 uploads (region from env or ~/.aws/config)
 ├── requirements.txt        # Python deps (used in Dockerfile)
 ├── Dockerfile
 ├── docker-compose.yml
 ├── .dockerignore
 └── package.json
 ```
+
+---
+
+## npm Scripts (S3 and imports)
+
+| Script | Description |
+|--------|-------------|
+| `npm run migrate:s3` | Migrate existing `uploads/` files to S3, update `color_palettes.jsonl` with `s3Key` and `imagePublicUrl`. Use `--dry-run` to preview, `--force` to re-upload all. |
+| `npm run import:resume-flock-monotone` | Import White_Monotone, Medium_Grey_Monotone, Black_Monotone from resume-flock as swatch images. See [S3 storage](S3-STORAGE.md#scripts). |
 
 ---
 
@@ -155,6 +169,8 @@ Set in `docker-compose.yml` or when running `docker run -e ...`. See root `.env.
 |----------|-------------|
 | `EXPRESS_PORT` | Express server port. Default 3000. |
 | `DETECT_REGIONS_PYTHON` | Python for region detection. Set to `python3` in the image. |
+| `S3_IMAGES_BUCKET` | S3 bucket for palette images (enables S3). See [S3 storage](S3-STORAGE.md). |
+| `AWS_REGION` | AWS region (e.g. `us-west-1`). Optional if set in `~/.aws/config`. |
 | `MIN_LUMINANCE_THRESHOLD` | Palette luminance floor (0–255). Default 25. |
 | `MAX_LUMINANCE_THRESHOLD` | Palette luminance ceiling (0–255). Default 185. |
 
