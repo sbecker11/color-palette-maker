@@ -30,6 +30,7 @@
     "test": "cd client && npm run lint && npm run test",
     "test:coverage": "cd client && npm run lint && npm run test:coverage",
     "migrate:s3": "node scripts/migrate-uploads-to-s3.js",
+    "import:resume-flock-monotone": "node scripts/import-resume-flock-monotone-palettes.js",
     "open:app": "node -e \"require('dotenv').config(); require('child_process').spawnSync('open', ['-a','Google Chrome','http://localhost:'+(process.env.EXPRESS_PORT||3000)], {stdio:'inherit'});\"",
     "start:open": "npm run start & node scripts/open-after-wait.js",
     "open:coverage": "open \"$(ls -t client/coverage-reports/*.html 2>/dev/null | head -1)\"",
