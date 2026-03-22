@@ -4,7 +4,9 @@
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| GET | `/api/config` | Runtime flags; when S3 is enabled, includes `palettesJsonlPublicUrl` (HTTPS NDJSON for consumers) |
 | GET | `/api/images` | List all images with metadata |
+| GET | `/api/color-palettes.jsonl` | Same palette records as **NDJSON** (one JSON object per line); for consumer apps and scripts |
 | PUT | `/api/images/order` | Reorder images (body: `{ filenames: [...] }`) |
 | POST | `/api/images/:filename/duplicate` | Duplicate image and palette |
 | POST | `/upload` | Upload image (file or URL) |
@@ -18,9 +20,20 @@
 
 ## Endpoint Details
 
+### GET /api/config
+
+**Response** (JSON)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `about` | boolean | When `true`, the client may show the about overlay on first load |
+| `palettesJsonlPublicUrl` | string | *(Optional)* Present when `S3_IMAGES_BUCKET` and region resolve. Public HTTPS URL to the palette list NDJSON (same file as `color_palettes.jsonl`); anonymous **read-only** if your bucket policy matches [S3-STORAGE.md](S3-STORAGE.md). |
+
+---
+
 ### GET /api/images
 
-Returns all images with metadata, newest first.
+Returns all images with metadata in the same order as lines in `color_palettes.jsonl` (first line first).
 
 **Response**
 
@@ -49,6 +62,22 @@ Returns all images with metadata, newest first.
 **Error**
 
 - `500` — `{ "success": false, "message": "Error reading image metadata." }`
+
+---
+
+### GET /api/color-palettes.jsonl
+
+Returns the **same ordered records** as `color_palettes.jsonl` / `GET /api/images`, as **newline-delimited JSON** (NDJSON): each line is one palette image object, no wrapper array.
+
+**Response**
+
+- `200` — `Content-Type: application/x-ndjson; charset=utf-8`, body is UTF-8 text (possibly empty if there are no palettes).
+- `500` — JSON `{ "success": false, "message": "..." }` if metadata cannot be read.
+
+**Consumer usage**
+
+- **HTTP**: `GET https://your-app-host/api/color-palettes.jsonl` — parse line-by-line with `JSON.parse(line)` (skip empty lines).
+- **S3**: Use `palettesJsonlPublicUrl` from **`GET /api/config`**, or build the URL from your bucket + `S3_PALETTES_JSONL_KEY` / CloudFront base. Anonymous read matches palette images when bucket policy includes public `GetObject` on that object. See [S3-STORAGE.md](S3-STORAGE.md#downstream-consumers-jsonl).
 
 ---
 
@@ -312,7 +341,7 @@ Delete an image file and its metadata record.
 
 ## JSONL Metadata Format
 
-Metadata is stored in `color_palettes.jsonl`. Each line is a JSON object representing one image:
+Metadata is stored in `color_palettes.jsonl` on disk. When S3 is enabled, the server writes the same content **to S3 first** (then mirrors the local file); consumers may **GET** the object by HTTPS with public read-only policy, same model as images. See [S3-STORAGE.md](S3-STORAGE.md). Each line is a JSON object representing one image:
 
 | Field | Type | Description |
 |-------|------|-------------|

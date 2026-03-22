@@ -6,7 +6,6 @@ import {
   getNextSelectionAfterDeletion,
   computeReorderedState,
   shouldSavePaletteName,
-  buildExportData,
   applyPaletteToMeta,
   applyPaletteToImages,
   applyPaletteNameToImages,
@@ -507,38 +506,6 @@ function App() {
     [selectedMeta, showMessage]
   );
 
-  const handleExport = useCallback(() => {
-    const payload = buildExportData(selectedMeta, paletteName);
-    if (!payload) {
-      showMessage(
-        selectedMeta ? 'No colors in the current palette to export.' : 'Please select an image first.',
-        true
-      );
-      return;
-    }
-
-    const { name, colors, backgroundSwatchIndex, imagePath, imageUrl, imagePublicUrl } = payload;
-    const jsonData = { name, colors };
-    if (typeof backgroundSwatchIndex === 'number') jsonData.backgroundSwatchIndex = backgroundSwatchIndex;
-    if (imagePath) jsonData.imagePath = imagePath;
-    if (imageUrl) jsonData.imageUrl = imageUrl;
-    if (imagePublicUrl) jsonData.imagePublicUrl = imagePublicUrl;
-    const blob = new Blob([JSON.stringify(jsonData, null, 2) + '\n'], {
-      type: 'application/json',
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    const downloadFilenameBase = name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '') || 'palette';
-    link.download = `${downloadFilenameBase}.json`;
-    link.href = url;
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    showMessage(`Export initiated for "${link.download}". Check your browser downloads.`);
-  }, [selectedMeta, paletteName, showMessage]);
-
   const handleDuplicateImage = useCallback(async (filename) => {
     if (!filename) return;
     try {
@@ -825,7 +792,6 @@ function App() {
           onSelectingBackgroundSwatchChange={(isSelecting) => {
             showMessage(isSelecting ? 'Click a swatch to set as background' : '');
           }}
-          onExport={handleExport}
           onRegenerateWithK={handleRegenerateWithK}
           onDelete={handleDelete}
           onDuplicate={handleDuplicate}

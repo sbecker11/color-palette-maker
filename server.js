@@ -84,9 +84,16 @@ app.use(express.static(frontendDir));
 
 // --- API Routes ---
 
-// GET /api/config - runtime config (e.g. show about page on first load)
-app.get('/api/config', (req, res) => {
-    res.json({ about: showAboutPage });
+// GET /api/config - runtime config (e.g. show about page on first load; public NDJSON URL when S3 + policy allow read)
+app.get('/api/config', async (req, res) => {
+    try {
+        const payload = { about: showAboutPage };
+        const palettesJsonlPublicUrl = await s3Storage.publicUrlForPalettesJsonl();
+        if (palettesJsonlPublicUrl) payload.palettesJsonlPublicUrl = palettesJsonlPublicUrl;
+        res.json(payload);
+    } catch (e) {
+        res.json({ about: showAboutPage });
+    }
 });
 
 // GET /api/images - List images from metadata
@@ -94,11 +101,27 @@ app.get('/api/images', async (req, res) => {
     console.log('[API GET /images] Request received.');
     try {
         const metadata = await metadataHandler.readMetadata();
-        // File stores [bottom...top]; reverse for display order [top...bottom]
-        res.json({ success: true, images: metadata.slice().reverse() });
+        // Same order as color_palettes.jsonl (first line = first in list)
+        res.json({ success: true, images: metadata });
     } catch (error) {
         console.error('[API GET /images] Error:', error);
         res.status(500).json({ success: false, message: "Error reading image metadata." });
+    }
+});
+
+// GET /api/color-palettes.jsonl — same records as color_palettes.jsonl (NDJSON) for downstream apps
+app.get('/api/color-palettes.jsonl', async (req, res) => {
+    console.log('[API GET /color-palettes.jsonl] Request received.');
+    try {
+        const metadata = await metadataHandler.readMetadata();
+        const body =
+            metadata.map((obj) => JSON.stringify(obj)).join('\n') + (metadata.length > 0 ? '\n' : '');
+        res.set('Content-Type', 'application/x-ndjson; charset=utf-8');
+        res.set('Cache-Control', 'no-store');
+        res.send(body);
+    } catch (error) {
+        console.error('[API GET /color-palettes.jsonl] Error:', error);
+        res.status(500).json({ success: false, message: 'Error reading palette metadata.' });
     }
 });
 
@@ -650,10 +673,9 @@ app.put('/api/images/order', express.json(), async (req, res) => {
         if (fn) metaByFilename.set(fn, entry);
     }
 
-    // Build new order: display order is [top...bottom], file stores [bottom...top] for reverse() compatibility
+    // Persist list order to match JSONL line order (same as UI top-to-bottom)
     const displayOrder = filenames.filter(fn => metaByFilename.has(fn));
-    const fileOrder = displayOrder.slice().reverse();
-    const reorderedMetadata = fileOrder.map(fn => metaByFilename.get(fn)).filter(Boolean);
+    const reorderedMetadata = displayOrder.map(fn => metaByFilename.get(fn)).filter(Boolean);
 
     // Include any metadata not in the request (e.g. race condition) at the end
     const orderedFilenames = new Set(displayOrder);
@@ -752,7 +774,7 @@ app.post('/api/images/:filename/duplicate', async (req, res) => {
             ...(s3Dup ? { s3Key: s3Dup.s3Key, imagePublicUrl: s3Dup.imagePublicUrl } : {})
         };
 
-        // 4. Append (puts at end of file; GET reverses so new item appears at top)
+        // 4. Append (new row at end of JSONL; appears at bottom of list)
         await metadataHandler.appendMetadata(newRecord);
 
         console.log(`[API POST /images/duplicate] Created duplicate: ${newFilename} as "${newPaletteName}"`);

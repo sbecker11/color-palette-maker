@@ -11,10 +11,12 @@
  *   S3_IMAGES_PREFIX   — object key prefix, default "images" (no leading slash)
  *   S3_PUBLIC_URL_BASE — optional; e.g. https://d111111abcdef8.cloudfront.net (no trailing slash)
  *                        If unset, uses virtual-hosted–style https://{bucket}.s3.{region}.amazonaws.com/{key}
+ *   S3_PALETTES_JSONL_KEY — optional; object key for color_palettes.jsonl (default metadata/color_palettes.jsonl).
+ *                           Same bucket as images; use bucket policy public GetObject on this key (like images/*) for consumer read-only access.
  *   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY — optional; omit to use ~/.aws/credentials
  */
 
-const { S3Client, PutObjectCommand, DeleteObjectCommand, CopyObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, CopyObjectCommand } = require('@aws-sdk/client-s3');
 const { loadConfig } = require('@smithy/node-config-provider');
 const { NODE_REGION_CONFIG_OPTIONS, NODE_REGION_CONFIG_FILE_OPTIONS } = require('@smithy/config-resolver');
 
@@ -63,6 +65,74 @@ async function isS3Enabled() {
 function objectKeyForFilename(filename) {
     const prefix = (process.env.S3_IMAGES_PREFIX || 'images').replace(/^\/+|\/+$/g, '');
     return prefix ? `${prefix}/${filename}` : filename;
+}
+
+/** Object key for palette metadata JSONL (same bucket as images; keep private — no anon GetObject). */
+function palettesJsonlObjectKey() {
+    const k = (process.env.S3_PALETTES_JSONL_KEY || 'metadata/color_palettes.jsonl').replace(/^\/+/, '');
+    return k;
+}
+
+function isNoSuchKeyError(err) {
+    return err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404;
+}
+
+/**
+ * Read color_palettes.jsonl body from S3.
+ * @returns {Promise<string|null>} File UTF-8 contents, or null if object missing / S3 error (caller may fall back to local).
+ */
+async function readPalettesJsonl() {
+    if (!(await isS3Enabled())) return null;
+    try {
+        const client = await getClient();
+        if (!client) return null;
+        const key = palettesJsonlObjectKey();
+        const response = await client.send(
+            new GetObjectCommand({
+                Bucket: getBucket(),
+                Key: key,
+            })
+        );
+        const body = await response.Body.transformToString();
+        return typeof body === 'string' ? body : '';
+    } catch (err) {
+        if (isNoSuchKeyError(err)) {
+            console.log(`[S3] Palettes JSONL not found at ${palettesJsonlObjectKey()}, using local file if present.`);
+            return null;
+        }
+        console.warn('[S3] GetObject palettes jsonl failed:', err.message || err);
+        return null;
+    }
+}
+
+/**
+ * Write full JSONL file to S3 (after local write). Empty string is allowed.
+ */
+async function writePalettesJsonl(utf8Content) {
+    if (!(await isS3Enabled())) return;
+    const key = palettesJsonlObjectKey();
+    try {
+        const client = await getClient();
+        if (!client) return;
+        await client.send(
+            new PutObjectCommand({
+                Bucket: getBucket(),
+                Key: key,
+                Body: utf8Content ?? '',
+                ContentType: 'application/x-ndjson; charset=utf-8',
+            })
+        );
+        console.log(`[S3] PutObject OK (palettes): s3://${getBucket()}/${key}`);
+    } catch (err) {
+        console.error('[S3] PutObject palettes jsonl failed:', err.message || err);
+        throw err;
+    }
+}
+
+/** HTTPS URL consumers can GET (anonymous read) when bucket policy allows GetObject on this key. */
+async function publicUrlForPalettesJsonl() {
+    if (!(await isS3Enabled())) return null;
+    return publicUrlForKey(palettesJsonlObjectKey());
 }
 
 /**
@@ -174,12 +244,97 @@ async function copyObjectToNewFilename(sourceS3Key, newFilename) {
     }
 }
 
+/**
+ * Verify IAM credentials can PutObject, GetObject, and DeleteObject (probe under metadata/).
+ * @returns {Promise<{ ok: true, probeKey: string } | { ok: false, error: string }>}
+ */
+async function verifyIamAccess() {
+    if (!(await isS3Enabled())) {
+        return {
+            ok: false,
+            error:
+                'S3 not enabled: set S3_IMAGES_BUCKET (or AWS_S3_BUCKET) and AWS_REGION (or region in ~/.aws/config for your profile).',
+        };
+    }
+    const client = await getClient();
+    if (!client) {
+        return { ok: false, error: 'Could not create S3 client (missing bucket or region).' };
+    }
+    const bucket = getBucket();
+    const probeKey = `metadata/.s3-access-verify-${Date.now()}.txt`;
+    const body = `color-palette-maker s3 verify ${new Date().toISOString()}`;
+    try {
+        await client.send(
+            new PutObjectCommand({
+                Bucket: bucket,
+                Key: probeKey,
+                Body: body,
+                ContentType: 'text/plain; charset=utf-8',
+            })
+        );
+        const getRes = await client.send(
+            new GetObjectCommand({
+                Bucket: bucket,
+                Key: probeKey,
+            })
+        );
+        const text = await getRes.Body.transformToString();
+        if (text !== body) {
+            await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: probeKey })).catch(() => {});
+            return { ok: false, error: 'GetObject body did not match PutObject payload.' };
+        }
+        await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: probeKey }));
+        return { ok: true, probeKey };
+    } catch (err) {
+        const msg = err?.message || String(err);
+        try {
+            await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: probeKey })).catch(() => {});
+        } catch {
+            /* ignore */
+        }
+        return { ok: false, error: msg };
+    }
+}
+
+/**
+ * Verify anonymous read of the public palette catalog URL (bucket policy).
+ * @returns {Promise<{ ok: true, url: string } | { ok: false, error: string, url?: string }>}
+ */
+async function verifyPublicPalettesCatalogUrl() {
+    if (!(await isS3Enabled())) {
+        return { ok: false, error: 'S3 not enabled; cannot resolve catalog URL.' };
+    }
+    const url = await publicUrlForPalettesJsonl();
+    if (!url) {
+        return { ok: false, error: 'Could not build public URL for palettes JSONL.' };
+    }
+    try {
+        const res = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+        if (!res.ok) {
+            return {
+                ok: false,
+                error: `HTTP ${res.status} ${res.statusText} (anonymous read may be blocked by bucket policy)`,
+                url,
+            };
+        }
+        return { ok: true, url };
+    } catch (err) {
+        return { ok: false, error: err?.message || String(err), url };
+    }
+}
+
 module.exports = {
     getRegion,
     isS3Enabled,
     objectKeyForFilename,
+    palettesJsonlObjectKey,
     publicUrlForKey,
     putImageFromBuffer,
+    readPalettesJsonl,
+    writePalettesJsonl,
+    publicUrlForPalettesJsonl,
     deleteObjectByKey,
     copyObjectToNewFilename,
+    verifyIamAccess,
+    verifyPublicPalettesCatalogUrl,
 };

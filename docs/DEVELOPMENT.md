@@ -7,6 +7,7 @@ This project is intended to be run with **Docker** for both local use and produc
 ## Prerequisites
 
 - **Docker** and **Docker Compose**
+- **AWS S3** — required for image uploads, the public palette catalog (`color_palettes.jsonl`), and the `color-palette-utils-ts` integration test. See [S3 storage](S3-STORAGE.md) and run `scripts/create-s3-palette-bucket.sh` as part of setup.
 
 ---
 
@@ -85,7 +86,9 @@ npm install && cd client && npm install && cd ..
 npm test
 ```
 
-Tests cover the client (components, API, utils), server modules (metadata_handler, image_processor), and image-viewer geometry. This step is optional if you rely on CI.
+Tests cover the client (components, API, utils), the **`color-palette-utils-ts`** package (Vitest), server modules (metadata_handler, image_processor), and image-viewer geometry. This step is optional if you rely on CI.
+
+**`color-palette-utils-ts` integration test** fetches the live palette catalog from S3 and will fail with `403 Forbidden` until S3 is configured. Run `scripts/create-s3-palette-bucket.sh` first — see [S3 storage](S3-STORAGE.md).
 
 ---
 
@@ -137,6 +140,7 @@ color-palette-maker-react/
 │   ├── migrate-uploads-to-s3.js       # Upload uploads/ to S3, update metadata
 │   ├── open-s3-jpegs-in-chrome.sh     # Open JPEGs in Chrome (Enter to advance)
 │   └── import-resume-flock-monotone-palettes.js  # Import monotone palettes from resume-flock
+├── color-palette-utils-ts/ # npm package `color-palette-utils-ts` (TS utils + NDJSON catalog)
 ├── server.js               # Express server
 ├── metadata_handler.js
 ├── image_processor.js
@@ -154,7 +158,12 @@ color-palette-maker-react/
 
 | Script | Description |
 |--------|-------------|
+| `npm run verify:s3` | Verify IAM S3 read/write and public palette-catalog URL. See [S3 storage](S3-STORAGE.md). |
 | `npm run migrate:s3` | Migrate existing `uploads/` files to S3, update `color_palettes.jsonl` with `s3Key` and `imagePublicUrl`. Use `--dry-run` to preview, `--force` to re-upload all. |
+| `npm run test:color-palette-utils-ts` | Vitest in `color-palette-utils-ts/` (colors, palette JSON, NDJSON catalog). |
+| `npm run test:coverage:color-palette-utils-ts` | Same + V8 coverage → `color-palette-utils-ts/coverage/`. |
+| `npm run test:coverage` | Client lint + client Vitest coverage (thresholds in `client/`). |
+| `npm run test:coverage:all` | Client `test:coverage` **then** `color-palette-utils-ts` coverage. |
 | `npm run import:resume-flock-monotone` | Import White_Monotone, Medium_Grey_Monotone, Black_Monotone from resume-flock as swatch images. See [S3 storage](S3-STORAGE.md#scripts). |
 
 ---
@@ -170,6 +179,7 @@ Set in `docker-compose.yml` or when running `docker run -e ...`. See root `.env.
 | `EXPRESS_PORT` | Express server port. Default 3000. |
 | `DETECT_REGIONS_PYTHON` | Python for region detection. Set to `python3` in the image. |
 | `S3_IMAGES_BUCKET` | S3 bucket for palette images (enables S3). See [S3 storage](S3-STORAGE.md). |
+| `S3_PALETTES_JSONL_KEY` | Optional. Object key for `color_palettes.jsonl` (default `metadata/color_palettes.jsonl`). IAM Get/Put; bucket policy public GetObject for consumers (see `create-s3-palette-bucket.sh`). |
 | `AWS_REGION` | AWS region (e.g. `us-west-1`). Optional if set in `~/.aws/config`. |
 | `MIN_LUMINANCE_THRESHOLD` | Palette luminance floor (0–255). Default 25. |
 | `MAX_LUMINANCE_THRESHOLD` | Palette luminance ceiling (0–255). Default 185. |

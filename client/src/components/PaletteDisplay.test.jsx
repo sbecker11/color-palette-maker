@@ -14,7 +14,6 @@ describe('PaletteDisplay', () => {
     onClearAllSwatches: vi.fn(),
     paletteName: 'Test Palette',
     onPaletteNameChange: vi.fn(),
-    onExport: vi.fn(),
     onRegenerateWithK: vi.fn(),
     onDelete: vi.fn(),
     onDuplicate: vi.fn(),
@@ -59,9 +58,9 @@ describe('PaletteDisplay', () => {
     expect(defaultProps.onRegenerateWithK).toHaveBeenCalledWith(7);
   });
 
-  it('shows Rename Palette, (Dup)licate Palette, (Del)ete Palette in actions dropdown', () => {
+  it('shows Edit palette name, (Dup)licate Palette, (Del)ete Palette in actions dropdown', () => {
     render(<PaletteDisplay {...defaultProps} />);
-    expect(screen.getByRole('option', { name: 'Rename Palette' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Edit palette name' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: '(Dup)licate Palette' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: '(Del)ete Palette' })).toBeInTheDocument();
   });
@@ -116,34 +115,22 @@ describe('PaletteDisplay', () => {
     expect(screen.getByRole('checkbox', { name: 'Deleting regions (click)' })).toBeDisabled();
   });
 
-  it('shows Export Palette option in actions dropdown', () => {
-    render(<PaletteDisplay {...defaultProps} />);
-    expect(screen.getByRole('option', { name: /export palette/i })).toBeInTheDocument();
-  });
-
-  it('calls onExport when Export is selected from dropdown', () => {
-    render(<PaletteDisplay {...defaultProps} />);
-    const select = screen.getByRole('combobox', { name: 'Choose action' });
-    fireEvent.change(select, { target: { value: 'export' } });
-    expect(defaultProps.onExport).toHaveBeenCalledTimes(1);
-  });
-
   it('shows palette name input', () => {
     render(<PaletteDisplay {...defaultProps} />);
-    const input = screen.getByLabelText(/name/i);
+    const input = screen.getByLabelText(/^palette name$/i);
     expect(input).toHaveValue('Test Palette');
   });
 
   it('calls onPaletteNameBlur when palette name input loses focus', () => {
     render(<PaletteDisplay {...defaultProps} />);
-    const input = screen.getByLabelText(/name/i);
+    const input = screen.getByLabelText(/^palette name$/i);
     fireEvent.blur(input);
     expect(defaultProps.onPaletteNameBlur).toHaveBeenCalledTimes(1);
   });
 
   it('calls onPaletteNameBlur when Enter is pressed in palette name input', () => {
     render(<PaletteDisplay {...defaultProps} />);
-    const input = screen.getByLabelText(/name/i);
+    const input = screen.getByLabelText(/^palette name$/i);
     fireEvent.keyDown(input, { key: 'Enter' });
     expect(defaultProps.onPaletteNameBlur).toHaveBeenCalled();
   });
@@ -185,7 +172,7 @@ describe('PaletteDisplay', () => {
 
   it('calls onPaletteNameChange when input changes', () => {
     render(<PaletteDisplay {...defaultProps} />);
-    const input = screen.getByLabelText(/name/i);
+    const input = screen.getByLabelText(/^palette name$/i);
     fireEvent.change(input, { target: { value: 'New Name' } });
     expect(defaultProps.onPaletteNameChange).toHaveBeenCalledWith('New Name');
   });
@@ -281,7 +268,7 @@ describe('PaletteDisplay', () => {
 
   it('disables palette name input when no selectedMeta', () => {
     render(<PaletteDisplay {...defaultProps} selectedMeta={null} />);
-    expect(screen.getByLabelText(/name/i)).toBeDisabled();
+    expect(screen.getByLabelText(/^palette name$/i)).toBeDisabled();
   });
 
   it('disables actions dropdown when no selectedMeta', () => {
@@ -289,18 +276,15 @@ describe('PaletteDisplay', () => {
     expect(screen.getByRole('combobox', { name: 'Choose action' })).toBeDisabled();
   });
 
-  it('shows Region Detection dropdown when Detect All Regions is selected', () => {
+  it('shows Region Detection controls inside regions subsection', () => {
     render(<PaletteDisplay {...defaultProps} />);
-    expect(screen.queryByLabelText('Region detection approach')).not.toBeInTheDocument();
-    const actionSelect = screen.getByRole('combobox', { name: 'Choose action' });
-    fireEvent.change(actionSelect, { target: { value: 'detectRegions' } });
     expect(screen.getByLabelText('Region detection approach')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Detect regions' })).toBeInTheDocument();
+    expect(document.querySelector('.region-detection-panel')).toBeTruthy();
   });
 
   it('calls onDetectRegions with selected strategy when Detect button clicked', () => {
     render(<PaletteDisplay {...defaultProps} />);
-    fireEvent.change(screen.getByRole('combobox', { name: 'Choose action' }), { target: { value: 'detectRegions' } });
     const detectBtn = screen.getByRole('button', { name: 'Detect regions' });
     fireEvent.click(detectBtn);
     expect(defaultProps.onDetectRegions).toHaveBeenCalledTimes(1);
@@ -341,9 +325,9 @@ describe('PaletteDisplay', () => {
     expect(swatch).toBeInTheDocument();
   });
 
-  it('focuses and selects palette name input when Rename Palette is selected', () => {
+  it('focuses and selects palette name input when Edit palette name is selected', () => {
     render(<PaletteDisplay {...defaultProps} />);
-    const input = screen.getByLabelText(/name/i);
+    const input = screen.getByLabelText(/palette name/i);
     input.focus = vi.fn();
     input.select = vi.fn();
     const select = screen.getByRole('combobox', { name: 'Choose action' });
@@ -435,7 +419,6 @@ describe('PaletteDisplay', () => {
         templateDrawPhase="click"
       />
     );
-    fireEvent.change(screen.getByRole('combobox', { name: 'Choose action' }), { target: { value: 'detectRegions' } });
     fireEvent.change(screen.getByLabelText('Region detection approach'), { target: { value: 'template_match' } });
     expect(screen.getByRole('button', { name: 'Click' })).toBeInTheDocument();
   });
@@ -447,7 +430,6 @@ describe('PaletteDisplay', () => {
         templateDrawPhase="drag"
       />
     );
-    fireEvent.change(screen.getByRole('combobox', { name: 'Choose action' }), { target: { value: 'detectRegions' } });
     fireEvent.change(screen.getByLabelText('Region detection approach'), { target: { value: 'template_match' } });
     expect(screen.getByRole('button', { name: 'Drag' })).toBeInTheDocument();
   });
@@ -513,9 +495,11 @@ describe('PaletteDisplay', () => {
     expect(screen.getByRole('option', { name: /find k-means swatches \(5\) \(by regions\)/i })).toBeInTheDocument();
   });
 
-  it('renders region count message when selectedMeta and not detecting', () => {
+  it('renders region stats row with swatches and regions', () => {
     render(<PaletteDisplay {...defaultProps} regionCount={3} />);
-    expect(screen.getByText(/# regions detected:\s*3/)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Regions' })).toBeInTheDocument();
+    expect(screen.getByText(/^swatches:\s*2$/)).toBeInTheDocument();
+    expect(screen.getByText(/^regions:\s*3$/)).toBeInTheDocument();
   });
 
   it('renders MetadataDisplay with selectedMeta', () => {
@@ -823,7 +807,7 @@ describe('PaletteDisplay', () => {
     render(<PaletteDisplay {...defaultProps} selectedMeta={metaWithRegions} />);
     const select = screen.getByRole('combobox', { name: 'Choose action' });
     fireEvent.change(select, { target: { value: 'detectRegions' } });
-    await waitFor(() => expect(screen.getByLabelText('Region detection approach')).toBeInTheDocument());
+    await waitFor(() => expect(document.getElementById('regionStrategySelect')).toHaveFocus());
     Storage.prototype.setItem = orig;
   });
 

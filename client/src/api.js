@@ -21,6 +21,17 @@ const api = {
     return handleResponse(response);
   },
 
+  /** NDJSON body (one palette record per line). Errors return JSON like handleResponse. */
+  async getColorPalettesJsonl() {
+    const response = await fetch('/api/color-palettes.jsonl');
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      return { success: false, message: data.message || `HTTP ${response.status}` };
+    }
+    const body = await response.text();
+    return { success: true, body };
+  },
+
   async upload(formData) {
     const response = await fetch('/upload', {
       method: 'POST',

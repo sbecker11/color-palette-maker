@@ -21,8 +21,8 @@ This document describes how regions, region colors, K-means clustering, and over
        │             └────────┬────────┘
        │                      │
        │                      ▼
-       │             color_palettes.jsonl
-       │             uploads/
+       │             color_palettes.jsonl (+ optional S3 copy)
+       │             uploads/ (+ optional S3 images/*)
        └──────────────────────┘
 ```
 

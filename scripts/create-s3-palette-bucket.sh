@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Create an S3 bucket for Color Palette Maker images (public read on prefix, app uses IAM for writes).
+# Create an S3 bucket for Color Palette Maker: public read-only on images prefix and on palette JSONL (consumers use HTTPS GET like images).
 #
 # Usage:
 #   export AWS_REGION=us-east-1
@@ -40,6 +40,10 @@ else
 fi
 
 PREFIX="${S3_IMAGES_PREFIX:-images}"
+PALETTES_KEY="${S3_PALETTES_JSONL_KEY:-metadata/color_palettes.jsonl}"
+# Strip leading slashes for ARN
+PALETTES_KEY="${PALETTES_KEY#/}"
+
 echo "==> Allowing public bucket policy (required for anonymous GetObject on prefix)..."
 echo "    Turn OFF 'Block all public access' only as far as needed, or public policy will be rejected."
 aws s3api put-public-access-block --bucket "$BUCKET" \
@@ -56,27 +60,36 @@ POLICY=$(cat <<EOF
       "Principal": "*",
       "Action": "s3:GetObject",
       "Resource": "arn:aws:s3:::${BUCKET}/${PREFIX}/*"
+    },
+    {
+      "Sid": "PublicReadOnlyPalettesJsonl",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::${BUCKET}/${PALETTES_KEY}"
     }
   ]
 }
 EOF
 )
 
-echo "==> Applying bucket policy (public read-only on ${PREFIX}/*)..."
+echo "==> Applying bucket policy (public read-only: ${PREFIX}/* and ${PALETTES_KEY})..."
 aws s3api put-bucket-policy --bucket "$BUCKET" --policy "$POLICY"
 
 CORS_TMP=$(mktemp)
 trap 'rm -f "$CORS_TMP"' EXIT
 cat > "$CORS_TMP" <<'CORSJSON'
-[
-  {
-    "AllowedHeaders": ["*"],
-    "AllowedMethods": ["GET", "HEAD"],
-    "AllowedOrigins": ["*"],
-    "ExposeHeaders": [],
-    "MaxAgeSeconds": 3000
-  }
-]
+{
+  "CORSRules": [
+    {
+      "AllowedHeaders": ["*"],
+      "AllowedMethods": ["GET", "HEAD"],
+      "AllowedOrigins": ["*"],
+      "ExposeHeaders": [],
+      "MaxAgeSeconds": 3000
+    }
+  ]
+}
 CORSJSON
 
 echo "==> Applying CORS (GET/HEAD; origins * — tighten in console for production)..."
@@ -87,5 +100,6 @@ echo "Done. Add to your .env:"
 echo "  S3_IMAGES_BUCKET=$BUCKET"
 echo "  AWS_REGION=$REGION"
 echo ""
-echo "Attach an IAM policy to your user/role for read-write on the same prefix — see docs/S3-STORAGE.md"
-echo "Example object URL: https://${BUCKET}.s3.${REGION}.amazonaws.com/${PREFIX}/img-example.jpeg"
+echo "Attach an IAM policy to your user/role for read-write on images + palettes JSONL — see docs/S3-STORAGE.md"
+echo "Example image URL: https://${BUCKET}.s3.${REGION}.amazonaws.com/${PREFIX}/img-example.jpeg"
+echo "Public palettes NDJSON (consumers): https://${BUCKET}.s3.${REGION}.amazonaws.com/${PALETTES_KEY}"

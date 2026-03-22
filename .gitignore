@@ -3,6 +3,7 @@ venv/
 .git/
 client/coverage/
 client/coverage-reports/
+color-palette-utils-ts/coverage/
 
 # Python
 __pycache__/

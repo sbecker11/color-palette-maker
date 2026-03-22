@@ -35,6 +35,30 @@ describe('api', () => {
     expect(result).toEqual({ success: true, images: [] });
   });
 
+  it('getColorPalettesJsonl fetches NDJSON text', async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      text: () => Promise.resolve('{"a":1}\n'),
+    });
+
+    const result = await api.getColorPalettesJsonl();
+
+    expect(global.fetch).toHaveBeenCalledWith('/api/color-palettes.jsonl');
+    expect(result).toEqual({ success: true, body: '{"a":1}\n' });
+  });
+
+  it('getColorPalettesJsonl returns error when response.ok is false', async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: () => Promise.resolve({ message: 'read failed' }),
+    });
+
+    const result = await api.getColorPalettesJsonl();
+
+    expect(result).toEqual({ success: false, message: 'read failed' });
+  });
+
   it('getImages returns error when response.ok is false', async () => {
     global.fetch.mockResolvedValueOnce({
       ok: false,

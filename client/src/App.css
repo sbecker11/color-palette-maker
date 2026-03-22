@@ -99,6 +99,12 @@ header h1 {
 .header-about-link:hover {
   text-decoration: underline;
 }
+
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 main {
   display: flex;
   flex: 1;
@@ -108,8 +114,10 @@ main {
   margin-top: var(--gap);
 }
 
+/* Three columns: 30% / 30% / 40% of main content width (after padding + gaps) */
 #leftPanel {
-  width: 380px;
+  flex: 3 1 0;
+  min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -118,7 +126,8 @@ main {
 }
 
 #middlePanel {
-  width: 300px;
+  flex: 3 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: var(--gap);
@@ -142,6 +151,29 @@ main {
 #controls h2 {
   margin-top: 0;
   margin-bottom: 0;
+}
+
+/* Avoid nested box + padding: form sits inside #controls */
+#controls #uploadForm {
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border-radius: 0;
+}
+
+#controls .input-group.source-type-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 1.25rem;
+  margin-bottom: calc(var(--gap) * 0.5);
+}
+
+#controls .source-type-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 #storedImagesSection {
@@ -249,7 +281,7 @@ main {
 }
 
 #imageViewerContainer {
-  flex: 1;
+  flex: 4 1 0;
   min-width: 0;
   min-height: 0;
   display: flex;
@@ -434,15 +466,51 @@ input[type="file"] {
   }
   #leftPanel,
   #middlePanel,
-  #controls,
   #storedImagesSection,
   #imageViewerContainer {
+    flex: none;
     width: 100%;
     max-width: none;
     min-height: 300px;
   }
+  /* Source/upload only needs content height — avoid tall empty band */
+  #controls {
+    flex: none;
+    width: 100%;
+    max-width: none;
+    min-height: 0;
+  }
   #imageViewer {
     min-height: 300px;
+  }
+
+  /* Compact Source / upload block when columns stack */
+  #controls {
+    gap: calc(var(--gap) * 0.65);
+    padding: calc(var(--gap) * 0.65);
+    min-height: 0;
+  }
+  #controls h2 {
+    font-size: 1rem;
+    line-height: 1.2;
+  }
+  #controls .source-input-row {
+    margin-top: calc(var(--gap) * 0.5);
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  #controls .form-actions {
+    margin-top: calc(var(--gap) * 0.5);
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  #controls #messageArea {
+    flex-grow: 0;
+    flex-basis: 100%;
+    margin-left: 0;
+    margin-top: 0;
+    padding: calc(var(--gap) * 0.5);
+    text-align: left;
   }
 }
 
@@ -481,9 +549,22 @@ input[type="file"] {
   word-break: break-all;
 }
 
-#themeToggleButton {
-  padding: calc(var(--gap) * 0.5) var(--gap);
-  font-size: 0.9em;
+#themeToggleButton.theme-toggle-btn,
+button.theme-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border-radius: 50%;
+  line-height: 0;
+}
+
+.theme-toggle-icon {
+  width: 1.35rem;
+  height: 1.35rem;
+  flex-shrink: 0;
 }
 
 #palette-display,
@@ -604,26 +685,31 @@ input[type="file"] {
   opacity: 1;
 }
 
-#paletteNameRow {
+#paletteNameRow.palette-name-field {
   display: flex;
-  align-items: baseline;
-  gap: var(--gap);
+  flex-direction: column;
+  align-items: stretch;
+  gap: calc(var(--gap) * 0.65);
   margin-bottom: 0;
 }
-#paletteNameRow label {
-  margin: 0;
+.palette-name-label-block label {
+  display: block;
+  margin: 0 0 0.2em 0;
   font-weight: bold;
   color: var(--text-color);
-  flex-shrink: 0;
 }
-#paletteNameRow input {
-  flex-grow: 1;
-  min-width: 0;
-  padding: calc(var(--gap) * 0.6);
-  background-color: var(--bg-color);
+.palette-name-hint {
+  margin: 0;
+  font-size: 0.78em;
+  line-height: 1.4;
+  color: var(--placeholder-color);
+}
+.palette-name-hint code {
+  font-size: 0.95em;
+  padding: 0 0.25em;
+  border-radius: 2px;
+  background-color: var(--metadata-bg);
   color: var(--text-color);
-  border: 1px solid var(--input-border);
-  border-radius: 3px;
 }
 
 .palette-display-subtitle-row {
@@ -696,14 +782,49 @@ input[type="file"] {
   opacity: 0.6;
 }
 
+/* Bordered subsection in Color Palette column (matches #palette-display) */
+.palette-panel-subsection {
+  border: 1px solid var(--border-color);
+  padding: var(--gap);
+  background-color: var(--metadata-bg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  margin-bottom: calc(var(--gap) * 0.5);
+}
+
+.region-panel-heading {
+  margin: 0;
+  font-size: 0.95em;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.region-stats-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gap) calc(var(--gap) * 1.5);
+  font-size: 0.9em;
+  font-family: inherit;
+  color: var(--text-color);
+}
+
+.region-detection-panel #paletteMatchSwatchesRow.palette-toggle-row {
+  margin: 0;
+}
+
+.region-detection-panel #paletteActionsRow {
+  margin-top: 0;
+}
+
 #regionDetectionSection {
   margin: 0 0 calc(var(--gap) * 0.5) 0;
 }
-.region-count-message {
-  margin: 0.25em 0 0.5em 0;
-  font-size: 0.9rem;
-  color: var(--text-color, #333);
+.region-detection-panel #regionDetectionSection {
+  margin: 0;
 }
+
 #regionDetectionRow {
   display: flex;
   align-items: center;
@@ -764,8 +885,9 @@ input[type="file"] {
 }
 
 #paletteNameInput {
-  flex-grow: 1;
-  min-width: 100px;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
   padding: calc(var(--gap) * 0.6);
   background-color: var(--bg-color);
   color: var(--text-color);
@@ -827,14 +949,22 @@ body.sampling-active #imageViewer img {
   margin-top: var(--gap);
   margin-bottom: 0;
   flex-wrap: nowrap;
+  width: 100%;
+  box-sizing: border-box;
 }
-.source-input-row #urlInputGroup,
-.source-input-row #fileInputGroup {
+.source-input-row #urlInputGroup {
   display: flex;
   flex-direction: column;
   gap: calc(var(--gap) * 0.5);
   min-width: 0;
-  flex-shrink: 1;
+  flex: 1 1 0;
+}
+.source-input-row #fileInputGroup {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  min-width: 0;
+  flex: 1 1 0;
 }
 .source-input-row #urlInputGroup.hidden,
 .source-input-row #fileInputGroup.hidden {
@@ -845,12 +975,84 @@ body.sampling-active #imageViewer img {
   max-width: 100%;
   margin-top: 0;
 }
-.source-input-row #fileInputGroup input[type="file"] {
-  width: 12em;
-  margin-top: 0;
+
+/* File row: hidden native input + Choose label + filename fills space before Submit */
+.source-file-picker-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--gap);
+  min-width: 0;
+  flex: 1 1 0;
+  width: 100%;
+  position: relative;
+}
+
+.source-file-input-native {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+  opacity: 0;
+}
+
+.source-file-choose-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--gap) * 0.5) calc(var(--gap) * 0.8);
+  font-size: 0.85em;
+  line-height: 1.2;
+  cursor: pointer;
+  background-color: var(--button-bg);
+  color: var(--button-text);
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  user-select: none;
+}
+
+.source-file-choose-btn:hover {
+  opacity: 0.9;
+}
+
+.source-file-picker-row:focus-within .source-file-choose-btn {
+  outline: 2px solid var(--link-color, #4a90d9);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.source-file-name {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.85em;
+  color: var(--text-color);
+  line-height: 1.3;
+  cursor: pointer;
+  text-align: left;
+  padding: calc(var(--gap) * 0.35) 0;
+}
+
+.source-file-name-empty {
+  color: var(--placeholder-color);
+}
+
+.source-file-name:focus {
+  outline: 2px solid var(--link-color, #4a90d9);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 .source-input-row > button {
-  flex-shrink: 0;
+  flex: 0 0 auto;
+  margin-left: auto;
   font-size: 0.8em;
   padding: 2px 5px;
 }

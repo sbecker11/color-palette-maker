@@ -49,7 +49,7 @@ Light and dark mode support.
 
 ### Color Palettes List
 
-Browse, select, delete, reorder (move to top/bottom or step up/down), and duplicate stored palettes. **Newly uploaded palette images automatically appear at the top of the list**, sorted by upload time (newest first). You can reorder palettes manually using the reorder buttons, but new uploads will always appear at the top.
+Browse, select, delete, reorder (move to top/bottom or step up/down), and duplicate stored palettes. **The list order matches `color_palettes.jsonl`** (first line = top of the list). New uploads and duplicates are **appended** to the file, so they appear at the **bottom** until you reorder.
 
 ---
 
@@ -57,8 +57,8 @@ Browse, select, delete, reorder (move to top/bottom or step up/down), and duplic
 
 | Action | Description |
 |--------|-------------|
-| **Reorder (⏫ ⏬ ⬆️ ⬇️)** | Left column: ⏫ move to top, ⏬ move to bottom. Inner column: ⬆️ move up one, ⬇️ move down one. Order persisted to server. Note: New uploads always appear at the top regardless of manual reordering. |
-| **Palette Name** | Edit in the input and blur or press Enter to save. Persisted automatically. |
+| **Reorder (⏫ ⏬ ⬆️ ⬇️)** | Left column: ⏫ move to top, ⏬ move to bottom. Inner column: ⬆️ move up one, ⬇️ move down one. Order is written to `color_palettes.jsonl` in the same top-to-bottom order. |
+| **Palette name** | In the **Color Palette** column, edit **Palette name** (or choose **Edit palette name** from the action menu). This value is stored as `paletteName` in metadata and as `name` in exported JSON—the identifier consumer apps should use to select this palette. Blur the field or press **Enter** to save (max 100 characters). |
 | **Regenerate (K-means)** | Replace palette with freshly computed colors from the image. Choose K=5, 7, or 9. |
 | **Detect Regions** | Python/OpenCV detects large regions. Choose a **Detection method** (e.g. Default, Template match, SLIC), then click **Detect**. For **Template match**: click **Detect** → button shows **Click** → click at template top-left on the image, drag to bottom-right, release to run detection (button shows **Drag** while dragging). The template can be any rectangle, not just a square. Click **Detect** again to clear and draw a new template. When a palette already has regions and Region Detection shows a method (e.g. Template), clicking **Detect** continues with that method. **Note:** The **SLIC** method requires `opencv-contrib-python`. Run: `pip install opencv-contrib-python` (replaces opencv-python). |
 | **Remove Region (click)** | Enter delete mode; click region boundaries to remove. Click outside to exit. |
@@ -96,3 +96,11 @@ Data is persisted to `color_palettes.jsonl`. Each image record includes:
 - **Image info**: `createdDateTime`, `uploadedURL`, `uploadedFilePath`, `cachedFilePath`, `width`, `height`, `format`, `fileSizeBytes`
 - **Palette**: `colorPalette` (hex array), `paletteName`
 - **Regions**: `regions` (polygon arrays `[[x,y], ...]`), `paletteRegion` (region display data `{ hex, regionColor, x, y }` per region)
+
+### Consumer apps (reading the full list)
+
+Other applications can consume the same data as NDJSON:
+
+- **TypeScript / npm** — use **`color-palette-utils-ts`** from [`color-palette-utils-ts/README-ts.md`](../color-palette-utils-ts/README-ts.md) (`fetchColorPalettesFromS3`).
+- **S3 (same as images)** — when S3 is enabled, `create-s3-palette-bucket.sh` grants **anonymous read-only** `GetObject` on the JSONL object (default `metadata/color_palettes.jsonl`). Consumers use the HTTPS URL like any public object. **`GET /api/config`** includes **`palettesJsonlPublicUrl`** when configured. See [S3-STORAGE.md](S3-STORAGE.md#downstream-consumers-jsonl).
+- **`GET /api/color-palettes.jsonl`** on your deployed app — same NDJSON (handy for local-only or same-origin). See [API.md](API.md).

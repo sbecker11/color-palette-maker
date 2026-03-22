@@ -45,7 +45,8 @@ function ImageLibrary({
               : filename;
           const dimensions =
             meta.width && meta.height ? ` (${meta.width}x${meta.height}) ` : ' ';
-          const tooltip = `Filename: ${filename} | Format: ${meta.format || '?'}, Size: ${meta.fileSizeBytes ? Math.round(meta.fileSizeBytes / 1024) + ' KB' : '?'}, Added: ${meta.createdDateTime ? new Date(meta.createdDateTime).toLocaleString() : '?'}`;
+          const paletteNameForTip = meta.paletteName?.trim() || filenameWithoutExt;
+          const tooltip = `Palette name (for consuming apps): ${paletteNameForTip} | File: ${filename} | Format: ${meta.format || '?'}, Size: ${meta.fileSizeBytes ? Math.round(meta.fileSizeBytes / 1024) + ' KB' : '?'}, Added: ${meta.createdDateTime ? new Date(meta.createdDateTime).toLocaleString() : '?'} — Edit name in the Color Palette column.`;
           const isSelected = selectedMeta && getFilenameFromMeta(selectedMeta) === filename;
           const canMoveUp = index > 0;
           const canMoveDown = index < images.length - 1;

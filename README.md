@@ -18,7 +18,7 @@ detect image regions with OpenCV, and export palettes as JSON.
 
 ## Quick Start (Docker)
 
-**Prerequisites:** Docker and Docker Compose.
+**Prerequisites:** Docker and Docker Compose. For S3 image uploads and the palette catalog (used by `color-palette-utils-ts` and consumers), AWS S3 must be configured — see [S3 storage](docs/S3-STORAGE.md).
 
 ```bash
 mkdir -p docker-data && touch docker-data/color_palettes.jsonl
@@ -39,7 +39,7 @@ For production deployment (including VPS), see [VPS Hosting](docs/VPS-HOSTING.md
 | [Architecture](docs/ARCHITECTURE.md) | Region & palette pipeline, data flow, storage format |
 | [Development](docs/DEVELOPMENT.md) | Docker workflow, project structure, env vars |
 | [VPS Hosting](docs/VPS-HOSTING.md) | Deploy on a VPS (Ubuntu/Debian, Docker, firewall, reverse proxy) |
-| [S3 storage](docs/S3-STORAGE.md) | Optional S3 bucket for palette images (env, policy, CORS) |
+| [S3 storage](docs/S3-STORAGE.md) | S3 bucket for palette images and public read-only `color_palettes.jsonl` (same bucket; setup script + IAM; `palettesJsonlPublicUrl` in `/api/config`) |
 | [Future Work](docs/FUTURE-WORK.md) | Improvement backlog, SPA/SaaS migration outlines |
 | [Single-User SPA → Docker Compose](docs/archive/Single-User-SPA-DockerCompose-migration.md) | Multi-service orchestration outline |
 | [Multi-User SaaS → Kubernetes](docs/archive/Multi-User-SaaS-Kubernetes-migration.md) | Kubernetes migration outline |
@@ -52,10 +52,10 @@ With S3 enabled, list images in your bucket:
 aws s3 ls s3://YOUR_BUCKET/images/
 ```
 
-Use this URL format in the browser (replace `YOUR_BUCKET`, `REGION`, and `filename`):
+Use this URL format in the browser (`REGION` is **`us-west-1` only**; replace `YOUR_BUCKET` and `filename`):
 
 ```
-https://YOUR_BUCKET.s3.REGION.amazonaws.com/images/filename
+https://YOUR_BUCKET.s3.us-west-1.amazonaws.com/images/filename
 ```
 
 Example: `https://sbecker11-color-palette-images.s3.us-west-1.amazonaws.com/images/img-1744078413434-723799869.jpeg`

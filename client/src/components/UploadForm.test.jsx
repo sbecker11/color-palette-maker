@@ -62,6 +62,18 @@ describe('UploadForm', () => {
     expect(formData.get('imageUrl')).toBe('https://example.com/image.jpg');
   });
 
+  it('shows selected file name in source-file-name span', () => {
+    const onSubmit = vi.fn();
+    const file = new File(['x'], 'my-vacation-photo.jpeg', { type: 'image/jpeg' });
+    render(<UploadForm onSubmit={onSubmit} message={{ text: '', isError: false }} />);
+    fireEvent.click(screen.getByLabelText(/upload local file/i));
+    const fileInput = screen.getByLabelText(/select file/i);
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    const nameEl = document.querySelector('.source-file-name');
+    expect(nameEl).toHaveTextContent('my-vacation-photo.jpeg');
+    expect(nameEl).toHaveAttribute('title', 'my-vacation-photo.jpeg');
+  });
+
   it('calls onSubmit with FormData when file is selected', async () => {
     const onSubmit = vi.fn().mockResolvedValue({ success: true });
     const file = new File(['image'], 'test.png', { type: 'image/png' });

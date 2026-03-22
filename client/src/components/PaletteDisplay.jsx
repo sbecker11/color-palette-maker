@@ -186,7 +186,7 @@ function RegionDetectionForm({ selectedMeta, onDetectRegions, regionsDetecting, 
           )}
           {regionStrategy === 'color' && (
             <>
-              <label htmlFor="regionParamClusters">Clusters:</label>
+              <label htmlFor="regionParamClusters">K (color bins)</label>
               <input
                 id="regionParamClusters"
                 type="number"
@@ -195,6 +195,8 @@ function RegionDetectionForm({ selectedMeta, onDetectRegions, regionsDetecting, 
                 value={regionParams.colorClusters}
                 onChange={(e) => setRegionParams((prev) => ({ ...prev, colorClusters: parseInt(e.target.value, 10) || 12 }))}
                 disabled={regionsDetecting}
+                title="K-means cluster count for splitting the image into color regions (not the same as palette swatch count)"
+                aria-label="K-means color bins for region segmentation"
               />
             </>
           )}
@@ -426,9 +428,11 @@ function RegionDetectionForm({ selectedMeta, onDetectRegions, regionsDetecting, 
 }
 
 function RegionDetectionAndActions({
+  regionControlsSlot,
   selectedMeta,
   hasRegions,
   regionCount = 0,
+  swatchCount = 0,
   hasPalette,
   isGenerating,
   regionsDetecting,
@@ -440,34 +444,31 @@ function RegionDetectionAndActions({
   templateDrawPhase,
   onDelete,
   onDuplicate,
-  onExport,
   onRegenerateWithK,
   onToggleSamplingMode,
   onClearAllSwatches,
   onEnterDeleteRegionMode,
   onDeleteRegions,
 }) {
-  const hasStoredRegions = selectedMeta?.regions && Array.isArray(selectedMeta.regions) && selectedMeta.regions.length > 0;
-  const [showRegionDetection, setShowRegionDetection] = useState(
-    hasStoredRegions || getLastPaletteAction() === ACTION_DETECT_REGIONS
-  );
-
   return (
-    <>
-      {showRegionDetection && (
-        <RegionDetectionForm
-          selectedMeta={selectedMeta}
-          onDetectRegions={onDetectRegions}
-          onRegionStrategyChange={onRegionStrategyChange}
-          regionsDetecting={regionsDetecting}
-          templateDrawPhase={templateDrawPhase}
-        />
-      )}
-      {selectedMeta != null && !regionsDetecting && (
-        <p id="regionCountMessage" className="region-count-message" aria-live="polite">
-          # regions detected: {regionCount}
-        </p>
-      )}
+    <div className="palette-panel-subsection region-detection-panel">
+      <h3 className="region-panel-heading">Regions</h3>
+      {regionControlsSlot}
+      <div className="region-stats-row" aria-live="polite">
+        <span className="region-stat-item" title="Number of colors in the current palette (swatches)">
+          swatches: {swatchCount}
+        </span>
+        <span className="region-stat-item" title="Regions detected on the image (polygons)">
+          regions: {regionCount}
+        </span>
+      </div>
+      <RegionDetectionForm
+        selectedMeta={selectedMeta}
+        onDetectRegions={onDetectRegions}
+        onRegionStrategyChange={onRegionStrategyChange}
+        regionsDetecting={regionsDetecting}
+        templateDrawPhase={templateDrawPhase}
+      />
       <div id="paletteActionsRow">
         <select
           id="paletteActionsSelect"
@@ -482,7 +483,6 @@ function RegionDetectionAndActions({
             } else if (v === 'delete') {
               setTimeout(() => onDelete?.(), 0);
             } else if (v === 'duplicate') onDuplicate?.();
-            else if (v === 'export') onExport?.();
             else if (v === 'kmeans5') onRegenerateWithK?.(5);
             else if (v === 'kmeans7') onRegenerateWithK?.(7);
             else if (v === 'kmeans9') onRegenerateWithK?.(9);
@@ -490,7 +490,7 @@ function RegionDetectionAndActions({
             else if (v === 'clearSwatches') onClearAllSwatches?.();
             else if (v === 'detectRegions') {
               setLastPaletteAction(ACTION_DETECT_REGIONS);
-              setShowRegionDetection(true);
+              document.getElementById('regionStrategySelect')?.focus();
             }
             else if (v === 'enterDeleteRegionMode') onEnterDeleteRegionMode?.();
             else if (v === 'deleteRegions') onDeleteRegions?.();
@@ -498,10 +498,9 @@ function RegionDetectionAndActions({
           disabled={!selectedMeta || isGenerating || regionsDetecting}
         >
           <option value="" disabled>Choose action…</option>
-          <option value="rename">Rename Palette</option>
+          <option value="rename">Edit palette name</option>
           <option value="duplicate">(Dup)licate Palette</option>
           <option value="delete">(Del)ete Palette</option>
-          <option value="export">Export Palette</option>
           <option value="" disabled>-------</option>
           <option value="kmeans5">Find K-Means Swatches (5){hasRegions ? ' (by regions)' : ''}</option>
           <option value="kmeans7">Find K-Means Swatches (7){hasRegions ? ' (by regions)' : ''}</option>
@@ -514,7 +513,7 @@ function RegionDetectionAndActions({
           <option value="deleteRegions" disabled={!hasRegions}>Clear all Regions</option>
         </select>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -534,7 +533,6 @@ function PaletteDisplay({
   backgroundSwatchIndex,
   onBackgroundSwatchIndexChange,
   onSelectingBackgroundSwatchChange,
-  onExport,
   onRegenerateWithK,
   onDelete,
   onDuplicate,
@@ -575,8 +573,13 @@ function PaletteDisplay({
   return (
     <div id="middlePanel" ref={palettePanelRef}>
       <h2>Color Palette</h2>
-      <div id="paletteNameRow">
-        <label htmlFor="paletteNameInput">Name:</label>
+      <div id="paletteNameRow" className="palette-name-field">
+        <div className="palette-name-label-block">
+          <label htmlFor="paletteNameInput">Palette name</label>
+          <p id="paletteNameHint" className="palette-name-hint">
+            This is the <code>name</code> in exported JSON and the identifier consumer apps should use to select this palette. Edit here, then press Enter or click outside to save.
+          </p>
+        </div>
         <input
           ref={paletteNameInputRef}
           type="text"
@@ -587,6 +590,11 @@ function PaletteDisplay({
           onBlur={() => onPaletteNameBlur?.()}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onPaletteNameBlur?.(); } }}
           disabled={!selectedMeta}
+          maxLength={100}
+          autoComplete="off"
+          spellCheck="false"
+          aria-describedby="paletteNameHint"
+          placeholder={selectedMeta ? 'e.g. brand-spring-2025' : ''}
         />
       </div>
       <div id="palette-display">
@@ -832,53 +840,56 @@ function PaletteDisplay({
           </span>
         </div>
       </div>
-      <div id="paletteMatchSwatchesRow" className="palette-toggle-row">
-        <label>
-          <input
-            type="checkbox"
-            checked={showRegionBoundaries}
-            onChange={(e) => onShowRegionBoundariesChange?.(e.target.checked)}
-            disabled={!hasRegions}
-            aria-label="Show region boundaries"
-          />
-          Show region boundaries
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={showMatchPaletteSwatches}
-            onChange={(e) => onShowMatchPaletteSwatchesChange?.(e.target.checked)}
-            disabled={!hasRegions || !hasPalette}
-            aria-label="Match Region Swatches"
-          />
-          Match Region Swatches
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={isSamplingMode}
-            onChange={(e) => onAddingSwatchesModeChange?.(e.target.checked)}
-            disabled={!selectedMeta}
-            aria-label="Adding swatches (click)"
-          />
-          Adding swatches (click)
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={hasRegions && isDeleteRegionMode}
-            onChange={(e) => onDeleteRegionModeChange?.(e.target.checked)}
-            disabled={!hasRegions}
-            aria-label="Deleting regions (click)"
-          />
-          Deleting regions (click)
-        </label>
-      </div>
       <RegionDetectionAndActions
         key={getFilenameFromMeta(selectedMeta) ?? 'none'}
+        regionControlsSlot={(
+          <div id="paletteMatchSwatchesRow" className="palette-toggle-row">
+            <label>
+              <input
+                type="checkbox"
+                checked={showRegionBoundaries}
+                onChange={(e) => onShowRegionBoundariesChange?.(e.target.checked)}
+                disabled={!hasRegions}
+                aria-label="Show region boundaries"
+              />
+              Show region boundaries
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={showMatchPaletteSwatches}
+                onChange={(e) => onShowMatchPaletteSwatchesChange?.(e.target.checked)}
+                disabled={!hasRegions || !hasPalette}
+                aria-label="Match Region Swatches"
+              />
+              Match Region Swatches
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={isSamplingMode}
+                onChange={(e) => onAddingSwatchesModeChange?.(e.target.checked)}
+                disabled={!selectedMeta}
+                aria-label="Adding swatches (click)"
+              />
+              Adding swatches (click)
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={hasRegions && isDeleteRegionMode}
+                onChange={(e) => onDeleteRegionModeChange?.(e.target.checked)}
+                disabled={!hasRegions}
+                aria-label="Deleting regions (click)"
+              />
+              Deleting regions (click)
+            </label>
+          </div>
+        )}
         selectedMeta={selectedMeta}
         hasRegions={hasRegions}
         regionCount={regionCount}
+        swatchCount={palette?.length ?? 0}
         hasPalette={hasPalette}
         isGenerating={isGenerating}
         regionsDetecting={regionsDetecting}
@@ -890,7 +901,6 @@ function PaletteDisplay({
         templateDrawPhase={templateDrawPhase}
         onDelete={onDelete}
         onDuplicate={onDuplicate}
-        onExport={onExport}
         onRegenerateWithK={onRegenerateWithK}
         onToggleSamplingMode={onToggleSamplingMode}
         onClearAllSwatches={onClearAllSwatches}

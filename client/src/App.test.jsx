@@ -68,7 +68,7 @@ describe('App', () => {
   it('toggles theme when Header toggle is clicked', async () => {
     render(<App />);
     await waitFor(() => expect(api.getImages).toHaveBeenCalled());
-    const toggle = screen.getByRole('button', { name: /theme|dark|light/i });
+    const toggle = screen.getByRole('button', { name: /switch to dark mode/i });
     fireEvent.click(toggle);
     expect(document.body.dataset.theme).toBe('dark');
   });
@@ -116,19 +116,11 @@ describe('App', () => {
     );
   });
 
-  it('calls handleExport when Export selected from dropdown', async () => {
-    render(<App />);
-    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
-    const select = screen.getByRole('combobox', { name: 'Choose action' });
-    fireEvent.change(select, { target: { value: 'export' } });
-    expect(screen.getByText(/export initiated|please select/i)).toBeInTheDocument();
-  });
-
   it('updates palette name on blur', async () => {
     api.saveMetadata.mockResolvedValue({ success: true });
     render(<App />);
     await waitFor(() => expect(api.getImages).toHaveBeenCalled());
-    const input = screen.getByLabelText(/name/i);
+    const input = screen.getByLabelText(/^palette name$/i);
     fireEvent.change(input, { target: { value: 'New Name' } });
     fireEvent.blur(input);
     await waitFor(() => expect(api.saveMetadata).toHaveBeenCalled());
@@ -141,7 +133,7 @@ describe('App', () => {
     api.saveMetadata.mockResolvedValue({ success: true });
     render(<App />);
     await waitFor(() => expect(api.getImages).toHaveBeenCalled());
-    const input = screen.getByLabelText(/name/i);
+    const input = screen.getByLabelText(/^palette name$/i);
     fireEvent.change(input, { target: { value: 'New Name' } });
     fireEvent.keyDown(input, { key: 'Enter' });
     await waitFor(() => expect(api.saveMetadata).toHaveBeenCalled());
@@ -181,7 +173,7 @@ describe('App', () => {
     render(<App />);
     await waitFor(() => expect(api.getImages).toHaveBeenCalled());
     // Initially img-1 is selected (first image)
-    expect(screen.getByLabelText(/name/i)).toHaveValue('img-1');
+    expect(screen.getByLabelText(/^palette name$/i)).toHaveValue('img-1');
     // Click bottom button on second item (img-2) to move it to bottom
     const bottomBtns = screen.getAllByRole('button', { name: /move to bottom/i });
     const secondBottomBtn = bottomBtns[1]; // Second item's bottom button
@@ -189,7 +181,7 @@ describe('App', () => {
     await waitFor(() => expect(api.reorderImages).toHaveBeenCalled());
     // After reorder, img-2 should be selected (it moved to bottom, which is now index 2)
     await waitFor(() => {
-      expect(screen.getByLabelText(/name/i)).toHaveValue('img-2');
+      expect(screen.getByLabelText(/^palette name$/i)).toHaveValue('img-2');
     });
   });
 
@@ -267,18 +259,6 @@ describe('App', () => {
     await waitFor(() =>
       expect(screen.getByText(/error saving palette|save failed/i)).toBeInTheDocument()
     );
-  });
-
-  it('handles handleExport with palette', async () => {
-    const createObjectURL = vi.fn(() => 'blob:mock');
-    const revokeObjectURL = vi.fn();
-    global.URL.createObjectURL = createObjectURL;
-    global.URL.revokeObjectURL = revokeObjectURL;
-    render(<App />);
-    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
-    const select = screen.getByRole('combobox', { name: 'Choose action' });
-    fireEvent.change(select, { target: { value: 'export' } });
-    expect(createObjectURL).toHaveBeenCalled();
   });
 
   it('calls detectRegions when Detect All Regions selected then Detect button clicked', async () => {
@@ -413,23 +393,6 @@ describe('App', () => {
       expect(screen.getByText(/failed to delete image/i)).toBeInTheDocument()
     );
     confirmSpy.mockRestore();
-  });
-
-  it('shows Export message when selected image has no colors', async () => {
-    api.getImages.mockResolvedValue({
-      success: true,
-      images: [{
-        cachedFilePath: '/uploads/img-1.jpeg',
-        paletteName: 'img-1',
-        colorPalette: [],
-      }],
-    });
-    api.generatePalette.mockResolvedValue({ success: true, palette: [] });
-    render(<App />);
-    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
-    const select = screen.getByRole('combobox', { name: 'Choose action' });
-    fireEvent.change(select, { target: { value: 'export' } });
-    expect(screen.getByText(/no colors in the current palette/i)).toBeInTheDocument();
   });
 
   it('shows message when reorderImages fails', async () => {
@@ -568,7 +531,7 @@ describe('App', () => {
     api.saveMetadata.mockResolvedValue({ success: false, message: 'Name save failed' });
     render(<App />);
     await waitFor(() => expect(api.getImages).toHaveBeenCalled());
-    const input = screen.getByLabelText(/name/i);
+    const input = screen.getByLabelText(/^palette name$/i);
     fireEvent.change(input, { target: { value: 'New Name' } });
     fireEvent.blur(input);
     await waitFor(() =>
@@ -580,7 +543,7 @@ describe('App', () => {
     api.saveMetadata.mockRejectedValue(new Error('Network error'));
     render(<App />);
     await waitFor(() => expect(api.getImages).toHaveBeenCalled());
-    const input = screen.getByLabelText(/name/i);
+    const input = screen.getByLabelText(/^palette name$/i);
     fireEvent.change(input, { target: { value: 'New Name' } });
     fireEvent.blur(input);
     await waitFor(() =>
@@ -664,12 +627,4 @@ describe('App', () => {
     });
   });
 
-  it('shows Please select an image first when Export with no selection', async () => {
-    api.getImages.mockResolvedValue({ success: true, images: [] });
-    render(<App />);
-    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
-    const select = screen.getByRole('combobox', { name: 'Choose action' });
-    fireEvent.change(select, { target: { value: 'export' } });
-    expect(screen.getByText(/please select an image first/i)).toBeInTheDocument();
-  });
 });

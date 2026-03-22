@@ -21,25 +21,31 @@ describe('Header', () => {
     expect(em).toHaveTextContent('Palette');
   });
 
-  it('shows Dark Mode button when theme is light', () => {
+  it('shows moon icon (switch to dark) when theme is light', () => {
     render(<Header theme="light" onToggleTheme={() => {}} />);
-    expect(screen.getByRole('button')).toHaveTextContent('Dark Mode');
+    const btn = screen.getByRole('button', { name: /switch to dark mode/i });
+    expect(btn.querySelector('svg')).toBeInTheDocument();
+    expect(btn.querySelector('path[d*="12.79"]')).toBeInTheDocument();
   });
 
-  it('shows Light Mode button when theme is dark', () => {
+  it('shows sun icon (switch to light) when theme is dark', () => {
     render(<Header theme="dark" onToggleTheme={() => {}} />);
-    expect(screen.getByRole('button')).toHaveTextContent('Light Mode');
+    const btn = screen.getByRole('button', { name: /switch to light mode/i });
+    expect(btn.querySelector('circle')).toBeInTheDocument();
   });
 
   it('theme toggle button has id themeToggleButton', () => {
     render(<Header theme="light" onToggleTheme={() => {}} />);
-    expect(screen.getByRole('button')).toHaveAttribute('id', 'themeToggleButton');
+    expect(screen.getByRole('button', { name: /switch to dark mode/i })).toHaveAttribute(
+      'id',
+      'themeToggleButton'
+    );
   });
 
-  it('calls onToggleTheme when button is clicked', () => {
+  it('calls onToggleTheme when theme toggle is clicked', () => {
     const onToggleTheme = vi.fn();
     render(<Header theme="light" onToggleTheme={onToggleTheme} />);
-    fireEvent.click(screen.getByRole('button', { name: /dark mode/i }));
+    fireEvent.click(screen.getByRole('button', { name: /switch to dark mode/i }));
     expect(onToggleTheme).toHaveBeenCalledTimes(1);
   });
 

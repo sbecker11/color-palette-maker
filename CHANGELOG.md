@@ -7,7 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **`resume-flock-color-palettes-kit/`** — obsolete README-only redirect; palette catalog APIs live in **`color-palette-utils-ts/`** (npm package **`color-palette-utils-ts`**).
+
 ### Added
+- **`color-palette-utils-ts` — palette catalog**: Fetch public **NDJSON** from S3; `fetchColorPalettesFromS3`, type `ColorPaletteRecord`. Vitest tests in `color-palette-utils-ts/src/palettesCatalog.test.ts`; `npm run test:coverage` in that package. Former **`resume-flock-color-palettes-kit`** capability is merged here.
+- **GET /api/color-palettes.jsonl**: Serves the palette list as NDJSON for downstream consumers (same records as `color_palettes.jsonl`). Client `api.getColorPalettesJsonl()`. Documented in API, USER_GUIDE, S3-STORAGE (including optional public S3 read for that object).
+- **S3 palette JSONL**: When S3 is enabled, full JSONL is **written to S3 first**, then mirrored locally. Reads prefer S3. **`create-s3-palette-bucket.sh`** adds **public read-only `GetObject`** on the JSONL object (same consumer model as `images/*`). **`GET /api/config`** includes **`palettesJsonlPublicUrl`** when S3 is on. Override key with `S3_PALETTES_JSONL_KEY` — see [docs/S3-STORAGE.md](docs/S3-STORAGE.md).
 - **S3 storage**: Optional S3 bucket for palette images. Region from `AWS_REGION` or `~/.aws/config` default profile; credentials from env or `~/.aws/credentials`. See [docs/S3-STORAGE.md](docs/S3-STORAGE.md).
 - **S3 scripts**: `create-s3-palette-bucket.sh` (bucket + policy + CORS), `migrate-uploads-to-s3.js` (`npm run migrate:s3`), `open-s3-jpegs-in-chrome.sh`, `import-resume-flock-monotone-palettes.js` (`npm run import:resume-flock-monotone`).
 - **Import resume-flock monotone palettes**: White_Monotone, Medium_Grey_Monotone, Black_Monotone from resume-flock as swatch images (no source images). Generates 360×80 JPEG, appends metadata, uploads to S3.
@@ -19,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional unit tests for App, ImageViewer, and api modules to improve coverage
 
 ### Changed
+- **`palette-utils-ts/` → `color-palette-utils-ts/`** (folder matches npm name `color-palette-utils-ts`). Root: `npm test` uses `--prefix color-palette-utils-ts`; scripts `test:color-palette-utils-ts`, `test:coverage:color-palette-utils-ts`, `test:coverage:all`.
+- **Palette list order**: `GET /api/images` returns palettes in `color_palettes.jsonl` line order (no reverse). Reorder API persists that same order. New uploads/duplicates append to the file (appear at bottom until reordered).
 - Server port config: use `EXPRESS_PORT` instead of `PORT` in .env and scripts (clearer architecture)
 - Match Region Swatches: renamed from "Match Palette Swatches"
 - Match Region Swatches: re-pairing only occurs when feature is enabled

@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 function UploadForm({ onSubmit, message }) {
+  const fileInputRef = useRef(null);
   const [uploadType, setUploadType] = useState('url');
   const [imageUrl, setImageUrl] = useState('');
   const [imageFile, setImageFile] = useState(null);
@@ -44,26 +45,29 @@ function UploadForm({ onSubmit, message }) {
     <div id="controls">
       <h2>Source</h2>
       <form id="uploadForm" onSubmit={handleSubmit}>
-        <div className="input-group">
-          <input
-            type="radio"
-            id="uploadTypeUrl"
-            name="uploadType"
-            value="url"
-            checked={uploadType === 'url'}
-            onChange={() => setUploadType('url')}
-          />
-          <label htmlFor="uploadTypeUrl">Download from URL</label>
-          <br />
-          <input
-            type="radio"
-            id="uploadTypeFile"
-            name="uploadType"
-            value="file"
-            checked={uploadType === 'file'}
-            onChange={() => setUploadType('file')}
-          />
-          <label htmlFor="uploadTypeFile">Upload Local File</label>
+        <div className="input-group source-type-group">
+          <div className="source-type-option">
+            <input
+              type="radio"
+              id="uploadTypeUrl"
+              name="uploadType"
+              value="url"
+              checked={uploadType === 'url'}
+              onChange={() => setUploadType('url')}
+            />
+            <label htmlFor="uploadTypeUrl">Download from URL</label>
+          </div>
+          <div className="source-type-option">
+            <input
+              type="radio"
+              id="uploadTypeFile"
+              name="uploadType"
+              value="file"
+              checked={uploadType === 'file'}
+              onChange={() => setUploadType('file')}
+            />
+            <label htmlFor="uploadTypeFile">Upload Local File</label>
+          </div>
         </div>
 
         <div className="source-input-row">
@@ -86,14 +90,42 @@ function UploadForm({ onSubmit, message }) {
             id="fileInputGroup"
             className={uploadType === 'file' ? '' : 'hidden'}
           >
-            <input
-              type="file"
-              id="imageFile"
-              name="imageFile"
-              aria-label="Select File"
-              accept="image/*"
-              onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-            />
+            <div className="source-file-picker-row">
+              <input
+                ref={fileInputRef}
+                type="file"
+                id="imageFile"
+                name="imageFile"
+                className="source-file-input-native"
+                aria-label="Select File"
+                accept="image/*"
+                onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+              />
+              <label htmlFor="imageFile" className="source-file-choose-btn">
+                Choose File
+              </label>
+              <span
+                className={`source-file-name${imageFile ? '' : ' source-file-name-empty'}`}
+                title={imageFile?.name || 'No file chosen — click to choose a file'}
+                aria-live="polite"
+                role="button"
+                tabIndex={0}
+                aria-label={
+                  imageFile
+                    ? `Selected file: ${imageFile.name}. Click to change.`
+                    : 'No file chosen. Click to choose a file.'
+                }
+                onClick={() => fileInputRef.current?.click()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    fileInputRef.current?.click();
+                  }
+                }}
+              >
+                {imageFile?.name || 'No file chosen'}
+              </span>
+            </div>
           </div>
           <button type="submit" disabled={isSubmitting}>
             {isSubmitting ? 'Processing...' : 'Submit'}
