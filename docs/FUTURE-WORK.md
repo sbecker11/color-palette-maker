@@ -7,10 +7,10 @@ Prioritized improvement backlog from code review. Use this as a guide for future
 ## Outstanding Tasks (summary)
 
 - **Architecture:** Reduce PaletteDisplay props (18 → context or fewer objects); optional useReducer for palette/sampling state; add code comment for polygonCentroid duplication (server + client).
-- **Testing:** Express route tests (supertest); API integration tests; E2E tests (Playwright/Cypress); Vitest coverage thresholds; Docker build in CI.
+- **Testing:** Express route tests (supertest); API integration tests; E2E tests (Playwright/Cypress); Vitest coverage thresholds.
 - **Server / Code Quality:** Review and document metadata_handler concurrency/race condition.
-- **CI/CD:** Add `docker-compose.yml` for local dev.
-- **Migrations:** Single-User SPA → Docker Compose; Multi-User SaaS → Kubernetes (see sections below).
+- **CI/CD:** Keep CI focused on lint, tests, and build reliability.
+- **Migrations:** Multi-User SaaS → Kubernetes (see section below).
 
 ---
 
@@ -28,7 +28,7 @@ Prioritized improvement backlog from code review. Use this as a guide for future
 - **API integration tests**: Start real server with temp `uploads` dir; hit routes and assert persisted metadata.
 - **E2E tests** (Playwright/Cypress): Upload image → generate palette → export JSON.
 - **Coverage thresholds**: Add Vitest coverage thresholds (e.g. 80% statements); fail CI when coverage drops.
-- **Docker build in CI**: Add `docker build` step to `.github/workflows/ci.yml`.
+- **Build checks in CI**: keep lint, tests, and app build healthy.
 
 ---
 
@@ -40,21 +40,7 @@ Prioritized improvement backlog from code review. Use this as a guide for future
 
 ## CI/CD
 
-- Add `docker-compose.yml` for local dev with Python/OpenCV. (`.github/workflows/ci.yml`, `.env.example`, and `Dockerfile` are in place.)
-
----
-
-## Single-User SPA → Docker Compose
-
-Migrate the SPA to a multi-service Docker Compose deployment: React frontend (nginx), Express backend, and Python image-processor as separate containers on a shared network. Backend calls image-processor over HTTP instead of spawning a subprocess.
-
-**Highlights:**
-- Frontend: nginx serves built SPA; proxies `/api`, `/upload`, `/uploads` to backend.
-- Backend: Node-only; uses `IMAGE_PROCESSOR_URL` to call image-processor HTTP service.
-- Image-processor: Flask wrapper around `detect_regions.py`; reads from shared `uploads/` volume.
-- Shared volume for uploads; backward compatibility with subprocess when `IMAGE_PROCESSOR_URL` not set.
-
-See [archive/Single-User-SPA-DockerCompose-migration.md](archive/Single-User-SPA-DockerCompose-migration.md) for implementation steps and file changes.
+- Keep CI focused on lint, tests, and app build stability.
 
 ---
 

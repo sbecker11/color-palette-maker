@@ -4,7 +4,7 @@ import ImageLibrary from './ImageLibrary';
 
 describe('ImageLibrary', () => {
   const mockMeta = {
-    cachedFilePath: '/uploads/img-123.jpeg',
+    cachedFilePath: '/palette-images/img-123.jpeg',
     paletteName: 'Test',
     width: 100,
     height: 100,
@@ -48,7 +48,7 @@ describe('ImageLibrary', () => {
 
   it('uses filename when paletteName equals filenameWithoutExt', () => {
     const meta = {
-      cachedFilePath: '/uploads/img-123.jpeg',
+      cachedFilePath: '/palette-images/img-123.jpeg',
       paletteName: 'img-123',
     };
     render(
@@ -59,7 +59,7 @@ describe('ImageLibrary', () => {
 
   it('calls onReorder with index and "up" when up button clicked', () => {
     const onReorder = vi.fn();
-    const images = [mockMeta, { ...mockMeta, cachedFilePath: '/uploads/img-456.jpeg' }];
+    const images = [mockMeta, { ...mockMeta, cachedFilePath: '/palette-images/img-456.jpeg' }];
     render(
       <ImageLibrary
         images={images}
@@ -79,7 +79,7 @@ describe('ImageLibrary', () => {
 
   it('calls onReorder with index and "down" when down button clicked', () => {
     const onReorder = vi.fn();
-    const images = [mockMeta, { ...mockMeta, cachedFilePath: '/uploads/img-456.jpeg' }];
+    const images = [mockMeta, { ...mockMeta, cachedFilePath: '/palette-images/img-456.jpeg' }];
     render(
       <ImageLibrary
         images={images}
@@ -99,9 +99,9 @@ describe('ImageLibrary', () => {
   it('calls onReorder with index and "top" when move to top button clicked', () => {
     const onReorder = vi.fn();
     const images = [
-      { ...mockMeta, cachedFilePath: '/uploads/img-a.jpeg' },
-      { ...mockMeta, cachedFilePath: '/uploads/img-b.jpeg' },
-      { ...mockMeta, cachedFilePath: '/uploads/img-c.jpeg' },
+      { ...mockMeta, cachedFilePath: '/palette-images/img-a.jpeg' },
+      { ...mockMeta, cachedFilePath: '/palette-images/img-b.jpeg' },
+      { ...mockMeta, cachedFilePath: '/palette-images/img-c.jpeg' },
     ];
     render(
       <ImageLibrary
@@ -121,8 +121,8 @@ describe('ImageLibrary', () => {
   it('calls onReorder with index and "bottom" when move to bottom button clicked', () => {
     const onReorder = vi.fn();
     const images = [
-      { ...mockMeta, cachedFilePath: '/uploads/img-a.jpeg' },
-      { ...mockMeta, cachedFilePath: '/uploads/img-b.jpeg' },
+      { ...mockMeta, cachedFilePath: '/palette-images/img-a.jpeg' },
+      { ...mockMeta, cachedFilePath: '/palette-images/img-b.jpeg' },
     ];
     render(
       <ImageLibrary
@@ -150,7 +150,7 @@ describe('ImageLibrary', () => {
     );
     const link = screen.getByRole('link', { name: /Test/i });
     fireEvent.click(link, { preventDefault: () => {} });
-    expect(onSelectImage).toHaveBeenCalledWith(mockMeta, '/uploads/img-123.jpeg');
+    expect(onSelectImage).toHaveBeenCalledWith(mockMeta, '/palette-images/img-123.jpeg');
   });
 
   it('calls onDuplicateImage when Dup button clicked', () => {
@@ -207,7 +207,7 @@ describe('ImageLibrary', () => {
     );
     const link = screen.getByRole('link', { name: /My Custom Name/ });
     expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute('href', '/uploads/img-123.jpeg');
+    expect(link).toHaveAttribute('href', '/palette-images/img-123.jpeg');
   });
 
   it('uses filename when paletteName equals filenameWithoutExt', () => {
@@ -223,7 +223,7 @@ describe('ImageLibrary', () => {
   });
 
   it('renders with minimal meta (no width, height, format, fileSizeBytes, createdDateTime)', () => {
-    const minimalMeta = { cachedFilePath: '/uploads/minimal.jpeg' };
+    const minimalMeta = { cachedFilePath: '/palette-images/minimal.jpeg' };
     render(
       <ImageLibrary
         images={[minimalMeta]}
@@ -243,7 +243,7 @@ describe('ImageLibrary', () => {
         onSelectImage={vi.fn()}
       />
     );
-    const link = document.querySelector('a[href="/uploads/unknown"]');
+    const link = document.querySelector('a[href="/palette-images/unknown"]');
     expect(link).toBeInTheDocument();
   });
 
@@ -255,8 +255,8 @@ describe('ImageLibrary', () => {
   });
 
   it('does not apply selected-image when selectedMeta references different image', () => {
-    const metaA = { ...mockMeta, cachedFilePath: '/uploads/img-a.jpeg' };
-    const metaB = { ...mockMeta, cachedFilePath: '/uploads/img-b.jpeg' };
+    const metaA = { ...mockMeta, cachedFilePath: '/palette-images/img-a.jpeg' };
+    const metaB = { ...mockMeta, cachedFilePath: '/palette-images/img-b.jpeg' };
     render(
       <ImageLibrary
         images={[metaA, metaB]}
@@ -272,8 +272,8 @@ describe('ImageLibrary', () => {
 
   it('does not throw when onReorder is undefined and reorder buttons are clicked', () => {
     const images = [
-      { ...mockMeta, cachedFilePath: '/uploads/img-a.jpeg' },
-      { ...mockMeta, cachedFilePath: '/uploads/img-b.jpeg' },
+      { ...mockMeta, cachedFilePath: '/palette-images/img-a.jpeg' },
+      { ...mockMeta, cachedFilePath: '/palette-images/img-b.jpeg' },
     ];
     render(
       <ImageLibrary images={images} isLoading={false} onSelectImage={vi.fn()} />

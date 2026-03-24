@@ -1,8 +1,8 @@
 /**
  * Pure geometry helpers for ImageViewer (polygon shrink, SVG path).
- * polygonCentroid from shared/polygonCentroid.js.
+ * polygonCentroid from utils/polygonCentroid.js.
  */
-import { polygonCentroid } from '../../shared/polygonCentroid.js';
+import { polygonCentroid } from '../../utils/polygonCentroid.js';
 
 export { polygonCentroid };
 export function shrinkPolygon(poly, px) {

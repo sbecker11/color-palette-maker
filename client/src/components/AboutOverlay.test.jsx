@@ -1,116 +1,92 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import AboutOverlay from './AboutOverlay';
+import api from '../api';
+
+vi.mock('../api', () => ({
+  default: {
+    getReadme: vi.fn(),
+  },
+}));
 
 describe('AboutOverlay', () => {
   let onClose;
+  async function renderOverlay() {
+    render(<AboutOverlay onClose={onClose} />);
+    await waitFor(() => expect(api.getReadme).toHaveBeenCalledTimes(1));
+  }
 
   beforeEach(() => {
     onClose = vi.fn();
+    api.getReadme.mockResolvedValue({
+      success: true,
+      readme: '# Test README\n\nThis is preview content.',
+    });
   });
 
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  it('renders the overlay with button role and aria-label', () => {
-    render(<AboutOverlay onClose={onClose} />);
-    const overlay = screen.getByRole('button', {
-      name: /click to close and show app/i,
-    });
-    expect(overlay).toBeInTheDocument();
-    expect(overlay).toHaveAttribute('aria-label', 'Click to close and show app');
+  it('renders modal dialog', async () => {
+    await renderOverlay();
+    expect(screen.getByRole('dialog', { name: /about color palette maker/i })).toBeInTheDocument();
   });
 
-  it('renders the about iframe', () => {
-    render(<AboutOverlay onClose={onClose} />);
-    const iframe = screen.getByTitle('Color Palette Maker — About');
-    expect(iframe).toBeInTheDocument();
-    // Uses about:blank in test to avoid happy-dom iframe fetch/abort noise
-    expect(iframe).toHaveAttribute('src', 'about:blank'); // /about.html in production
+  it('renders parsed README content', async () => {
+    await renderOverlay();
+    await waitFor(() => expect(screen.getByText('Test README')).toBeInTheDocument());
+    expect(screen.getByText(/This is preview content./i)).toBeInTheDocument();
   });
 
-  it('applies overlay layout and background styles', () => {
-    render(<AboutOverlay onClose={onClose} />);
-    const overlay = screen.getByRole('button');
-    expect(overlay.style.position).toBe('fixed');
-    expect(overlay.style.background).toBe('#0A0A0A');
-  });
-
-  it('calls onClose when overlay is clicked', () => {
-    render(<AboutOverlay onClose={onClose} />);
-    fireEvent.click(screen.getByRole('button'));
+  it('calls onClose when overlay is clicked', async () => {
+    await renderOverlay();
+    fireEvent.click(screen.getByRole('presentation'));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('calls onClose when Enter key is pressed', () => {
-    render(<AboutOverlay onClose={onClose} />);
-    const overlay = screen.getByRole('button');
-    fireEvent.keyDown(overlay, { key: 'Enter' });
-    expect(onClose).toHaveBeenCalledTimes(1);
-  });
-
-  it('calls onClose when Space key is pressed', () => {
-    render(<AboutOverlay onClose={onClose} />);
-    const overlay = screen.getByRole('button');
-    fireEvent.keyDown(overlay, { key: ' ' });
-    expect(onClose).toHaveBeenCalledTimes(1);
-  });
-
-  it('does not call onClose for other keys', () => {
-    render(<AboutOverlay onClose={onClose} />);
-    const overlay = screen.getByRole('button');
-    fireEvent.keyDown(overlay, { key: 'Tab' });
+  it('calls onClose when Escape key is pressed on overlay', async () => {
+    await renderOverlay();
+    const overlay = screen.getByRole('presentation');
     fireEvent.keyDown(overlay, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not call onClose for other keys', async () => {
+    await renderOverlay();
+    const overlay = screen.getByRole('presentation');
+    fireEvent.keyDown(overlay, { key: 'Tab' });
     fireEvent.keyDown(overlay, { key: 'a' });
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it('prevents default when Enter is pressed', () => {
-    render(<AboutOverlay onClose={onClose} />);
-    const overlay = screen.getByRole('button');
-    const event = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true });
-    const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
-    fireEvent(overlay, event);
-    expect(preventDefaultSpy).toHaveBeenCalled();
+  it('closes when close button is clicked', async () => {
+    await renderOverlay();
+    fireEvent.click(screen.getByRole('button', { name: /close about dialog/i }));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('prevents default when Space is pressed', () => {
-    render(<AboutOverlay onClose={onClose} />);
-    const overlay = screen.getByRole('button');
-    const event = new KeyboardEvent('keydown', { key: ' ', bubbles: true });
-    const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
-    fireEvent(overlay, event);
-    expect(preventDefaultSpy).toHaveBeenCalled();
+  it('shows fallback message when README load fails', async () => {
+    api.getReadme.mockResolvedValueOnce({ success: false, message: 'nope' });
+    await renderOverlay();
+    await waitFor(() =>
+      expect(screen.getByText(/Unable to load README preview right now/i)).toBeInTheDocument()
+    );
   });
 
-  it('calls onClose when postMessage receives about-close', async () => {
+  it('shows fallback message when README request rejects', async () => {
+    api.getReadme.mockRejectedValueOnce(new Error('network'));
     render(<AboutOverlay onClose={onClose} />);
-    window.postMessage({ type: 'about-close' }, '*');
-    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(screen.getByText(/Unable to load README preview right now/i)).toBeInTheDocument()
+    );
   });
 
-  it('does not call onClose for other message types', () => {
-    render(<AboutOverlay onClose={onClose} />);
-    window.postMessage({ type: 'other' }, '*');
-    window.postMessage({}, '*');
-    window.postMessage(null, '*');
-    expect(onClose).not.toHaveBeenCalled();
-  });
-
-  it('removes message listener on unmount', () => {
-    const addSpy = vi.spyOn(window, 'addEventListener');
-    const removeSpy = vi.spyOn(window, 'removeEventListener');
+  it('stops click propagation from dialog content', async () => {
     const { unmount } = render(<AboutOverlay onClose={onClose} />);
-    expect(addSpy).toHaveBeenCalledWith('message', expect.any(Function));
+    await waitFor(() => expect(api.getReadme).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('dialog', { name: /about color palette maker/i }));
+    expect(onClose).not.toHaveBeenCalled();
     unmount();
-    expect(removeSpy).toHaveBeenCalledWith('message', expect.any(Function));
-    addSpy.mockRestore();
-    removeSpy.mockRestore();
-  });
-
-  it('has tabIndex 0 for keyboard accessibility', () => {
-    render(<AboutOverlay onClose={onClose} />);
-    expect(screen.getByRole('button')).toHaveAttribute('tabindex', '0');
   });
 });

@@ -14,7 +14,7 @@ const ref = args.find((a) => !a.startsWith('--')) || 'HEAD';
 const rootDir = path.join(__dirname, '..');
 
 const clientPaths = ['client/'];
-const serverPaths = ['server.js', 'metadata_handler.js', 'image_processor.js', 'scripts/detect_regions.py', 'scripts/run-with-venv.js'];
+const serverPaths = ['server.js', 'metadata_handler.js', 'image_processor.js', 'utils/detect_regions.py', 'scripts/run-with-venv.js'];
 const configPaths = ['package.json', 'client/package.json', 'client/vite.config.js', '.env'];
 
 function getChangedFiles() {

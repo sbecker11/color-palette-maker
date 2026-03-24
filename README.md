@@ -1,7 +1,7 @@
-# Color Palette Maker (React)
+# Color Palette Maker
 
-<a href="https://sbecker11.github.io/color-palette-maker-react/images/gold-blue-2.gif" alt="Gold-Blue" width="400">
-  <img src="https://sbecker11.github.io/color-palette-maker-react/images/gold-2.gif" alt="Gold palette demo" width="400" />
+<a href="static_content/images/gold-blue-2.gif">
+  <img src="static_content/images/gold-2.gif" alt="Gold palette demo" width="400" />
 </a>
 
 A React + Node.js app for extracting and managing color palettes from images.
@@ -16,18 +16,36 @@ detect image regions with OpenCV, and export palettes as JSON.
 - **Region Detection**: Python 3, OpenCV, NumPy
 - **Testing**: Vitest, React Testing Library, happy-dom
 
-## Quick Start (Docker)
+## Quick Start (Local)
 
-**Prerequisites:** Docker and Docker Compose. For S3 image uploads and the palette catalog (used by `color-palette-utils-ts` and consumers), AWS S3 must be configured — see [S3 storage](docs/S3-STORAGE.md).
+**Prerequisites:** Node.js 20+, Python 3, pip.
 
 ```bash
-mkdir -p docker-data && touch docker-data/color_palettes.jsonl
-docker compose up --build
+npm install
+cd client && npm install && cd ..
+pip install -r requirements.txt
+
+mkdir -p local-data-cache
+npm run dev
 ```
 
-Open http://localhost:3000. Uploads and metadata persist in `./docker-data/`.
+Open the Vite URL shown in the terminal (usually `http://localhost:5173`).
 
-For production deployment (including VPS), see [VPS Hosting](docs/VPS-HOSTING.md).
+Local state is stored in `./local-data-cache/`:
+- image files
+- `color_palettes.jsonl` metadata
+
+When S3 is configured, **S3 is the source of truth** for images and the palette catalog; `./local-data-cache/` is a **local cache** (performance and processing) kept in sync on writes.
+
+Images are served at `/palette-images/<filename>` in the browser.
+
+Need S3? See [S3 storage](docs/S3-STORAGE.md).
+
+### Port behavior
+
+- **Express** starts at `EXPRESS_PORT` and auto-picks the next free port when needed.
+- **Vite** starts at `VITE_DEV_PORT` and auto-picks if that port is busy.
+- Dev helper scripts detect these auto-picked ports so proxying and browser open still work.
 
 ## Documentation
 
@@ -37,28 +55,29 @@ For production deployment (including VPS), see [VPS Hosting](docs/VPS-HOSTING.md
 | [User Guide](docs/USER_GUIDE.md) | Features, key actions, color sampling, region workflow |
 | [API Reference](docs/API.md) | REST endpoints, request/response formats |
 | [Architecture](docs/ARCHITECTURE.md) | Region & palette pipeline, data flow, storage format |
-| [Development](docs/DEVELOPMENT.md) | Docker workflow, project structure, env vars |
-| [VPS Hosting](docs/VPS-HOSTING.md) | Deploy on a VPS (Ubuntu/Debian, Docker, firewall, reverse proxy) |
+| [Development](docs/DEVELOPMENT.md) | Local workflow, project structure, env vars |
 | [S3 storage](docs/S3-STORAGE.md) | S3 bucket for palette images and public read-only `color_palettes.jsonl` (same bucket; setup script + IAM; `palettesJsonlPublicUrl` in `/api/config`) |
 | [Future Work](docs/FUTURE-WORK.md) | Improvement backlog, SPA/SaaS migration outlines |
-| [Single-User SPA → Docker Compose](docs/archive/Single-User-SPA-DockerCompose-migration.md) | Multi-service orchestration outline |
 | [Multi-User SaaS → Kubernetes](docs/archive/Multi-User-SaaS-Kubernetes-migration.md) | Kubernetes migration outline |
 
-### S3: List objects and open in browser
+Workspace editor defaults for Cursor/VS Code (React/TypeScript formatting + lint behavior) are documented in [Development](docs/DEVELOPMENT.md#workspace-editor-defaults).
 
-With S3 enabled, list images in your bucket:
+### S3 quick check
+
+List uploaded images:
 
 ```bash
-aws s3 ls s3://YOUR_BUCKET/images/
+aws s3 ls s3://sbecker11-color-palette-images/images/
 ```
 
-Use this URL format in the browser (`REGION` is **`us-west-1` only**; replace `YOUR_BUCKET` and `filename`):
+Open an image in the browser:
 
-```
-https://YOUR_BUCKET.s3.us-west-1.amazonaws.com/images/filename
+```text
+https://sbecker11-color-palette-images.s3.us-west-1.amazonaws.com/images/FILENAME
 ```
 
-Example: `https://sbecker11-color-palette-images.s3.us-west-1.amazonaws.com/images/img-1744078413434-723799869.jpeg`
+Example:
+`https://sbecker11-color-palette-images.s3.us-west-1.amazonaws.com/images/img-1744078413434-723799869.jpeg`
 
 ## License
 

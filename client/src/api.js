@@ -11,6 +11,11 @@ async function handleResponse(response) {
 }
 
 const api = {
+  async getReadme() {
+    const response = await fetch('/api/readme');
+    return handleResponse(response);
+  },
+
   async getConfig() {
     const response = await fetch('/api/config');
     return handleResponse(response);

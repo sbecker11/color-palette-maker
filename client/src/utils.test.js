@@ -4,8 +4,6 @@ import {
   getFilenameWithoutExt,
   getImageUrlForMeta,
   formatFileSize,
-  rgbToHex,
-  formatHexDisplay,
 } from './utils';
 
 describe('utils', () => {
@@ -34,16 +32,16 @@ describe('utils', () => {
       const url = 'https://cdn.example.com/images/x.jpeg';
       expect(
         getImageUrlForMeta({
-          cachedFilePath: '/uploads/x.jpeg',
+          cachedFilePath: '/palette-images/x.jpeg',
           imagePublicUrl: url,
         })
       ).toBe(`/api/image-proxy?url=${encodeURIComponent(url)}`);
     });
-    it('returns /uploads/ URL when no imagePublicUrl', () => {
-      expect(getImageUrlForMeta({ cachedFilePath: '/uploads/img-1.jpeg' })).toBe('/uploads/img-1.jpeg');
+    it('returns /palette-images/ URL when no imagePublicUrl', () => {
+      expect(getImageUrlForMeta({ cachedFilePath: '/palette-images/img-1.jpeg' })).toBe('/palette-images/img-1.jpeg');
     });
     it('uses unknown filename when cachedFilePath missing (library edge case)', () => {
-      expect(getImageUrlForMeta({ paletteName: 'x' })).toBe('/uploads/unknown');
+      expect(getImageUrlForMeta({ paletteName: 'x' })).toBe('/palette-images/unknown');
     });
   });
 
@@ -92,44 +90,4 @@ describe('utils', () => {
     });
   });
 
-  describe('rgbToHex', () => {
-    it('converts RGB to hex', () => {
-      expect(rgbToHex(255, 0, 0)).toBe('#ff0000');
-      expect(rgbToHex(0, 255, 0)).toBe('#00ff00');
-      expect(rgbToHex(0, 0, 255)).toBe('#0000ff');
-      expect(rgbToHex(0, 0, 0)).toBe('#000000');
-      expect(rgbToHex(255, 255, 255)).toBe('#ffffff');
-    });
-
-    it('pads single hex digits', () => {
-      expect(rgbToHex(0, 15, 0)).toBe('#000f00');
-    });
-  });
-
-  describe('formatHexDisplay', () => {
-    it('returns 7-char lowercase hex for #rrggbb', () => {
-      expect(formatHexDisplay('#ff0000')).toBe('#ff0000');
-      expect(formatHexDisplay('#FF0000')).toBe('#ff0000');
-      expect(formatHexDisplay('#aAbBcC')).toBe('#aabbcc');
-    });
-
-    it('expands #rgb to #rrggbb', () => {
-      expect(formatHexDisplay('#f00')).toBe('#ff0000');
-      expect(formatHexDisplay('#abc')).toBe('#aabbcc');
-    });
-
-    it('returns empty string for invalid input', () => {
-      expect(formatHexDisplay('')).toBe('');
-      expect(formatHexDisplay(null)).toBe('');
-    });
-
-    it('adds # prefix when hex has no leading #', () => {
-      expect(formatHexDisplay('ff0000')).toBe('#ff0000');
-    });
-
-    it('returns as-is for partial hex that does not match #rrggbb or #rgb', () => {
-      expect(formatHexDisplay('#a')).toBe('#a');
-      expect(formatHexDisplay('#12')).toBe('#12');
-    });
-  });
 });

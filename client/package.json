@@ -9,10 +9,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage && node scripts/save-coverage-report.js",
+    "test:coverage:tables": "vitest run --coverage --silent --reporter=json --outputFile=node_modules/.vitest-report.json && node scripts/save-coverage-report.js",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "marked": "^17.0.5",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

@@ -32,7 +32,6 @@ describe('s3-storage', () => {
 
     afterEach(() => {
         delete process.env.S3_IMAGES_BUCKET;
-        delete process.env.AWS_S3_BUCKET;
         delete process.env.AWS_REGION;
         delete process.env.S3_IMAGES_PREFIX;
         delete process.env.S3_PUBLIC_URL_BASE;
@@ -70,14 +69,6 @@ describe('s3-storage', () => {
             expect(await mod.isS3Enabled()).toBe(false);
         });
 
-        it('uses AWS_S3_BUCKET as fallback for bucket', async () => {
-            delete process.env.S3_IMAGES_BUCKET;
-            process.env.AWS_S3_BUCKET = 'fallback-bucket';
-            process.env.AWS_REGION = 'us-west-2';
-            vi.resetModules();
-            const mod = await loadS3Storage();
-            expect(await mod.isS3Enabled()).toBe(true);
-        });
     });
 
     describe('publicUrlForKey', () => {
@@ -148,6 +139,26 @@ describe('s3-storage', () => {
 
         it('returns null when sourceS3Key empty', async () => {
             const result = await s3Storage.copyObjectToNewFilename('', 'b.jpg');
+            expect(result).toBeNull();
+        });
+    });
+
+    describe('getObjectBufferByKey', () => {
+        it('returns null when S3 disabled', async () => {
+            delete process.env.S3_IMAGES_BUCKET;
+            vi.resetModules();
+            const mod = await loadS3Storage();
+            const result = await mod.getObjectBufferByKey('images/x.jpg');
+            expect(result).toBeNull();
+        });
+
+        it('returns null when key is missing', async () => {
+            const result = await s3Storage.getObjectBufferByKey('');
+            expect(result).toBeNull();
+        });
+
+        it('returns null when key is invalid type', async () => {
+            const result = await s3Storage.getObjectBufferByKey(123);
             expect(result).toBeNull();
         });
     });

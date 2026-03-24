@@ -5,7 +5,6 @@ const { spawn } = require('child_process');
 const axios = require('axios');
 const fs = require('fs');
 const fsp = require('fs').promises;
-const net = require('net');
 const multer = require('multer');
 const sharp = require('sharp');
 
@@ -13,8 +12,9 @@ const sharp = require('sharp');
 const metadataHandler = require('./metadata_handler');
 const imageProcessor = require('./image_processor');
 const s3Storage = require('./s3-storage');
-const { computeSwatchLabels } = require('./shared/swatchLabels.cjs');
-const { VALID_STRATEGIES } = require('./shared/regionStrategies.cjs');
+const { validateFilename, ensureImageCachedLocally } = require('./image_cache');
+const { computeSwatchLabels } = require('./utils/swatchLabels.cjs');
+const { VALID_STRATEGIES } = require('./utils/regionStrategies.cjs');
 
 const app = express();
 const port = parseInt(process.env.EXPRESS_PORT, 10) || 3000;
@@ -37,7 +37,7 @@ async function getMetadataForFilename(filename) {
 }
 
 // --- Configuration ---
-const uploadsDir = path.join(__dirname, 'uploads');
+const uploadsDir = path.join(__dirname, 'local-data-cache');
 
 // Resolve Python for region detection (required): DETECT_REGIONS_PYTHON > VIRTUAL_ENV > ./venv > python3
 function getRegionDetectionPython() {
@@ -51,20 +51,14 @@ function getRegionDetectionPython() {
     return 'python3';
 }
 
-/** Returns true if filename is safe (no path traversal or path separators). */
-function validateFilename(filename) {
-    return typeof filename === 'string' && filename.length > 0
-        && !filename.includes('..') && !filename.includes('/') && !filename.includes('\\');
-}
-
-// Ensure uploads directory exists (using async fs)
+// Ensure local-data-cache directory exists (images + color_palettes.jsonl live here)
 async function ensureUploadsDir() {
     try {
         await fsp.mkdir(uploadsDir, { recursive: true });
-        console.log(`Uploads directory ensured at: ${uploadsDir}`);
+        console.log(`Data directory ensured at: ${uploadsDir}`);
     } catch (error) {
-        console.error("Error ensuring uploads directory exists:", error);
-        process.exit(1); // Exit if we can't create the uploads dir
+        console.error("Error ensuring data directory exists:", error);
+        process.exit(1);
     }
 }
 
@@ -76,8 +70,28 @@ const upload = multer({
 });
 
 // --- Middleware ---
-// Serve static files from the 'uploads' directory
-app.use('/uploads', express.static(uploadsDir));
+// Serve palette images with read-through S3 cache into local-data-cache/.
+app.get('/palette-images/:filename', async (req, res) => {
+    const { filename } = req.params;
+    if (!validateFilename(filename)) {
+        return res.status(400).json({ success: false, message: 'Invalid filename.' });
+    }
+    try {
+        const ok = await ensureImageCachedLocally(filename, uploadsDir, s3Storage);
+        if (!ok) {
+            return res.status(404).json({ success: false, message: 'Image not found.' });
+        }
+        return res.sendFile(path.join(uploadsDir, filename));
+    } catch (err) {
+        console.error('[GET /palette-images/:filename] Error:', err);
+        return res.status(500).json({ success: false, message: 'Failed to read image.' });
+    }
+});
+// Static fallback for already-cached files and direct path requests.
+app.use('/palette-images', express.static(uploadsDir));
+// Serve static content (icons, CSS, images)
+const staticContentDir = path.join(__dirname, 'static_content');
+app.use('/static_content', express.static(staticContentDir));
 // Serve static files from the React build (client/dist)
 const frontendDir = path.join(__dirname, 'client', 'dist');
 app.use(express.static(frontendDir));
@@ -93,6 +107,18 @@ app.get('/api/config', async (req, res) => {
         res.json(payload);
     } catch (e) {
         res.json({ about: showAboutPage });
+    }
+});
+
+// GET /api/readme - renderable markdown source for About modal
+app.get('/api/readme', async (req, res) => {
+    try {
+        const readmePath = path.join(__dirname, 'README.md');
+        const readme = await fsp.readFile(readmePath, 'utf8');
+        res.json({ success: true, readme });
+    } catch (error) {
+        console.error('[API GET /readme] Error:', error);
+        res.status(500).json({ success: false, message: 'Failed to load README.' });
     }
 });
 
@@ -220,6 +246,9 @@ app.post('/upload', upload.single('imageFile'), async (req, res) => {
         console.log(`[Upload] Saved processed image to: ${outputFilePath}`);
 
         const s3Put = await s3Storage.putImageFromBuffer(outputFilename, imageBuffer, outputFormat);
+        if (!s3Put) {
+            throw new Error('S3 upload failed. Image was not persisted.');
+        }
 
         // 3. Create Metadata Record
         const defaultPaletteName = path.parse(outputFilename).name; // Filename without extension
@@ -234,7 +263,8 @@ app.post('/upload', upload.single('imageFile'), async (req, res) => {
             fileSizeBytes: outputInfo.size,
             colorPalette: [], // Initialize empty
             paletteName: defaultPaletteName, // Add default palette name
-            ...(s3Put ? { s3Key: s3Put.s3Key, imagePublicUrl: s3Put.imagePublicUrl } : {})
+            s3Key: s3Put.s3Key,
+            imagePublicUrl: s3Put.imagePublicUrl
         };
 
         // 4. Append Metadata
@@ -266,10 +296,10 @@ app.post('/api/regions/:filename', express.json(), async (req, res) => {
         return res.status(400).json({ success: false, message: 'Invalid filename.' });
     }
     const imagePath = path.join(uploadsDir, filename);
-    if (!fs.existsSync(imagePath)) {
+    if (!(await ensureImageCachedLocally(filename, uploadsDir, s3Storage))) {
         return res.status(404).json({ success: false, message: 'Image not found.' });
     }
-    const scriptPath = path.join(__dirname, 'scripts', 'detect_regions.py');
+    const scriptPath = path.join(__dirname, 'utils', 'detect_regions.py');
     if (!fs.existsSync(scriptPath)) {
         return res.status(500).json({ success: false, message: 'Region detection script not found.' });
     }
@@ -719,6 +749,9 @@ app.post('/api/images/:filename/duplicate', async (req, res) => {
     const sourcePath = path.join(uploadsDir, filename);
 
     try {
+        if (!(await ensureImageCachedLocally(filename, uploadsDir, s3Storage))) {
+            return res.status(404).json({ success: false, message: 'Source image not found.' });
+        }
         // 1. Copy the image file
         const ext = path.extname(filename);
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -844,61 +877,66 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(frontendDir, 'index.html'));
 });
 
-// --- Server Start Logic with Port Check ---
-const startApp = () => {
-    ensureUploadsDir().then(() => {
-        const expressServer = app.listen(port, async () => {
-            console.log(`Server is running on port ${port}. Access it at http://localhost:${port}`);
-            if (await s3Storage.isS3Enabled()) {
-                console.log(`[S3] Image uploads also go to bucket: ${process.env.S3_IMAGES_BUCKET || process.env.AWS_S3_BUCKET}`);
-            }
-            console.log('\nChrome (copy/paste):');
-            console.log(`  App mode:   chrome --app=http://localhost:${port}`);
-            console.log(`  App mode:   open -a "Google Chrome" --args --app=http://localhost:${port}   # macOS`);
-            console.log(`  Normal:     chrome http://localhost:${port}`);
-            console.log(`  Normal:     open -a "Google Chrome" http://localhost:${port}   # macOS\n`);
-        });
-
-        expressServer.on('error', (err) => {
-             if (err.code === 'EADDRINUSE') {
-                console.error(`\n*** ERROR: Port ${port} is already in use. ***\n`);
-                console.error('Please stop the other process or use a different port.');
-                process.exit(1);
-            } else {
-                console.error('An unexpected error occurred with the Express server:', err);
-                process.exit(1);
-            }
-        });
-
-    }).catch(err => {
+// --- Server Start Logic with Port Auto-Pick ---
+async function startApp() {
+    try {
+        await ensureUploadsDir();
+    } catch (err) {
         console.error("Failed to initialize application directory:", err);
         process.exit(1);
-    });
-};
+    }
 
-// Initial Port Check
-const portCheckServer = net.createServer();
-portCheckServer.once('error', (err) => {
-    if (err.code === 'EADDRINUSE') {
-        console.error(`\n*** ERROR: Port ${port} is already in use. ***\n`);
-        console.error('Another process is likely listening on this port.');
-        console.error('To find and stop the process, you can try running:');
-        if (process.platform === 'win32') {
-             console.error(`  tasklist | findstr "LISTENING" | findstr ":${port}"  (then use taskkill /PID <pid> /F)`);
-        } else {
-             console.error(`  sudo lsof -i :${port} -t | xargs kill -9`);
-             console.error('(Or use: sudo lsof -i :${port} and kill -9 <PID>)');
-        }
-        process.exit(1);
-    } else {
-        console.error(`An unexpected error occurred while checking port ${port}:`, err);
+    // S3-only mode: refuse to start unless S3 is fully reachable.
+    const s3Enabled = await s3Storage.isS3Enabled();
+    if (!s3Enabled) {
+        console.error('[Startup] S3 is required but not enabled. Set S3_IMAGES_BUCKET and AWS_REGION (or AWS profile region).');
         process.exit(1);
     }
-});
-portCheckServer.once('listening', () => {
-    portCheckServer.close(() => {
-        console.log(`Port ${port} is free. Starting the application...`);
-        startApp();
-    });
-});
-portCheckServer.listen(port, '127.0.0.1');
+    const s3Access = await s3Storage.verifyIamAccess();
+    if (!s3Access.ok) {
+        console.error(`[Startup] S3 bucket access check failed: ${s3Access.error}`);
+        process.exit(1);
+    }
+
+    const maxPortAttempts = 25;
+    const preferredPort = port;
+
+    const tryListen = (candidatePort, attemptsLeft) => {
+        const expressServer = app
+            .listen(candidatePort, async () => {
+                if (candidatePort !== preferredPort) {
+                    console.warn(`[Server] Port ${preferredPort} was busy; using ${candidatePort} instead.`);
+                }
+                console.log(`Server is running on port ${candidatePort}. Access it at http://localhost:${candidatePort}`);
+                if (await s3Storage.isS3Enabled()) {
+                    const sampleFilename = 'img-EXAMPLE.jpeg';
+                    const imageKey = s3Storage.objectKeyForFilename(sampleFilename);
+                    const imageUrl = await s3Storage.publicUrlForKey(imageKey);
+                    const palettesUrl = await s3Storage.publicUrlForPalettesJsonl();
+                    console.log(`[S3] Image URL format: ${imageUrl} (replace ${sampleFilename})`);
+                    if (palettesUrl) {
+                        console.log(`[S3] Palette catalog URL: ${palettesUrl}`);
+                    }
+                }
+            })
+            .on('error', (err) => {
+                if (err.code === 'EADDRINUSE' && attemptsLeft > 0) {
+                    tryListen(candidatePort + 1, attemptsLeft - 1);
+                    return;
+                }
+                if (err.code === 'EADDRINUSE') {
+                    console.error(`\n*** ERROR: No free port in range ${preferredPort}-${candidatePort}. ***\n`);
+                    process.exit(1);
+                    return;
+                }
+                console.error('An unexpected error occurred with the Express server:', err);
+                process.exit(1);
+            });
+
+        return expressServer;
+    };
+
+    tryListen(preferredPort, maxPortAttempts);
+}
+
+startApp();

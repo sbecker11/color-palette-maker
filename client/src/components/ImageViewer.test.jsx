@@ -49,7 +49,7 @@ describe('ImageViewer', () => {
   it('renders image when imageUrl is provided', () => {
     render(
       <ImageViewer
-        imageUrl="/uploads/test.jpg"
+        imageUrl="/palette-images/test.jpg"
         isSamplingMode={false}
         onSampledColorChange={vi.fn()}
         onAddColorClick={vi.fn()}
@@ -57,14 +57,14 @@ describe('ImageViewer', () => {
     );
     const img = document.querySelector('#displayedImage');
     expect(img).toBeInTheDocument();
-    expect(img).toHaveAttribute('src', '/uploads/test.jpg');
+    expect(img).toHaveAttribute('src', '/palette-images/test.jpg');
   });
 
   it('calls onAddColorClick with sampled hex on click when in sampling mode', async () => {
     const onAddColorClick = vi.fn();
     render(
       <ImageViewer
-        imageUrl="/uploads/test.jpg"
+        imageUrl="/palette-images/test.jpg"
         isSamplingMode={true}
         onSampledColorChange={vi.fn()}
         onAddColorClick={onAddColorClick}
@@ -92,7 +92,7 @@ describe('ImageViewer', () => {
     const onAddColorClick = vi.fn();
     render(
       <ImageViewer
-        imageUrl="/uploads/test.jpg"
+        imageUrl="/palette-images/test.jpg"
         isSamplingMode={false}
         onSampledColorChange={vi.fn()}
         onAddColorClick={onAddColorClick}
@@ -107,7 +107,7 @@ describe('ImageViewer', () => {
     const onSampledColorChange = vi.fn();
     render(
       <ImageViewer
-        imageUrl="/uploads/test.jpg"
+        imageUrl="/palette-images/test.jpg"
         isSamplingMode={true}
         onSampledColorChange={onSampledColorChange}
         onAddColorClick={vi.fn()}
@@ -133,7 +133,7 @@ describe('ImageViewer', () => {
     const onSampledColorChange = vi.fn();
     render(
       <ImageViewer
-        imageUrl="/uploads/test.jpg"
+        imageUrl="/palette-images/test.jpg"
         isSamplingMode={true}
         onSampledColorChange={onSampledColorChange}
         onAddColorClick={vi.fn()}
@@ -147,7 +147,7 @@ describe('ImageViewer', () => {
   it('has crosshair (plus) cursor when in sampling mode', () => {
     render(
       <ImageViewer
-        imageUrl="/uploads/test.jpg"
+        imageUrl="/palette-images/test.jpg"
         isSamplingMode={true}
         onSampledColorChange={vi.fn()}
         onAddColorClick={vi.fn()}
@@ -160,7 +160,7 @@ describe('ImageViewer', () => {
   it('uses img element with alt text', () => {
     render(
       <ImageViewer
-        imageUrl="/uploads/test.jpg"
+        imageUrl="/palette-images/test.jpg"
         isSamplingMode={false}
         onSampledColorChange={vi.fn()}
         onAddColorClick={vi.fn()}
@@ -174,7 +174,7 @@ describe('ImageViewer', () => {
     const regions = [[[0, 0], [10, 0], [10, 10], [0, 10]]];
     render(
       <ImageViewer
-        imageUrl="/uploads/test.jpg"
+        imageUrl="/palette-images/test.jpg"
         isSamplingMode={false}
         onSampledColorChange={vi.fn()}
         onAddColorClick={vi.fn()}
@@ -195,7 +195,7 @@ describe('ImageViewer', () => {
     const regions = [[[0, 0], [10, 0], [10, 10], [0, 10]]];
     render(
       <ImageViewer
-        imageUrl="/uploads/test.jpg"
+        imageUrl="/palette-images/test.jpg"
         isSamplingMode={false}
         onSampledColorChange={vi.fn()}
         onAddColorClick={vi.fn()}
@@ -218,7 +218,7 @@ describe('ImageViewer', () => {
     const onExitDeleteRegionMode = vi.fn();
     render(
       <ImageViewer
-        imageUrl="/uploads/test.jpg"
+        imageUrl="/palette-images/test.jpg"
         isSamplingMode={false}
         onSampledColorChange={vi.fn()}
         onAddColorClick={vi.fn()}
@@ -237,7 +237,7 @@ describe('ImageViewer', () => {
     const onExitAddingSwatchesMode = vi.fn();
     render(
       <ImageViewer
-        imageUrl="/uploads/test.jpg"
+        imageUrl="/palette-images/test.jpg"
         isSamplingMode={true}
         onSampledColorChange={vi.fn()}
         onAddColorClick={vi.fn()}
@@ -256,7 +256,7 @@ describe('ImageViewer', () => {
     const regions = [[[0, 0], [10, 0], [10, 10], [0, 10]]];
     render(
       <ImageViewer
-        imageUrl="/uploads/test.jpg"
+        imageUrl="/palette-images/test.jpg"
         isSamplingMode={false}
         onSampledColorChange={vi.fn()}
         onAddColorClick={vi.fn()}
@@ -278,7 +278,7 @@ describe('ImageViewer', () => {
     const palette = ['#ff0000', '#00ff00'];
     render(
       <ImageViewer
-        imageUrl="/uploads/test.jpg"
+        imageUrl="/palette-images/test.jpg"
         isSamplingMode={false}
         onSampledColorChange={vi.fn()}
         onAddColorClick={vi.fn()}
@@ -297,7 +297,7 @@ describe('ImageViewer', () => {
   it('has crosshair cursor when in delete region mode', async () => {
     render(
       <ImageViewer
-        imageUrl="/uploads/test.jpg"
+        imageUrl="/palette-images/test.jpg"
         isSamplingMode={false}
         onSampledColorChange={vi.fn()}
         onAddColorClick={vi.fn()}
@@ -317,7 +317,7 @@ describe('ImageViewer', () => {
     const palette = ['#ff0000', '#00ff00'];
     render(
       <ImageViewer
-        imageUrl="/uploads/test.jpg"
+        imageUrl="/palette-images/test.jpg"
         isSamplingMode={false}
         onSampledColorChange={vi.fn()}
         onAddColorClick={vi.fn()}
@@ -351,7 +351,7 @@ describe('ImageViewer', () => {
     };
     render(
       <ImageViewer
-        imageUrl="/uploads/bad.jpg"
+        imageUrl="/palette-images/bad.jpg"
         isSamplingMode={false}
         onSampledColorChange={vi.fn()}
         onAddColorClick={vi.fn()}
@@ -366,7 +366,7 @@ describe('ImageViewer', () => {
   it('uses imageAlt for img alt and title when provided', () => {
     render(
       <ImageViewer
-        imageUrl="/uploads/test.jpg"
+        imageUrl="/palette-images/test.jpg"
         imageAlt="My palette"
         isSamplingMode={false}
         onSampledColorChange={vi.fn()}
@@ -381,7 +381,7 @@ describe('ImageViewer', () => {
   it('renders template draw hint when isTemplateDrawMode', async () => {
     render(
       <ImageViewer
-        imageUrl="/uploads/test.jpg"
+        imageUrl="/palette-images/test.jpg"
         isSamplingMode={false}
         onSampledColorChange={vi.fn()}
         onAddColorClick={vi.fn()}
@@ -400,7 +400,7 @@ describe('ImageViewer', () => {
     const onTemplateDrawPhaseChange = vi.fn();
     render(
       <ImageViewer
-        imageUrl="/uploads/test.jpg"
+        imageUrl="/palette-images/test.jpg"
         isSamplingMode={false}
         onSampledColorChange={vi.fn()}
         onAddColorClick={vi.fn()}
@@ -417,11 +417,57 @@ describe('ImageViewer', () => {
     });
   });
 
+  it('calls onTemplateDrawPhaseChange with null when template draw mode is off', async () => {
+    const onTemplateDrawPhaseChange = vi.fn();
+    render(
+      <ImageViewer
+        imageUrl="/palette-images/test.jpg"
+        isSamplingMode={false}
+        onSampledColorChange={vi.fn()}
+        onAddColorClick={vi.fn()}
+        isTemplateDrawMode={false}
+        onTemplateDrawPhaseChange={onTemplateDrawPhaseChange}
+      />
+    );
+    await waitFor(() => {
+      expect(onTemplateDrawPhaseChange).toHaveBeenCalledWith(null);
+    });
+  });
+
+  it('calls onTemplateDrawPhaseChange with drag when template box drag starts', async () => {
+    const onTemplateDrawPhaseChange = vi.fn();
+    render(
+      <ImageViewer
+        imageUrl="/palette-images/test.jpg"
+        isSamplingMode={false}
+        onSampledColorChange={vi.fn()}
+        onAddColorClick={vi.fn()}
+        isTemplateDrawMode={true}
+        onTemplateBoxDrawn={vi.fn()}
+        onTemplateDrawPhaseChange={onTemplateDrawPhaseChange}
+      />
+    );
+    await waitFor(() => {
+      expect(document.querySelector('.image-viewer-overlay')).toBeInTheDocument();
+    });
+    const img = document.querySelector('#displayedImage');
+    Object.defineProperty(img, 'complete', { value: true, configurable: true });
+    Object.defineProperty(img, 'naturalWidth', { value: 100, configurable: true });
+    Object.defineProperty(img, 'naturalHeight', { value: 80, configurable: true });
+    img.getBoundingClientRect = () => ({ left: 0, top: 0, width: 100, height: 80 });
+
+    const overlay = document.querySelector('.image-viewer-overlay');
+    fireEvent.pointerDown(overlay, { clientX: 10, clientY: 10, pointerId: 1 });
+    await waitFor(() => {
+      expect(onTemplateDrawPhaseChange).toHaveBeenCalledWith('drag');
+    });
+  });
+
   it('calls onTemplateBoxDrawn when template box is drawn (mouse down then up with valid size)', async () => {
     const onTemplateBoxDrawn = vi.fn();
     render(
       <ImageViewer
-        imageUrl="/uploads/test.jpg"
+        imageUrl="/palette-images/test.jpg"
         isSamplingMode={false}
         onSampledColorChange={vi.fn()}
         onAddColorClick={vi.fn()}
@@ -458,7 +504,7 @@ describe('ImageViewer', () => {
     const onTemplateBoxDrawn = vi.fn();
     render(
       <ImageViewer
-        imageUrl="/uploads/test.jpg"
+        imageUrl="/palette-images/test.jpg"
         isSamplingMode={false}
         onSampledColorChange={vi.fn()}
         onAddColorClick={vi.fn()}
@@ -486,7 +532,7 @@ describe('ImageViewer', () => {
   it('clears template draw state on mouse leave when in template draw mode', async () => {
     render(
       <ImageViewer
-        imageUrl="/uploads/test.jpg"
+        imageUrl="/palette-images/test.jpg"
         isSamplingMode={false}
         onSampledColorChange={vi.fn()}
         onAddColorClick={vi.fn()}
@@ -518,7 +564,7 @@ describe('ImageViewer', () => {
     const onAddColorClick = vi.fn();
     render(
       <ImageViewer
-        imageUrl="/uploads/test.jpg"
+        imageUrl="/palette-images/test.jpg"
         isSamplingMode={true}
         onSampledColorChange={vi.fn()}
         onAddColorClick={onAddColorClick}
@@ -542,7 +588,7 @@ describe('ImageViewer', () => {
     const onAddColorClick = vi.fn();
     render(
       <ImageViewer
-        imageUrl="/uploads/test.jpg"
+        imageUrl="/palette-images/test.jpg"
         isSamplingMode={true}
         onSampledColorChange={vi.fn()}
         onAddColorClick={onAddColorClick}
@@ -564,7 +610,7 @@ describe('ImageViewer', () => {
     const palette = ['#ff0000'];
     render(
       <ImageViewer
-        imageUrl="/uploads/test.jpg"
+        imageUrl="/palette-images/test.jpg"
         isSamplingMode={false}
         onSampledColorChange={vi.fn()}
         onAddColorClick={vi.fn()}
@@ -590,7 +636,7 @@ describe('ImageViewer', () => {
     ];
     render(
       <ImageViewer
-        imageUrl="/uploads/test.jpg"
+        imageUrl="/palette-images/test.jpg"
         isSamplingMode={false}
         onSampledColorChange={vi.fn()}
         onAddColorClick={vi.fn()}

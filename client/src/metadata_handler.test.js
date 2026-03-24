@@ -34,8 +34,8 @@ describe('metadata_handler', () => {
 
     it('reads and parses JSONL records', async () => {
       const records = [
-        { cachedFilePath: '/uploads/img-1.jpeg', paletteName: 'img-1' },
-        { cachedFilePath: '/uploads/img-2.png', paletteName: 'img-2' },
+        { cachedFilePath: '/palette-images/img-1.jpeg', paletteName: 'img-1' },
+        { cachedFilePath: '/palette-images/img-2.png', paletteName: 'img-2' },
       ];
       const content = records.map((r) => JSON.stringify(r)).join(os.EOL) + os.EOL;
       await fs.promises.writeFile(tempFile, content, 'utf8');
@@ -47,7 +47,7 @@ describe('metadata_handler', () => {
     });
 
     it('ignores empty lines', async () => {
-      const record = { cachedFilePath: '/uploads/img-1.jpeg' };
+      const record = { cachedFilePath: '/palette-images/img-1.jpeg' };
       const content = JSON.stringify(record) + os.EOL + os.EOL + os.EOL;
       await fs.promises.writeFile(tempFile, content, 'utf8');
 
@@ -59,7 +59,7 @@ describe('metadata_handler', () => {
 
   describe('appendMetadata', () => {
     it('appends a record to an empty file', async () => {
-      const record = { cachedFilePath: '/uploads/img-1.jpeg', paletteName: 'img-1' };
+      const record = { cachedFilePath: '/palette-images/img-1.jpeg', paletteName: 'img-1' };
       await appendMetadata(record, tempFile);
 
       const result = await readMetadata(tempFile);
@@ -68,8 +68,8 @@ describe('metadata_handler', () => {
     });
 
     it('appends multiple records', async () => {
-      const r1 = { cachedFilePath: '/uploads/img-1.jpeg' };
-      const r2 = { cachedFilePath: '/uploads/img-2.png' };
+      const r1 = { cachedFilePath: '/palette-images/img-1.jpeg' };
+      const r2 = { cachedFilePath: '/palette-images/img-2.png' };
       await appendMetadata(r1, tempFile);
       await appendMetadata(r2, tempFile);
 
@@ -83,8 +83,8 @@ describe('metadata_handler', () => {
   describe('rewriteMetadata', () => {
     it('writes records to file', async () => {
       const records = [
-        { cachedFilePath: '/uploads/img-1.jpeg' },
-        { cachedFilePath: '/uploads/img-2.png' },
+        { cachedFilePath: '/palette-images/img-1.jpeg' },
+        { cachedFilePath: '/palette-images/img-2.png' },
       ];
       await rewriteMetadata(records, tempFile);
 

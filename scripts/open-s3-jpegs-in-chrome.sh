@@ -2,7 +2,7 @@
 # Open each .jpg / .jpeg in Google Chrome, one at a time; press Enter to continue.
 #
 # Usage:
-#   ./scripts/open-s3-jpegs-in-chrome.sh              # defaults to repo uploads/
+#   ./scripts/open-s3-jpegs-in-chrome.sh              # defaults to repo local-data-cache/
 #   ./scripts/open-s3-jpegs-in-chrome.sh /path/to/dir
 #
 # macOS: uses `open -a "Google Chrome"`.
@@ -11,7 +11,7 @@
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DIR="${1:-$REPO_ROOT/uploads}"
+DIR="${1:-$REPO_ROOT/local-data-cache}"
 
 if [[ ! -d "$DIR" ]]; then
   echo "Not a directory: $DIR" >&2

@@ -23,6 +23,26 @@ describe('api', () => {
     expect(result).toEqual({ success: true });
   });
 
+  it('getReadme fetches /api/readme', async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ success: true, readme: '# Hello' }),
+    });
+    const result = await api.getReadme();
+    expect(global.fetch).toHaveBeenCalledWith('/api/readme');
+    expect(result).toEqual({ success: true, readme: '# Hello' });
+  });
+
+  it('getReadme returns HTTP status on failure', async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: () => Promise.resolve({}),
+    });
+    const result = await api.getReadme();
+    expect(result).toEqual({ success: false, message: 'HTTP 500' });
+  });
+
   it('getImages fetches /api/images', async () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,

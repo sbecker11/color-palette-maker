@@ -27,7 +27,7 @@ const loadRegionFromAwsFiles = loadConfig(
 );
 
 function getBucket() {
-    return process.env.S3_IMAGES_BUCKET || process.env.AWS_S3_BUCKET || '';
+    return process.env.S3_IMAGES_BUCKET || '';
 }
 
 let regionCachePromise = null;
@@ -97,11 +97,11 @@ async function readPalettesJsonl() {
         return typeof body === 'string' ? body : '';
     } catch (err) {
         if (isNoSuchKeyError(err)) {
-            console.log(`[S3] Palettes JSONL not found at ${palettesJsonlObjectKey()}, using local file if present.`);
-            return null;
+            console.log(`[S3] Palettes JSONL not found at ${palettesJsonlObjectKey()}, treating as empty catalog.`);
+            return '';
         }
-        console.warn('[S3] GetObject palettes jsonl failed:', err.message || err);
-        return null;
+        console.error('[S3] GetObject palettes jsonl failed:', err.message || err);
+        throw err;
     }
 }
 
@@ -245,6 +245,33 @@ async function copyObjectToNewFilename(sourceS3Key, newFilename) {
 }
 
 /**
+ * Read image bytes from S3 by key.
+ * @returns {Promise<{ buffer: Buffer, contentType: string } | null>}
+ */
+async function getObjectBufferByKey(s3Key) {
+    if (!(await isS3Enabled()) || !s3Key || typeof s3Key !== 'string') return null;
+    try {
+        const client = await getClient();
+        if (!client) return null;
+        const response = await client.send(
+            new GetObjectCommand({
+                Bucket: getBucket(),
+                Key: s3Key,
+            })
+        );
+        const bytes = await response.Body.transformToByteArray();
+        return {
+            buffer: Buffer.from(bytes),
+            contentType: response.ContentType || 'application/octet-stream',
+        };
+    } catch (err) {
+        if (isNoSuchKeyError(err)) return null;
+        console.error('[S3] GetObject image failed:', err.message || err);
+        return null;
+    }
+}
+
+/**
  * Verify IAM credentials can PutObject, GetObject, and DeleteObject (probe under metadata/).
  * @returns {Promise<{ ok: true, probeKey: string } | { ok: false, error: string }>}
  */
@@ -253,7 +280,7 @@ async function verifyIamAccess() {
         return {
             ok: false,
             error:
-                'S3 not enabled: set S3_IMAGES_BUCKET (or AWS_S3_BUCKET) and AWS_REGION (or region in ~/.aws/config for your profile).',
+                'S3 not enabled: set S3_IMAGES_BUCKET and AWS_REGION (or region in ~/.aws/config for your profile).',
         };
     }
     const client = await getClient();
@@ -335,6 +362,7 @@ module.exports = {
     publicUrlForPalettesJsonl,
     deleteObjectByKey,
     copyObjectToNewFilename,
+    getObjectBufferByKey,
     verifyIamAccess,
     verifyPublicPalettesCatalogUrl,
 };

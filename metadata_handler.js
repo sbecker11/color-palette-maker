@@ -6,7 +6,12 @@ const path = require('path');
 const s3Storage = require('./s3-storage');
 
 const NEWLINE = '\n';
-const metadataFile = path.join(__dirname, 'color_palettes.jsonl');
+const metadataFile = path.join(__dirname, 'local-data-cache', 'color_palettes.jsonl');
+const METADATA_CACHE_TTL_MS = Math.max(0, Number(process.env.METADATA_CACHE_TTL_MS) || 5000);
+let metadataCache = {
+    expiresAt: 0,
+    value: null,
+};
 
 function parseMetadataContent(data) {
     const s = typeof data === 'string' ? data : '';
@@ -31,14 +36,24 @@ async function readFromLocal(targetFile) {
     return metadataArray;
 }
 
-/** When S3 is on: PutObject full JSONL first, then write local (mirror). S3 errors are logged; local still updated. */
+/** When S3 is on: PutObject full JSONL first, then write local mirror. S3 failures propagate to the caller. */
 async function persistMetadataToS3ThenLocal(dataToWrite, targetFile) {
-    try {
-        await s3Storage.writePalettesJsonl(dataToWrite);
-    } catch (e) {
-        console.error('[Metadata] Failed to write palettes JSONL to S3 (will still write local file):', e.message || e);
-    }
+    await s3Storage.writePalettesJsonl(dataToWrite);
     await fs.writeFile(targetFile, dataToWrite, 'utf8');
+}
+
+function setMetadataCache(value) {
+    metadataCache = {
+        expiresAt: Date.now() + METADATA_CACHE_TTL_MS,
+        value,
+    };
+}
+
+function invalidateMetadataCache() {
+    metadataCache = {
+        expiresAt: 0,
+        value: null,
+    };
 }
 
 // --- Metadata Reading ---
@@ -49,16 +64,14 @@ async function readMetadata(overridePath) {
     console.log('[Metadata] Reading metadata...');
 
     if (useS3) {
-        const s3Text = await s3Storage.readPalettesJsonl();
-        if (s3Text !== null) {
-            try {
-                const metadataArray = parseMetadataContent(s3Text);
-                console.log(`[Metadata] Read ${metadataArray.length} records from S3.`);
-                return metadataArray;
-            } catch (e) {
-                console.error('[Metadata] Invalid JSONL from S3, falling back to local:', e.message);
-            }
+        if (metadataCache.value && metadataCache.expiresAt > Date.now()) {
+            return metadataCache.value;
         }
+        const s3Text = await s3Storage.readPalettesJsonl();
+        const metadataArray = parseMetadataContent(s3Text || '');
+        setMetadataCache(metadataArray);
+        console.log(`[Metadata] Read ${metadataArray.length} records from S3.`);
+        return metadataArray;
     }
 
     try {
@@ -90,6 +103,7 @@ async function appendMetadata(metadataObject, overridePath) {
             all.push(metadataObject);
             const dataToWrite = serializeMetadataArray(all);
             await persistMetadataToS3ThenLocal(dataToWrite, targetFile);
+            setMetadataCache(all);
             console.log('[Metadata] Appended record successfully (S3 + local).');
             return;
         }
@@ -98,6 +112,7 @@ async function appendMetadata(metadataObject, overridePath) {
         await fs.appendFile(targetFile, jsonLine, 'utf8');
         console.log('[Metadata] Appended record successfully.');
     } catch (error) {
+        invalidateMetadataCache();
         console.error('[Metadata] Error appending to metadata file:', error);
         throw error;
     }
@@ -113,11 +128,13 @@ async function rewriteMetadata(metadataArray, overridePath) {
             await fs.writeFile(targetFile, dataToWrite, 'utf8');
         } else if (await s3Storage.isS3Enabled()) {
             await persistMetadataToS3ThenLocal(dataToWrite, targetFile);
+            setMetadataCache(metadataArray);
         } else {
             await fs.writeFile(targetFile, dataToWrite, 'utf8');
         }
         console.log('[Metadata] Rewrote file successfully.');
     } catch (error) {
+        invalidateMetadataCache();
         console.error('[Metadata] Error rewriting metadata file:', error);
         throw error;
     }

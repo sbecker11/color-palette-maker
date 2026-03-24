@@ -3,7 +3,7 @@
 Detect large regions in an image using OpenCV contour analysis.
 Outputs JSON with region polygons for overlay and K-means masking.
 
-Usage: python detect_regions.py <image_path>
+Usage: python utils/detect_regions.py <image_path>   (from repo root)
 
 Output (stdout): JSON object with { "regions": [ [[x,y], [x,y], ...], ... ], "width": N, "height": N }
 """

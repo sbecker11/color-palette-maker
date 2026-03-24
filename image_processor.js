@@ -1,7 +1,7 @@
 // Handles image processing, specifically palette generation using K-means and luminance threshold filtering.
 
 const getPixels = require('get-pixels');
-const { polygonCentroid } = require('./shared/polygonCentroid.cjs');
+const { polygonCentroid } = require('./utils/polygonCentroid.cjs');
 const { clusterize } = require('node-kmeans'); // Import K-means
 const colorDiff = require('color-diff');
 

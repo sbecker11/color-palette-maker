@@ -15,7 +15,7 @@ describe('App', () => {
       success: true,
       images: [
         {
-          cachedFilePath: '/uploads/img-1.jpeg',
+          cachedFilePath: '/palette-images/img-1.jpeg',
           paletteName: 'img-1',
           colorPalette: ['#ff0000', '#00ff00'],
         },
@@ -77,7 +77,7 @@ describe('App', () => {
     api.upload.mockResolvedValue({
       success: true,
       metadata: {
-        cachedFilePath: '/uploads/new.jpeg',
+        cachedFilePath: '/palette-images/new.jpeg',
         paletteName: 'new',
       },
     });
@@ -146,8 +146,8 @@ describe('App', () => {
     api.getImages.mockResolvedValue({
       success: true,
       images: [
-        { cachedFilePath: '/uploads/img-1.jpeg', paletteName: 'img-1', colorPalette: [] },
-        { cachedFilePath: '/uploads/img-2.jpeg', paletteName: 'img-2', colorPalette: [] },
+        { cachedFilePath: '/palette-images/img-1.jpeg', paletteName: 'img-1', colorPalette: [] },
+        { cachedFilePath: '/palette-images/img-2.jpeg', paletteName: 'img-2', colorPalette: [] },
       ],
     });
     api.generatePalette.mockResolvedValue({ success: true, palette: [] });
@@ -163,9 +163,9 @@ describe('App', () => {
     api.getImages.mockResolvedValue({
       success: true,
       images: [
-        { cachedFilePath: '/uploads/img-1.jpeg', paletteName: 'img-1', colorPalette: ['#ff0000'] },
-        { cachedFilePath: '/uploads/img-2.jpeg', paletteName: 'img-2', colorPalette: ['#00ff00'] },
-        { cachedFilePath: '/uploads/img-3.jpeg', paletteName: 'img-3', colorPalette: ['#0000ff'] },
+        { cachedFilePath: '/palette-images/img-1.jpeg', paletteName: 'img-1', colorPalette: ['#ff0000'] },
+        { cachedFilePath: '/palette-images/img-2.jpeg', paletteName: 'img-2', colorPalette: ['#00ff00'] },
+        { cachedFilePath: '/palette-images/img-3.jpeg', paletteName: 'img-3', colorPalette: ['#0000ff'] },
       ],
     });
     api.generatePalette.mockResolvedValue({ success: true, palette: [] });
@@ -231,7 +231,7 @@ describe('App', () => {
   it('triggers generatePalette when selecting image without palette', async () => {
     api.getImages.mockResolvedValue({
       success: true,
-      images: [{ cachedFilePath: '/uploads/img-1.jpeg', paletteName: 'img-1' }],
+      images: [{ cachedFilePath: '/palette-images/img-1.jpeg', paletteName: 'img-1' }],
     });
     api.generatePalette.mockResolvedValue({ success: true, palette: ['#aaa', '#bbb'] });
     render(<App />);
@@ -283,7 +283,7 @@ describe('App', () => {
     api.getImages.mockResolvedValue({
       success: true,
       images: [{
-        cachedFilePath: '/uploads/img-1.jpeg',
+        cachedFilePath: '/palette-images/img-1.jpeg',
         paletteName: 'img-1',
         colorPalette: ['#ff0000'],
         regions: [[[0, 0], [10, 0], [10, 10]]],
@@ -302,7 +302,7 @@ describe('App', () => {
     api.duplicateImage.mockResolvedValue({
       success: true,
       filename: 'img-dup.jpeg',
-      metadata: { cachedFilePath: '/uploads/img-dup.jpeg', paletteName: 'img-1-copy-1' },
+      metadata: { cachedFilePath: '/palette-images/img-dup.jpeg', paletteName: 'img-1-copy-1' },
     });
     render(<App />);
     await waitFor(() => expect(api.getImages).toHaveBeenCalled());
@@ -315,7 +315,7 @@ describe('App', () => {
     api.getImages.mockResolvedValue({
       success: true,
       images: [{
-        cachedFilePath: '/uploads/img-1.jpeg',
+        cachedFilePath: '/palette-images/img-1.jpeg',
         paletteName: 'img-1',
         colorPalette: ['#ff0000', '#00ff00'],
         regions: [[[0, 0], [10, 0], [10, 10], [0, 10]]],
@@ -330,6 +330,48 @@ describe('App', () => {
     const matchCheckbox = screen.getByRole('checkbox', { name: 'Match Region Swatches' });
     fireEvent.click(matchCheckbox);
     await waitFor(() => expect(api.refreshPairings).toHaveBeenCalledWith('img-1.jpeg'));
+  });
+
+  it('handles refreshPairings failure when Match Region Swatches is on', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    api.getImages.mockResolvedValue({
+      success: true,
+      images: [{
+        cachedFilePath: '/palette-images/img-1.jpeg',
+        paletteName: 'img-1',
+        colorPalette: ['#ff0000'],
+        regions: [[[0, 0], [10, 0], [10, 10]]],
+      }],
+    });
+    api.refreshPairings = vi.fn().mockRejectedValue(new Error('Pairings failed'));
+    render(<App />);
+    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Match Region Swatches' }));
+    await waitFor(() => expect(api.refreshPairings).toHaveBeenCalled());
+    expect(warnSpy).toHaveBeenCalledWith('[App] refreshPairings failed:', expect.any(Error));
+    warnSpy.mockRestore();
+  });
+
+  it('refreshPairings early return when palette cleared after Match enabled', async () => {
+    api.getImages.mockResolvedValue({
+      success: true,
+      images: [{
+        cachedFilePath: '/palette-images/img-1.jpeg',
+        paletteName: 'img-1',
+        colorPalette: ['#ff0000', '#00ff00'],
+        regions: [[[0, 0], [10, 0], [10, 10], [0, 10]]],
+      }],
+    });
+    api.refreshPairings = vi.fn().mockResolvedValue({ success: true, paletteRegion: [] });
+    api.savePalette.mockResolvedValue({ success: true });
+    render(<App />);
+    await waitFor(() => expect(api.getImages).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Match Region Swatches' }));
+    await waitFor(() => expect(api.refreshPairings).toHaveBeenCalled());
+    api.refreshPairings.mockClear();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Choose action' }), { target: { value: 'clearSwatches' } });
+    await waitFor(() => expect(api.savePalette).toHaveBeenCalled());
+    expect(api.refreshPairings).not.toHaveBeenCalled();
   });
 
   it('handleAddingSwatchesModeChange(false) exits adding swatches mode', async () => {
@@ -358,7 +400,7 @@ describe('App', () => {
     api.getImages.mockResolvedValue({
       success: true,
       images: [{
-        cachedFilePath: '/uploads/img-1.jpeg',
+        cachedFilePath: '/palette-images/img-1.jpeg',
         paletteName: 'img-1',
         colorPalette: ['#ff0000'],
         regions: [[[0, 0], [10, 0], [10, 10]]],
@@ -399,8 +441,8 @@ describe('App', () => {
     api.getImages.mockResolvedValue({
       success: true,
       images: [
-        { cachedFilePath: '/uploads/img-1.jpeg', paletteName: 'img-1', colorPalette: [] },
-        { cachedFilePath: '/uploads/img-2.jpeg', paletteName: 'img-2', colorPalette: [] },
+        { cachedFilePath: '/palette-images/img-1.jpeg', paletteName: 'img-1', colorPalette: [] },
+        { cachedFilePath: '/palette-images/img-2.jpeg', paletteName: 'img-2', colorPalette: [] },
       ],
     });
     api.reorderImages.mockResolvedValue({ success: false, message: 'Reorder failed' });
@@ -416,8 +458,8 @@ describe('App', () => {
     api.getImages.mockResolvedValue({
       success: true,
       images: [
-        { cachedFilePath: '/uploads/img-1.jpeg', paletteName: 'img-1', colorPalette: [] },
-        { cachedFilePath: '/uploads/img-2.jpeg', paletteName: 'img-2', colorPalette: [] },
+        { cachedFilePath: '/palette-images/img-1.jpeg', paletteName: 'img-1', colorPalette: [] },
+        { cachedFilePath: '/palette-images/img-2.jpeg', paletteName: 'img-2', colorPalette: [] },
       ],
     });
     api.reorderImages.mockRejectedValue(new Error('Network error'));
@@ -489,7 +531,7 @@ describe('App', () => {
     api.getImages.mockResolvedValue({
       success: true,
       images: [{
-        cachedFilePath: '/uploads/img-1.jpeg',
+        cachedFilePath: '/palette-images/img-1.jpeg',
         paletteName: 'img-1',
         colorPalette: ['#ff0000'],
         regions: [[[0, 0], [10, 0], [10, 10]]],
@@ -588,7 +630,7 @@ describe('App', () => {
     api.getImages.mockResolvedValue({
       success: true,
       images: [{
-        cachedFilePath: '/uploads/img-1.jpeg',
+        cachedFilePath: '/palette-images/img-1.jpeg',
         paletteName: 'img-1',
         colorPalette: ['#ff0000'],
         regions: [[[0, 0], [10, 0], [10, 10], [0, 10]]],

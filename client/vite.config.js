@@ -26,6 +26,7 @@ export default defineConfig({
       exclude: [
         'scripts/**',
         'src/main.jsx',
+        'src/components/imageViewerConfig.js',
         '**/node_modules/**',
         '**/*.test.{js,jsx,ts,tsx}',
         '**/vite.config.*',
@@ -45,7 +46,8 @@ export default defineConfig({
     proxy: {
       '/api': `http://localhost:${parseInt(process.env.VITE_API_PORT, 10) || parseInt(process.env.EXPRESS_PORT, 10) || 3000}`,
       '/upload': `http://localhost:${parseInt(process.env.VITE_API_PORT, 10) || parseInt(process.env.EXPRESS_PORT, 10) || 3000}`,
-      '/uploads': `http://localhost:${parseInt(process.env.VITE_API_PORT, 10) || parseInt(process.env.EXPRESS_PORT, 10) || 3000}`,
+      '/palette-images': `http://localhost:${parseInt(process.env.VITE_API_PORT, 10) || parseInt(process.env.EXPRESS_PORT, 10) || 3000}`,
+      '/static_content': `http://localhost:${parseInt(process.env.VITE_API_PORT, 10) || parseInt(process.env.EXPRESS_PORT, 10) || 3000}`,
     },
   },
 })

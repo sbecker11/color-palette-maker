@@ -83,4 +83,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added polygonCentroid duplication comments (server + client implementations)
 - USER_GUIDE: documented that new uploads appear at top of palette listing
 
-[1.0.0]: https://github.com/sbecker11/color-palette-maker-react/releases/tag/v1.0.0
+[1.0.0]: https://github.com/sbecker11/color-palette-maker/releases/tag/v1.0.0

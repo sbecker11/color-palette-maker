@@ -341,14 +341,14 @@ Delete an image file and its metadata record.
 
 ## JSONL Metadata Format
 
-Metadata is stored in `color_palettes.jsonl` on disk. When S3 is enabled, the server writes the same content **to S3 first** (then mirrors the local file); consumers may **GET** the object by HTTPS with public read-only policy, same model as images. See [S3-STORAGE.md](S3-STORAGE.md). Each line is a JSON object representing one image:
+Metadata is stored in `local-data-cache/color_palettes.jsonl` on disk. When S3 is enabled, the server writes the same content **to S3 first** (then mirrors the local file); consumers may **GET** the object by HTTPS with public read-only policy, same model as images. See [S3-STORAGE.md](S3-STORAGE.md). Each line is a JSON object representing one image:
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `createdDateTime` | string | ISO 8601 timestamp |
 | `uploadedURL` | string \| null | Source URL if uploaded from URL |
 | `uploadedFilePath` | string \| null | Original filename if uploaded from file |
-| `cachedFilePath` | string | Path to saved image (e.g. `uploads/img-xxx.jpeg`) |
+| `cachedFilePath` | string | Path to saved image on disk (e.g. `local-data-cache/img-xxx.jpeg`) |
 | `width`, `height` | number | Image dimensions |
 | `format` | string | `jpeg`, `png`, `webp`, etc. |
 | `fileSizeBytes` | number | File size |

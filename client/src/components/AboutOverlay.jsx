@@ -1,44 +1,79 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { marked } from 'marked';
+import api from '../api';
 
 function AboutOverlay({ onClose }) {
+  const [readmeHtml, setReadmeHtml] = useState('');
+  const [status, setStatus] = useState('loading');
+
   useEffect(() => {
-    const handler = (e) => {
-      if (e.data?.type === 'about-close') onClose();
+    let cancelled = false;
+
+    const loadReadme = Promise.resolve(
+      typeof api.getReadme === 'function' ? api.getReadme() : undefined
+    );
+
+    loadReadme.then((result) => {
+      if (cancelled) return;
+      if (result?.success && typeof result.readme === 'string') {
+        const html = marked.parse(result.readme);
+        setReadmeHtml(html);
+        setStatus('ready');
+      } else {
+        setStatus('error');
+      }
+    }).catch(() => {
+      if (!cancelled) setStatus('error');
+    });
+
+    return () => {
+      cancelled = true;
     };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, [onClose]);
+  }, []);
 
   return (
     <div
-      role="button"
-      tabIndex={0}
+      className="about-modal-overlay"
       onClick={onClose}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
+        if (e.key === 'Escape') {
           e.preventDefault();
           onClose();
         }
       }}
-      aria-label="Click to close and show app"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9999,
-        cursor: 'pointer',
-        background: '#0A0A0A',
-      }}
+      role="presentation"
     >
-      <iframe
-        src={import.meta.env.MODE === 'test' ? 'about:blank' : '/about.html'}
-        title="Color Palette Maker — About"
-        style={{
-          width: '100%',
-          height: '100%',
-          border: 'none',
-          display: 'block',
-        }}
-      />
+      <div
+        className="about-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="About Color Palette Maker"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          className="about-modal-close"
+          aria-label="Close About dialog"
+          onClick={onClose}
+        >
+          ×
+        </button>
+        <h2 className="about-modal-title">About</h2>
+        <div className="about-modal-content">
+          {status === 'loading' && <p>Loading README...</p>}
+          {status === 'error' && (
+            <p>
+              Unable to load README preview right now.
+            </p>
+          )}
+          {status === 'ready' && (
+            <div
+              className="readme-preview markdown-body"
+              dangerouslySetInnerHTML={{ __html: readmeHtml }}
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -24,6 +24,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:coverage:tables": "vitest run --coverage --silent --reporter=json --outputFile=node_modules/.vitest-report.json",
     "test:integration": "vitest run --testNamePattern='integration'",
     "prepublishOnly": "npm run build"
   },

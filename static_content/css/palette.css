@@ -1,6 +1,6 @@
 /**
  * Palette utils CSS - contrast-aware icon styling.
- * Import in React/Vue/static HTML. Use with getContrastIconSet() from colors.js.
+ * Import in React/Vue/static HTML. Use with getContrastIconSet() from color_utils.js.
  *
  * Light backgrounds: black icons as-is.
  * Dark backgrounds: add data-variant="white" to the icon row for filter: invert(1).

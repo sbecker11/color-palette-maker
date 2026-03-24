@@ -73,7 +73,7 @@ Use **EXPRESS_PORT** (and **VITE_DEV_PORT**) everywhere; avoid hardcoded `3000` 
 - **`server.port`:** `parseInt(process.env.VITE_DEV_PORT, 10) || 5173`
 - **Proxy target:**  
   `http://localhost:${parseInt(process.env.VITE_API_PORT, 10) || parseInt(process.env.EXPRESS_PORT, 10) || 3000}`  
-  for `/api`, `/upload`, `/uploads` (or your API paths).
+  for `/api`, `/upload`, `/palette-images` (or your API paths).
 
 So: dev server port from `VITE_DEV_PORT`; proxy uses `VITE_API_PORT` if set, else `EXPRESS_PORT`, else 3000.
 
@@ -91,13 +91,6 @@ So: dev server port from `VITE_DEV_PORT`; proxy uses `VITE_API_PORT` if set, els
 - **start:open** – Start server in background, then run “open-after-wait” (which uses EXPRESS_PORT).
 
 No `PORT` or raw `3000`/`5173` in these script commands; everything goes through env and the small Node scripts.
-
----
-
-## 7. Docker / Compose
-
-- **Environment:** Set `EXPRESS_PORT=3000` (or the port the app listens on inside the container).
-- **Port mapping:** e.g. `"3000:3000"` → host:container; container port is the one the app listens on (EXPRESS_PORT). If you change EXPRESS_PORT in the image, change the right side of the mapping to match.
 
 ---
 
@@ -123,7 +116,6 @@ No `PORT` or raw `3000`/`5173` in these script commands; everything goes through
 - [ ] Scripts (start, dev, wait-and-dev-client, open-after-wait, open-dev-client, echo-build-url) use EXPRESS_PORT / VITE_DEV_PORT from `.env` (no hardcoded ports).
 - [ ] Vite: `server.port` from VITE_DEV_PORT; proxy target from VITE_API_PORT or EXPRESS_PORT.
 - [ ] package.json: start, dev, dev:open, open:app, build, start:open point at these scripts and env.
-- [ ] Docker/Compose: EXPRESS_PORT in env; port mapping matches.
 - [ ] Docs and changelog updated to say EXPRESS_PORT (and optional port utils).
 
 After this, each app can use a different `.env` (e.g. EXPRESS_PORT=3001, VITE_DEV_PORT=5174) so multiple UIs run side by side on one machine.

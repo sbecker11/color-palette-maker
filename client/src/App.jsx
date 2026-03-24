@@ -176,7 +176,7 @@ function App() {
         const fn = getFilenameFromMeta(first);
         if (fn) {
           setSelectedMeta(first);
-          setSelectedImageUrl(`/uploads/${encodeURIComponent(fn)}`);
+          setSelectedImageUrl(`/palette-images/${encodeURIComponent(fn)}`);
           setPaletteName(first.paletteName || getFilenameWithoutExt(fn));
         }
       }

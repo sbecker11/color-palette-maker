@@ -291,6 +291,116 @@ describe('PaletteDisplay', () => {
     expect(defaultProps.onDetectRegions).toHaveBeenCalledWith('default', {});
   });
 
+  it('calls onDetectRegions with adaptive strategy and params when Detect clicked', () => {
+    render(<PaletteDisplay {...defaultProps} />);
+    const strategySelect = screen.getByLabelText(/region detection approach/i);
+    fireEvent.change(strategySelect, { target: { value: 'adaptive' } });
+    const detectBtn = screen.getByRole('button', { name: 'Detect regions' });
+    fireEvent.click(detectBtn);
+    expect(defaultProps.onDetectRegions).toHaveBeenCalledWith('adaptive',
+      expect.objectContaining({ adaptiveBlockSize: expect.any(Number), adaptiveC: expect.any(Number) }));
+  });
+
+  it('calls onDetectRegions with canny strategy and params when Detect clicked', () => {
+    render(<PaletteDisplay {...defaultProps} />);
+    fireEvent.change(screen.getByLabelText(/region detection approach/i), { target: { value: 'canny' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Detect regions' }));
+    expect(defaultProps.onDetectRegions).toHaveBeenCalledWith('canny',
+      expect.objectContaining({ cannyLow: expect.any(Number), cannyHigh: expect.any(Number) }));
+  });
+
+  it('calls onDetectRegions with color strategy and params when Detect clicked', () => {
+    render(<PaletteDisplay {...defaultProps} />);
+    fireEvent.change(screen.getByLabelText(/region detection approach/i), { target: { value: 'color' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Detect regions' }));
+    expect(defaultProps.onDetectRegions).toHaveBeenCalledWith('color',
+      expect.objectContaining({ colorClusters: expect.any(Number) }));
+  });
+
+  const regionStrategyTests = [
+    ['watershed', { watershedDistRatio: expect.any(Number) }],
+    ['grabcut', { grabcutRectPad: expect.any(Number), grabcutIterCount: expect.any(Number) }],
+    ['slic', { slicRegionSize: expect.any(Number), slicRuler: expect.any(Number) }],
+    ['meanshift', { meanshiftSpatial: expect.any(Number), meanshiftColor: expect.any(Number) }],
+    ['quadtree', { quadtreeVariance: expect.any(Number), quadtreeMinSize: expect.any(Number) }],
+    ['rectangles', { rectanglesEpsilonRatio: expect.any(Number) }],
+  ];
+  regionStrategyTests.forEach(([strategy, expectedParams]) => {
+    it(`calls onDetectRegions with ${strategy} strategy and params when Detect clicked`, () => {
+      render(<PaletteDisplay {...defaultProps} />);
+      fireEvent.change(screen.getByLabelText(/region detection approach/i), { target: { value: strategy } });
+      fireEvent.click(screen.getByRole('button', { name: 'Detect regions' }));
+      expect(defaultProps.onDetectRegions).toHaveBeenCalledWith(strategy, expect.objectContaining(expectedParams));
+    });
+  });
+
+  it('calls onDetectRegions with template_match strategy when Detect clicked', () => {
+    render(<PaletteDisplay {...defaultProps} />);
+    fireEvent.change(screen.getByLabelText(/region detection approach/i), { target: { value: 'template_match' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Detect regions' }));
+    expect(defaultProps.onDetectRegions).toHaveBeenCalledWith('template_match', {});
+  });
+
+  it('calls setLastPaletteAction when Detect All Regions is selected from actions', () => {
+    const setItem = vi.fn();
+    vi.stubGlobal('localStorage', { getItem: vi.fn(), setItem, removeItem: vi.fn(), clear: vi.fn(), length: 0, key: vi.fn() });
+    render(<PaletteDisplay {...defaultProps} />);
+    const select = screen.getByRole('combobox', { name: 'Choose action' });
+    fireEvent.change(select, { target: { value: 'detectRegions' } });
+    expect(setItem).toHaveBeenCalledWith('color-palette-maker.lastPaletteAction', 'detectRegions');
+    vi.unstubAllGlobals();
+  });
+
+  it('restores last action from localStorage when it was detectRegions', () => {
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn((k) => k === 'color-palette-maker.lastPaletteAction' ? 'detectRegions' : null),
+      setItem: vi.fn(), removeItem: vi.fn(), clear: vi.fn(), length: 0, key: vi.fn(),
+    });
+    render(<PaletteDisplay {...defaultProps} />);
+    const select = screen.getByRole('combobox', { name: 'Choose action' });
+    expect(select).toHaveValue('detectRegions');
+    vi.unstubAllGlobals();
+  });
+
+  it('handles getLastPaletteAction when localStorage.getItem throws', () => {
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn().mockImplementation(() => { throw new Error('QuotaExceeded'); }),
+      setItem: vi.fn(), removeItem: vi.fn(), clear: vi.fn(), length: 0, key: vi.fn(),
+    });
+    render(<PaletteDisplay {...defaultProps} />);
+    const select = screen.getByRole('combobox', { name: 'Choose action' });
+    expect(select).toBeInTheDocument();
+    vi.unstubAllGlobals();
+  });
+
+  it('handles setLastPaletteAction when localStorage.setItem throws', () => {
+    const setItem = vi.fn().mockImplementation(() => { throw new Error('QuotaExceeded'); });
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn().mockReturnValue(null),
+      setItem, removeItem: vi.fn(), clear: vi.fn(), length: 0, key: vi.fn(),
+    });
+    render(<PaletteDisplay {...defaultProps} onDetectRegions={vi.fn()} />);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Choose action' }), { target: { value: 'detectRegions' } });
+    expect(screen.getByRole('button', { name: 'Detect regions' })).toBeInTheDocument();
+    vi.unstubAllGlobals();
+  });
+
+  it('calls onBackgroundSwatchIndexChange when clicking swatch in bg select mode', () => {
+    const onBackground = vi.fn();
+    render(
+      <PaletteDisplay
+        {...defaultProps}
+        palette={['#ff0000', '#00ff00', '#0000ff']}
+        backgroundSwatchIndex={0}
+        onBackgroundSwatchIndexChange={onBackground}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'bg' }));
+    const swatches = document.querySelectorAll('.palette-swatch-filled');
+    fireEvent.click(swatches[1]);
+    expect(onBackground).toHaveBeenCalledWith(1);
+  });
+
   it('calls onDeleteRegions when Clear all Regions is selected', () => {
     render(<PaletteDisplay {...defaultProps} hasRegions={true} />);
     const select = screen.getByRole('combobox', { name: 'Choose action' });

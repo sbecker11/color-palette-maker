@@ -18,8 +18,7 @@ const {
 } = require('../s3-storage');
 
 async function main() {
-    const bucket =
-        process.env.S3_IMAGES_BUCKET?.trim() || process.env.AWS_S3_BUCKET?.trim() || '(not set)';
+    const bucket = process.env.S3_IMAGES_BUCKET?.trim() || '(not set)';
     const regionFromEnv = process.env.AWS_REGION?.trim();
     const regionResolved = (await getRegion()) || '(could not resolve — check ~/.aws/config)';
 

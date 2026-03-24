@@ -1,62 +1,39 @@
 # Development Guide
 
-This project is intended to be run with **Docker** for both local use and production. You do not need Node.js, Python, or npm installed on your machine.
+This project is intended to be run locally with Node + Python.
 
 ---
 
 ## Prerequisites
 
-- **Docker** and **Docker Compose**
+- **Node.js 20+**
+- **Python 3** + pip
 - **AWS S3** — required for image uploads, the public palette catalog (`color_palettes.jsonl`), and the `color-palette-utils-ts` integration test. See [S3 storage](S3-STORAGE.md) and run `scripts/create-s3-palette-bucket.sh` as part of setup.
 
 ---
 
-## Run with Docker Compose
+## Run Locally
 
-Create the metadata file on the host (so Docker does not create it as a directory), then start the app:
-
-```bash
-mkdir -p docker-data
-touch docker-data/color_palettes.jsonl
-docker compose up --build
-```
-
-Open http://localhost:3000. Uploads and metadata persist in `./docker-data/`.
-
-To run in the background:
+Create the data directory and an empty metadata file, then start the app:
 
 ```bash
-docker compose up -d --build
+npm install
+cd client && npm install && cd ..
+pip install -r requirements.txt
+mkdir -p local-data-cache
+touch local-data-cache/color_palettes.jsonl
+npm run dev
 ```
 
-To apply code changes, rebuild and restart:
+Open http://localhost:3000. Local state (images + `color_palettes.jsonl`) lives in `./local-data-cache/`.
+Public URLs for images are `/palette-images/<filename>`.
 
-```bash
-docker compose up -d --build
-```
+### Direct Express URL (optional)
 
----
+For `npm run dev`, the normal entrypoint is the Vite URL (`http://localhost:<VITE_DEV_PORT>`).
+If you want to open Express directly (without Vite), use:
 
-## Production Deployment (Docker)
-
-Build and push the image (optional, for a registry), then run on the host:
-
-```bash
-docker build -t your-registry/color-palette-maker-react:latest .
-docker push your-registry/color-palette-maker-react:latest   # if using a registry
-docker run -d -p 3000:3000 --name color-palette-maker-react your-registry/color-palette-maker-react:latest
-```
-
-For persistence, use volumes (see [VPS Hosting](VPS-HOSTING.md) for a full example):
-
-```bash
-docker run -d -p 3000:3000 \
-  -v $(pwd)/docker-data/uploads:/app/uploads \
-  -v $(pwd)/docker-data/color_palettes.jsonl:/app/color_palettes.jsonl \
-  --name color-palette-maker-react your-registry/color-palette-maker-react:latest
-```
-
-For step-by-step VPS deployment (Ubuntu/Debian, Nginx, HTTPS), see [VPS Hosting](VPS-HOSTING.md).
+- `http://localhost:<EXPRESS_PORT>` (or the auto-picked port if `EXPRESS_PORT` is busy)
 
 ---
 
@@ -86,7 +63,7 @@ npm install && cd client && npm install && cd ..
 npm test
 ```
 
-Tests cover the client (components, API, utils), the **`color-palette-utils-ts`** package (Vitest), server modules (metadata_handler, image_processor), and image-viewer geometry. This step is optional if you rely on CI.
+Tests cover the client (components, API, app `utils.js`), the **`color-palette-utils-ts`** package (Vitest), server modules (metadata_handler, image_processor), and image-viewer geometry. Root **`utils/`** JS modules each have matching Vitest files under `client/src/` (e.g. `color_utils.test.js`, `swatchLabels.test.js`, `regionStrategies.test.js`, `polygonCentroid.test.js`, plus `*.cjs.test.js` parity for the Node CJS builds). This step is optional if you rely on CI.
 
 **`color-palette-utils-ts` integration test** fetches the live palette catalog from S3 and will fail with `403 Forbidden` until S3 is configured. Run `scripts/create-s3-palette-bucket.sh` first — see [S3 storage](S3-STORAGE.md).
 
@@ -126,7 +103,7 @@ This replaces opencv-python. Other detection strategies work with opencv-python 
 ## Project Structure
 
 ```
-color-palette-maker-react/
+color-palette-maker/
 ├── .github/workflows/ci.yml
 ├── client/                 # React frontend (Vite 5)
 │   ├── src/                # Components, API, utils, tests
@@ -135,44 +112,64 @@ color-palette-maker-react/
 │   └── package.json
 ├── docs/
 ├── scripts/
-│   ├── detect_regions.py              # Python/OpenCV region detection
 │   ├── create-s3-palette-bucket.sh    # Create S3 bucket, policy, CORS
-│   ├── migrate-uploads-to-s3.js       # Upload uploads/ to S3, update metadata
+│   ├── migrate-uploads-to-s3.js       # Upload local-data-cache/ images to S3, update metadata
 │   ├── open-s3-jpegs-in-chrome.sh     # Open JPEGs in Chrome (Enter to advance)
 │   └── import-resume-flock-monotone-palettes.js  # Import monotone palettes from resume-flock
 ├── color-palette-utils-ts/ # npm package `color-palette-utils-ts` (TS utils + NDJSON catalog)
+├── static_content/         # Icons, CSS (palette.css), images (hero GIFs)
+├── utils/                  # JS/CJS helpers + detect_regions.py (OpenCV region detection)
 ├── server.js               # Express server
 ├── metadata_handler.js
 ├── image_processor.js
 ├── s3-storage.js             # S3 uploads (region from env or ~/.aws/config)
-├── requirements.txt        # Python deps (used in Dockerfile)
-├── Dockerfile
-├── docker-compose.yml
-├── .dockerignore
+├── requirements.txt        # Python deps for region detection
 └── package.json
 ```
 
 ---
 
-## npm Scripts (S3 and imports)
+<a id="workspace-editor-defaults"></a>
+## Workspace editor defaults (Cursor/VS Code)
+
+This repo includes workspace settings so React/TypeScript contributors share consistent formatting and lint behavior:
+
+- `.vscode/settings.json`
+- `.vscode/extensions.json`
+
+Current defaults:
+
+- Format on save (Prettier)
+- ESLint + organize imports on save
+- ESLint validation for JS/TS/React files
+- Auto-update imports on file move
+
+To opt out locally, use **User Settings** in Cursor (global) or add your own untracked overrides in the workspace and do not commit them.
+
+---
+
+## npm Scripts (S3)
 
 | Script | Description |
 |--------|-------------|
 | `npm run verify:s3` | Verify IAM S3 read/write and public palette-catalog URL. See [S3 storage](S3-STORAGE.md). |
-| `npm run migrate:s3` | Migrate existing `uploads/` files to S3, update `color_palettes.jsonl` with `s3Key` and `imagePublicUrl`. Use `--dry-run` to preview, `--force` to re-upload all. |
+| `npm run migrate:s3` | Migrate existing `local-data-cache/` image files to S3, update `local-data-cache/color_palettes.jsonl` with `s3Key` and `imagePublicUrl`. Use `--dry-run` to preview, `--force` to re-upload all. |
 | `npm run test:color-palette-utils-ts` | Vitest in `color-palette-utils-ts/` (colors, palette JSON, NDJSON catalog). |
 | `npm run test:coverage:color-palette-utils-ts` | Same + V8 coverage → `color-palette-utils-ts/coverage/`. |
 | `npm run test:coverage` | Client lint + client Vitest coverage (thresholds in `client/`). |
 | `npm run test:coverage:all` | Client `test:coverage` **then** `color-palette-utils-ts` coverage. |
-| `npm run import:resume-flock-monotone` | Import White_Monotone, Medium_Grey_Monotone, Black_Monotone from resume-flock as swatch images. See [S3 storage](S3-STORAGE.md#scripts). |
+| `npm run test:coverage:all:tables` | Same two packages, **no ESLint**; Vitest uses `--silent --reporter=json` (results under `node_modules/.vitest-report.json`) so stdout is mostly **coverage tables** plus a short “JSON report written” line and one line from `save-coverage-report.js` (client only). |
+| `npm run test:coverage:tables` (in `client/`) | Client coverage only, tables-focused output. |
+
+Optional utility script kept for local use (not part of standard workflow): `node scripts/import-resume-flock-monotone-palettes.js`.
 
 ---
 
 ## Environment Variables
 
-### Server (Docker / container)
+### Server
 
-Set in `docker-compose.yml` or when running `docker run -e ...`. See root `.env.example` for a list; the image defaults are suitable for most runs.
+Set in root `.env` (see `.env.example` for all options).
 
 | Variable | Description |
 |----------|-------------|

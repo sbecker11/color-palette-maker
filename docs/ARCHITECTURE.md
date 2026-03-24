@@ -21,19 +21,35 @@ This document describes how regions, region colors, K-means clustering, and over
        │             └────────┬────────┘
        │                      │
        │                      ▼
-       │             color_palettes.jsonl (+ optional S3 copy)
-       │             uploads/ (+ optional S3 images/*)
+       │             ┌──────────────────┐      ┌─────────────────────────────┐
+       │             │ local-data-cache │◀───▶│ AWS S3 (source of truth)    │
+       │             │ (disk cache)     │      │ images/* + palettes JSONL   │
+       │             └──────────────────┘      └─────────────────────────────┘
        └──────────────────────┘
 ```
 
 - **Client**: React SPA; uploads images, requests palette/regions, displays overlays.
 - **Express**: Serves API, uploads, and built frontend; invokes Python for region detection; uses `metadata_handler` and `image_processor` for persistence and palette logic.
+- **S3**: Canonical store for palette source images and the full `color_palettes.jsonl` catalog. The server refuses to start unless the bucket is configured and IAM can verify Put/Get/Delete (see [S3-STORAGE.md](S3-STORAGE.md)).
+- **`local-data-cache/`**: Local disk cache only — mirrored `color_palettes.jsonl` after each successful S3 write, and cached image bytes for Sharp, K-means, and region detection. `GET /palette-images/:filename` can **read through** from S3 on cache miss (`image_cache.js`), then serve from disk.
+
+---
+
+## Storage and persistence
+
+| Layer | Role |
+|-------|------|
+| **S3** | Authoritative: object keys under `S3_IMAGES_PREFIX` (default `images/`) for files, and `S3_PALETTES_JSONL_KEY` (default `metadata/color_palettes.jsonl`) for NDJSON metadata. |
+| **`local-data-cache/`** | Performance and processing: same filenames as S3; not a second source of truth. Writes update S3 first, then the local mirror. |
+| **In-process metadata cache** | Short TTL (`METADATA_CACHE_TTL_MS`, default 5000 ms) to avoid hammering S3 on every API read; invalidated on metadata write errors. |
+
+Metadata rows still include `cachedFilePath` (absolute path under `local-data-cache/`) for legacy and server-side file access; public consumers use `imagePublicUrl` and the palette NDJSON URL from S3 when configured.
 
 ---
 
 ## 1. How region boundaries are computed
 
-Region detection runs a Python subprocess (`scripts/detect_regions.py`) using OpenCV. Available strategies:
+Region detection runs a Python subprocess (`utils/detect_regions.py`) using OpenCV. Available strategies:
 
 | Strategy | Best for | Approach |
 |----------|----------|----------|
@@ -99,7 +115,7 @@ Each region gets a filled circle (the "swatch circle") drawn near the region cen
 
 ## 8. How region boundaries and their average hex colors are stored
 
-Regions and their associated data are persisted in `color_palettes.jsonl`. Each image entry can include:
+Regions and their associated data are persisted in the palette catalog (`color_palettes.jsonl` in S3, mirrored under `local-data-cache/`). Each image entry can include:
 
 - **regions**: Array of polygon arrays (`[[x,y], ...]`).
 - **paletteRegion**: Array of `{ hex, regionColor, x, y }` per region, where `regionColor` is the region average hex, `hex` is the nearest palette color, and `(x, y)` is the region centroid. Palette region data is recomputed when regions change or when the palette is regenerated.

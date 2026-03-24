@@ -2,7 +2,7 @@
  * Pure helper functions extracted from App.jsx for better testability and branch coverage.
  */
 import { getFilenameFromMeta, getFilenameWithoutExt, getImageUrlForMeta } from './utils';
-import { indexToLabel, computeSwatchLabels } from '../../shared/swatchLabels.js';
+import { indexToLabel, computeSwatchLabels } from '../../utils/swatchLabels.js';
 
 // Re-export for tests and consumers
 export { indexToLabel, computeSwatchLabels };

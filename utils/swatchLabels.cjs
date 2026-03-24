@@ -1,6 +1,6 @@
 /**
  * Shared swatch label utilities (A, B, C, ..., AA, ...).
- * CJS for server (Node). Client uses shared/swatchLabels.js (ESM).
+ * CJS for server (Node). Client uses utils/swatchLabels.js (ESM).
  */
 
 function indexToLabel(i) {

@@ -162,6 +162,6 @@ With these changes, Kubernetes becomes a strong fit: scaling, high availability,
 1. Add auth and DB; migrate metadata to PostgreSQL.
 2. Add object storage; migrate uploads.
 3. Update backend and image-processor for stateless operation.
-4. Add K8s manifests (see [Single-User-SPA-DockerCompose-migration.md](Single-User-SPA-DockerCompose-migration.md) for service split).
+4. Add K8s manifests for services, ingress, and scaling.
 5. Deploy; run migrations; test multi-user flows.
 6. Add HPA, monitoring, alerting.

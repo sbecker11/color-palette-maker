@@ -44,11 +44,11 @@ describe('AppHelpers', () => {
       expect(getNextSelectionAfterDeletion(null)).toBe(null);
     });
     it('returns selection when first item has cachedFilePath', () => {
-      const remaining = [{ cachedFilePath: '/uploads/img.jpeg', paletteName: 'img' }];
+      const remaining = [{ cachedFilePath: '/palette-images/img.jpeg', paletteName: 'img' }];
       const result = getNextSelectionAfterDeletion(remaining);
       expect(result).toEqual({
         meta: remaining[0],
-        imageUrl: '/uploads/img.jpeg',
+        imageUrl: '/palette-images/img.jpeg',
       });
     });
     it('returns null when first item has no cachedFilePath', () => {
@@ -59,9 +59,9 @@ describe('AppHelpers', () => {
 
   describe('computeReorderedState', () => {
     const images = [
-      { cachedFilePath: '/uploads/a.jpeg' },
-      { cachedFilePath: '/uploads/b.jpeg' },
-      { cachedFilePath: '/uploads/c.jpeg' },
+      { cachedFilePath: '/palette-images/a.jpeg' },
+      { cachedFilePath: '/palette-images/b.jpeg' },
+      { cachedFilePath: '/palette-images/c.jpeg' },
     ];
 
     it('returns null when index is out of bounds', () => {
@@ -151,12 +151,12 @@ describe('AppHelpers', () => {
       });
     });
     it('uses getFilenameWithoutExt when paletteName empty', () => {
-      const meta = { cachedFilePath: '/uploads/my-image.jpeg', colorPalette: ['#ff0000'] };
+      const meta = { cachedFilePath: '/palette-images/my-image.jpeg', colorPalette: ['#ff0000'] };
       expect(buildExportData(meta, '')).toEqual({
         name: 'my-image',
         colors: ['#ff0000'],
         backgroundSwatchIndex: 0,
-        imagePath: '/uploads/my-image.jpeg',
+        imagePath: '/palette-images/my-image.jpeg',
       });
     });
     it('uses palette fallback when meta has no filename', () => {
@@ -200,7 +200,7 @@ describe('AppHelpers', () => {
     });
     it('includes imagePath and imageUrl when available', () => {
       const meta = {
-        cachedFilePath: '/uploads/img-123.jpeg',
+        cachedFilePath: '/palette-images/img-123.jpeg',
         uploadedURL: 'https://example.com/photo.jpg',
         colorPalette: ['#ff0000'],
       };
@@ -208,13 +208,13 @@ describe('AppHelpers', () => {
         name: 'P',
         colors: ['#ff0000'],
         backgroundSwatchIndex: 0,
-        imagePath: '/uploads/img-123.jpeg',
+        imagePath: '/palette-images/img-123.jpeg',
         imageUrl: 'https://example.com/photo.jpg',
       });
     });
     it('includes imagePublicUrl when set (S3)', () => {
       const meta = {
-        cachedFilePath: '/uploads/img-123.jpeg',
+        cachedFilePath: '/palette-images/img-123.jpeg',
         imagePublicUrl: 'https://bucket.s3.us-east-1.amazonaws.com/images/img-123.jpeg',
         colorPalette: ['#ff0000'],
       };

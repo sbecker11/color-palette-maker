@@ -1,5 +1,5 @@
 {
-  "name": "color-palette-maker-react",
+  "name": "color-palette-maker",
   "version": "1.0.0",
   "description": "Color Palette Maker - React SPA for extracting color palettes from images",
   "keywords": [
@@ -8,13 +8,13 @@
     "react",
     "image"
   ],
-  "homepage": "https://github.com/sbecker11/color-palette-maker-react#readme",
+  "homepage": "https://github.com/sbecker11/color-palette-maker#readme",
   "bugs": {
-    "url": "https://github.com/sbecker11/color-palette-maker-react/issues"
+    "url": "https://github.com/sbecker11/color-palette-maker/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sbecker11/color-palette-maker-react.git"
+    "url": "git+https://github.com/sbecker11/color-palette-maker.git"
   },
   "license": "MIT",
   "author": "sbecker11",
@@ -32,9 +32,9 @@
     "test:coverage:color-palette-utils-ts": "npm run test:coverage --prefix color-palette-utils-ts",
     "test:coverage": "cd client && npm run lint && npm run test:coverage",
     "test:coverage:all": "npm run test:coverage && npm run test:coverage:color-palette-utils-ts",
+    "test:coverage:all:tables": "npm run test:coverage:tables --prefix client && npm run test:coverage:tables --prefix color-palette-utils-ts",
     "migrate:s3": "node scripts/migrate-uploads-to-s3.js",
     "verify:s3": "node scripts/verify-s3-access.js",
-    "import:resume-flock-monotone": "node scripts/import-resume-flock-monotone-palettes.js",
     "open:app": "node -e \"require('dotenv').config(); require('child_process').spawnSync('open', ['-a','Google Chrome','http://localhost:'+(process.env.EXPRESS_PORT||3000)], {stdio:'inherit'});\"",
     "start:open": "npm run start & node scripts/open-after-wait.js",
     "open:coverage": "open \"$(ls -t client/coverage-reports/*.html 2>/dev/null | head -1)\"",

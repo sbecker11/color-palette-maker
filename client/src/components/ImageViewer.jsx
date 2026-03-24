@@ -2,49 +2,14 @@ import { forwardRef, useEffect, useRef, useState } from 'react';
 import { rgbToHex, formatHexDisplay } from '../utils';
 import { shrinkPolygon, polygonToPath } from '../imageViewerGeometry';
 import { useClickOutsideToExit } from '../hooks/useClickOutsideToExit';
-
-// Region interior highlight on rollover (controlled by VITE_HIGHLIGHT_REGION_ON_ROLLOVER)
-const HIGHLIGHT_REGION_ON_ROLLOVER = (() => {
-  const v = import.meta.env.VITE_HIGHLIGHT_REGION_ON_ROLLOVER;
-  if (v === undefined || v === '') return true;
-  return v !== 'false' && v !== '0';
-})();
-
-// Default (non-highlighted) region boundary stroke width (VITE_REGION_BOUNDARY_STROKE_WIDTH, default 1)
-const REGION_BOUNDARY_STROKE_WIDTH = (() => {
-  const v = import.meta.env.VITE_REGION_BOUNDARY_STROKE_WIDTH;
-  if (v === undefined || v === '') return 1;
-  const n = Number(v);
-  return Number.isFinite(n) && n >= 0 ? n : 1;
-})();
-
-// Default (non-highlighted) region boundary stroke color (VITE_REGION_BOUNDARY_STROKE_COLOR)
-const REGION_BOUNDARY_STROKE_COLOR = (() => {
-  const v = import.meta.env.VITE_REGION_BOUNDARY_STROKE_COLOR;
-  return (v !== undefined && v !== '') ? String(v) : 'rgba(50, 120, 200, 0.9)';
-})();
-
-// Highlighted region boundary stroke width (VITE_REGION_HIGHLIGHT_STROKE_WIDTH, default 3)
-const REGION_HIGHLIGHT_STROKE_WIDTH = (() => {
-  const v = import.meta.env.VITE_REGION_HIGHLIGHT_STROKE_WIDTH;
-  if (v === undefined || v === '') return 3;
-  const n = Number(v);
-  return Number.isFinite(n) && n > 0 ? n : 3;
-})();
-
-// Highlighted region boundary stroke color (VITE_REGION_HIGHLIGHT_STROKE_COLOR)
-const REGION_HIGHLIGHT_STROKE_COLOR = (() => {
-  const v = import.meta.env.VITE_REGION_HIGHLIGHT_STROKE_COLOR;
-  return (v !== undefined && v !== '') ? String(v) : 'rgba(80, 160, 255, 1)';
-})();
-
-// Highlighted region interior fill (VITE_REGION_HIGHLIGHT_FILL, default rgba). Use "transparent" or "false" for no fill.
-const REGION_HIGHLIGHT_FILL = (() => {
-  const v = import.meta.env.VITE_REGION_HIGHLIGHT_FILL;
-  if (v === undefined || v === '') return 'rgba(150, 220, 255, 0.45)';
-  if (v === 'false' || v.toLowerCase() === 'transparent') return 'transparent';
-  return String(v);
-})();
+import {
+  HIGHLIGHT_REGION_ON_ROLLOVER,
+  REGION_BOUNDARY_STROKE_WIDTH,
+  REGION_BOUNDARY_STROKE_COLOR,
+  REGION_HIGHLIGHT_STROKE_WIDTH,
+  REGION_HIGHLIGHT_STROKE_COLOR,
+  REGION_HIGHLIGHT_FILL,
+} from './imageViewerConfig';
 
 // Small "x" cursor for Deleting regions mode when hovering over a region
 const CURSOR_DELETE_X = `url("data:image/svg+xml,${encodeURIComponent(

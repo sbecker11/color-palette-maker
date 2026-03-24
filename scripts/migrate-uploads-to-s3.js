@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * One-time migration: upload local uploads/ files to S3 and set s3Key + imagePublicUrl on each metadata row.
+ * One-time migration: upload local local-data-cache/ image files to S3 and set s3Key + imagePublicUrl on each metadata row.
  *
  * Prerequisites:
  *   - .env with S3_IMAGES_BUCKET (+ AWS_REGION or ~/.aws/config region)
@@ -12,8 +12,8 @@
  *   node scripts/migrate-uploads-to-s3.js --dry-run    # print plan only
  *   node scripts/migrate-uploads-to-s3.js --force      # re-upload and refresh URLs even if s3Key exists
  *
- * Always back up color_palettes.jsonl first:
- *   cp color_palettes.jsonl color_palettes.jsonl.bak
+ * Always back up local-data-cache/color_palettes.jsonl first:
+ *   cp local-data-cache/color_palettes.jsonl local-data-cache/color_palettes.jsonl.bak
  */
 
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
@@ -24,7 +24,7 @@ const path = require('path');
 const metadataHandler = require('../metadata_handler');
 const s3Storage = require('../s3-storage');
 
-const uploadsDir = path.join(__dirname, '..', 'uploads');
+const uploadsDir = path.join(__dirname, '..', 'local-data-cache');
 
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has('--dry-run');

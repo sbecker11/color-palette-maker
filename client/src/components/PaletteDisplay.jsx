@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { formatHexDisplay, getFilenameFromMeta } from '../utils';
 import MetadataDisplay from './MetadataDisplay';
 import BizCardModal from './BizCardModal';
-import { VALID_STRATEGIES, REGION_STRATEGIES, STRATEGIES_WITH_PARAMS } from '../../../shared/regionStrategies.js';
+import { VALID_STRATEGIES, REGION_STRATEGIES, STRATEGIES_WITH_PARAMS } from '../../../utils/regionStrategies.js';
 
 const DEFAULT_REGION_PARAMS = {
   adaptiveBlockSize: 11,

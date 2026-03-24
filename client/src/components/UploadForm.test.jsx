@@ -74,6 +74,45 @@ describe('UploadForm', () => {
     expect(nameEl).toHaveAttribute('title', 'my-vacation-photo.jpeg');
   });
 
+  it('opens file picker when Enter is pressed on file-name control', () => {
+    const onSubmit = vi.fn();
+    render(<UploadForm onSubmit={onSubmit} message={{ text: '', isError: false }} />);
+    fireEvent.click(screen.getByLabelText(/upload local file/i));
+
+    const fileInput = screen.getByLabelText(/select file/i);
+    const clickSpy = vi.spyOn(fileInput, 'click');
+    const nameEl = document.querySelector('.source-file-name');
+
+    fireEvent.keyDown(nameEl, { key: 'Enter' });
+    expect(clickSpy).toHaveBeenCalled();
+  });
+
+  it('opens file picker when Space is pressed on file-name control', () => {
+    const onSubmit = vi.fn();
+    render(<UploadForm onSubmit={onSubmit} message={{ text: '', isError: false }} />);
+    fireEvent.click(screen.getByLabelText(/upload local file/i));
+
+    const fileInput = screen.getByLabelText(/select file/i);
+    const clickSpy = vi.spyOn(fileInput, 'click');
+    const nameEl = document.querySelector('.source-file-name');
+
+    fireEvent.keyDown(nameEl, { key: ' ' });
+    expect(clickSpy).toHaveBeenCalled();
+  });
+
+  it('opens file picker when file-name span is clicked', () => {
+    const onSubmit = vi.fn();
+    render(<UploadForm onSubmit={onSubmit} message={{ text: '', isError: false }} />);
+    fireEvent.click(screen.getByLabelText(/upload local file/i));
+
+    const fileInput = screen.getByLabelText(/select file/i);
+    const clickSpy = vi.spyOn(fileInput, 'click');
+    const nameEl = document.querySelector('.source-file-name');
+
+    fireEvent.click(nameEl);
+    expect(clickSpy).toHaveBeenCalled();
+  });
+
   it('calls onSubmit with FormData when file is selected', async () => {
     const onSubmit = vi.fn().mockResolvedValue({ success: true });
     const file = new File(['image'], 'test.png', { type: 'image/png' });

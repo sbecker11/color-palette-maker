@@ -10,7 +10,7 @@ describe('MetadataDisplay', () => {
 
   it('shows metadata when meta provided', () => {
     const meta = {
-      cachedFilePath: '/uploads/img-123.jpeg',
+      cachedFilePath: '/palette-images/img-123.jpeg',
       width: 100,
       height: 200,
       format: 'jpeg',
@@ -25,7 +25,7 @@ describe('MetadataDisplay', () => {
 
   it('shows uploadedURL as link when provided', () => {
     const meta = {
-      cachedFilePath: '/uploads/img.jpeg',
+      cachedFilePath: '/palette-images/img.jpeg',
       uploadedURL: 'https://example.com/image.jpg',
       width: 50,
       height: 50,
@@ -39,7 +39,7 @@ describe('MetadataDisplay', () => {
 
   it('shows Local path when uploadedFilePath provided', () => {
     const meta = {
-      cachedFilePath: '/uploads/img.jpeg',
+      cachedFilePath: '/palette-images/img.jpeg',
       uploadedFilePath: '/path/to/file.jpg',
       width: 50,
       height: 50,
@@ -51,7 +51,7 @@ describe('MetadataDisplay', () => {
 
   it('shows N/A for dimensions when width or height missing', () => {
     const meta = {
-      cachedFilePath: '/uploads/img.jpeg',
+      cachedFilePath: '/palette-images/img.jpeg',
       fileSizeBytes: 100,
     };
     render(<MetadataDisplay meta={meta} />);
@@ -68,7 +68,7 @@ describe('MetadataDisplay', () => {
 
   it('shows N/A for format when format missing', () => {
     const meta = {
-      cachedFilePath: '/uploads/img.jpeg',
+      cachedFilePath: '/palette-images/img.jpeg',
       width: 10,
       height: 10,
       fileSizeBytes: 100,
@@ -80,7 +80,7 @@ describe('MetadataDisplay', () => {
 
   it('shows formatted file size', () => {
     const meta = {
-      cachedFilePath: '/uploads/img.jpeg',
+      cachedFilePath: '/palette-images/img.jpeg',
       width: 10,
       height: 10,
       fileSizeBytes: 2048,

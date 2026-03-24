@@ -52,11 +52,11 @@ export function getHighContrastMono(hex) {
  * Returns paths for url, back, and img icons. Uses black PNGs only; when variant
  * is 'white', apply CSS filter: invert(1) to render white on dark backgrounds.
  * @param {string} hex - Background hex color
- * @param {{ iconBase?: string }} [options] - iconBase: URL base for icons (default: '/palette-utils/icons/anchors')
+ * @param {{ iconBase?: string }} [options] - iconBase: URL base for icons (default: '/static_content/icons/anchors')
  * @returns {{ url: string, back: string, img: string, variant: 'black'|'white' }}
  */
 export function getContrastIconSet(hex, options = {}) {
-  const iconBase = options.iconBase ?? '/palette-utils/icons/anchors';
+  const iconBase = options.iconBase ?? '/static_content/icons/anchors';
   const variant = getHighContrastMono(hex) === '#000000' ? 'black' : 'white';
   return {
     url: `${iconBase}/icons8-url-16-black.png`,

@@ -12,10 +12,10 @@ __pycache__/
 # macOS
 .DS_Store
 
-# Runtime / generated data
-color_palettes.jsonl
-uploads/
-docker-data/
+# Runtime / generated data (images + color_palettes.jsonl)
+local-data-cache/
+# Legacy location before metadata moved into local-data-cache/
+/color_palettes.jsonl
 .env
 
 # image assets hosted via gh-pages branch

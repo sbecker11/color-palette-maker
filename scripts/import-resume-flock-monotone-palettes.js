@@ -15,7 +15,7 @@ const metadataHandler = require('../metadata_handler');
 const s3Storage = require('../s3-storage');
 
 const REPO_ROOT = path.join(__dirname, '..');
-const UPLOADS_DIR = path.join(REPO_ROOT, 'uploads');
+const UPLOADS_DIR = path.join(REPO_ROOT, 'local-data-cache');
 const PALETTES_SRC = path.join(REPO_ROOT, '..', '..', 'workspace-flock', 'resume-flock', 'static_content', 'colorPalettes');
 
 const PALETTE_FILES = ['White_Monotone.json', 'Medium_Grey_Monotone.json', 'Black_Monotone.json'];

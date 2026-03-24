@@ -1,7 +1,7 @@
 /**
  * Region detection strategy constants.
  * Shared by client (PaletteDisplay) and server (regions API).
- * @module shared/regionStrategies
+ * @module utils/regionStrategies
  */
 
 export const VALID_STRATEGIES = [
