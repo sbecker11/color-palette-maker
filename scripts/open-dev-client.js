@@ -11,6 +11,7 @@ const viteDevPort = parseInt(process.env.VITE_DEV_PORT, 10) || 5173;
 const MAX_PORT_OFFSET = 25;
 
 const projectRoot = path.join(__dirname, '..');
+const expectedTitle = 'Color Palette Maker';
 
 (async () => {
   // Brief delay so dev server and Vite have a head start
@@ -23,7 +24,12 @@ const projectRoot = path.join(__dirname, '..');
     for (let p = viteDevPort; p <= viteDevPort + MAX_PORT_OFFSET; p += 1) {
       try {
         const res = await fetch(`http://localhost:${p}`, { method: 'GET' });
-        if (res.ok) {
+        if (!res.ok) continue;
+
+        // Avoid opening other "Vite-ish" apps that share the same port range.
+        // We identify *this* app by matching the HTML <title>.
+        const body = await res.text();
+        if (body.includes(`<title>${expectedTitle}</title>`) || body.includes(expectedTitle)) {
           resolvedPort = p;
           break;
         }
