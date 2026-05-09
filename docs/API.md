@@ -13,7 +13,7 @@
 | POST | `/api/regions/:filename` | Detect regions using Python/OpenCV |
 | POST | `/api/palette/:filename` | Generate color palette (add `?regenerate=true` to force recompute; body `{ regions, k }` for masked K-means) |
 | PUT | `/api/palette/:filename` | Save updated palette |
-| PUT | `/api/metadata/:filename` | Update palette name, regions, or region labels |
+| PUT | `/api/metadata/:filename` | Update palette name, regions, labels, viewer prefs, region strategy/params |
 | DELETE | `/api/images/:filename` | Delete image and metadata |
 
 ---
@@ -283,23 +283,33 @@ Save an updated palette (e.g., after manual swatch edits or reordering).
 
 ### PUT /api/metadata/:filename
 
-Update metadata fields: palette name, regions, and region labels.
+Update metadata fields: palette name, regions, region labels, viewer toggles, and region-detection UI state.
 
 **Request body**
 
-Provide at least one of:
+Provide at least one supported field, for example:
 
 ```json
 {
   "paletteName": "My Palette",
   "regions": [[[x, y], [x, y], ...], ...],
-  "regionLabels": ["00", "01", "02"]
+  "regionLabels": ["00", "01", "02"],
+  "backgroundSwatchIndex": 0,
+  "showRegionBoundaries": true,
+  "showMatchPaletteSwatches": false,
+  "addingSwatches": false,
+  "deletingRegionsMode": false,
+  "regionStrategy": "default",
+  "regionParams": {}
 }
 ```
 
 - **paletteName**: 1–100 characters, non-empty.
 - **regions**: Array of polygon arrays. When regions change, `paletteRegion` is recomputed if a palette exists.
 - **regionLabels**: Optional; must match `regions` length. Defaults to `"00"`, `"01"`, … if invalid or omitted.
+- **backgroundSwatchIndex**: Optional swatch index or `null` to clear.
+- **showRegionBoundaries**, **showMatchPaletteSwatches**, **addingSwatches**, **deletingRegionsMode**: Booleans; persisted per catalog row for the web UI.
+- **regionStrategy**, **regionParams**: Region detection strategy id and strategy-specific parameters object (same keys as the detect-regions request body); may be updated without re-running detection.
 
 **Response**
 
@@ -312,7 +322,7 @@ Provide at least one of:
 
 **Errors**
 
-- `400` — Invalid filename, palette name, or regions; or neither `paletteName` nor `regions` provided
+- `400` — Invalid filename, palette name, regions, booleans, strategy, or params; or no supported fields to update
 - `404` — Image metadata not found
 - `500` — Failed to save metadata
 

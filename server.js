@@ -10,11 +10,11 @@ const sharp = require('sharp');
 
 // Import modularized handlers
 const metadataHandler = require('./metadata_handler');
+const { VALID_STRATEGIES } = require('./utils/regionStrategies.cjs');
 const imageProcessor = require('./image_processor');
 const s3Storage = require('./s3-storage');
 const { validateFilename, ensureImageCachedLocally } = require('./image_cache');
 const { computeSwatchLabels } = require('./utils/swatchLabels.cjs');
-const { VALID_STRATEGIES } = require('./utils/regionStrategies.cjs');
 
 const app = express();
 const port = parseInt(process.env.EXPRESS_PORT, 10) || 3000;
@@ -612,10 +612,21 @@ app.post('/api/pairings/:filename', async (req, res) => {
     }
 });
 
-// PUT /api/metadata/:filename - Update specific metadata fields (paletteName, regions, regionLabels, backgroundSwatchIndex)
+// PUT /api/metadata/:filename - Update metadata fields (palette, regions, viewer prefs, region UI state)
 app.put('/api/metadata/:filename', express.json(), async (req, res) => {
     const filename = req.params.filename;
-    const { paletteName, regions, regionLabels, backgroundSwatchIndex } = req.body;
+    const {
+        paletteName,
+        regions,
+        regionLabels,
+        backgroundSwatchIndex,
+        showRegionBoundaries,
+        showMatchPaletteSwatches,
+        addingSwatches,
+        deletingRegionsMode,
+        regionStrategy,
+        regionParams,
+    } = req.body;
     console.log(`[API PUT /metadata] Request received for ${filename}`);
 
     if (!validateFilename(filename)) {
@@ -633,9 +644,38 @@ app.put('/api/metadata/:filename', express.json(), async (req, res) => {
         (typeof backgroundSwatchIndex !== 'number' || !Number.isInteger(backgroundSwatchIndex) || backgroundSwatchIndex < 0)) {
         return res.status(400).json({ success: false, message: 'backgroundSwatchIndex must be a non-negative integer or null.' });
     }
+    if (showRegionBoundaries !== undefined && typeof showRegionBoundaries !== 'boolean') {
+        return res.status(400).json({ success: false, message: 'showRegionBoundaries must be a boolean.' });
+    }
+    if (showMatchPaletteSwatches !== undefined && typeof showMatchPaletteSwatches !== 'boolean') {
+        return res.status(400).json({ success: false, message: 'showMatchPaletteSwatches must be a boolean.' });
+    }
+    if (addingSwatches !== undefined && typeof addingSwatches !== 'boolean') {
+        return res.status(400).json({ success: false, message: 'addingSwatches must be a boolean.' });
+    }
+    if (deletingRegionsMode !== undefined && typeof deletingRegionsMode !== 'boolean') {
+        return res.status(400).json({ success: false, message: 'deletingRegionsMode must be a boolean.' });
+    }
+    if (regionStrategy !== undefined) {
+        if (typeof regionStrategy !== 'string' || !VALID_STRATEGIES.includes(regionStrategy)) {
+            return res.status(400).json({ success: false, message: 'Invalid regionStrategy.' });
+        }
+    }
+    if (regionParams !== undefined) {
+        if (typeof regionParams !== 'object' || regionParams === null || Array.isArray(regionParams)) {
+            return res.status(400).json({ success: false, message: 'regionParams must be a plain object.' });
+        }
+    }
     const hasBackgroundSwatchIndex = 'backgroundSwatchIndex' in req.body;
-    if (paletteName === undefined && regions === undefined && !hasBackgroundSwatchIndex) {
-        return res.status(400).json({ success: false, message: 'Provide paletteName, regions, and/or backgroundSwatchIndex.' });
+    const hasViewerOrStrategy =
+        showRegionBoundaries !== undefined ||
+        showMatchPaletteSwatches !== undefined ||
+        addingSwatches !== undefined ||
+        deletingRegionsMode !== undefined ||
+        regionStrategy !== undefined ||
+        regionParams !== undefined;
+    if (paletteName === undefined && regions === undefined && !hasBackgroundSwatchIndex && !hasViewerOrStrategy) {
+        return res.status(400).json({ success: false, message: 'No supported fields to update.' });
     }
 
     let metaResult;
@@ -654,6 +694,24 @@ app.put('/api/metadata/:filename', express.json(), async (req, res) => {
     }
     if (hasBackgroundSwatchIndex) {
         allMetadata[imageIndex].backgroundSwatchIndex = backgroundSwatchIndex ?? undefined;
+    }
+    if (showRegionBoundaries !== undefined) {
+        allMetadata[imageIndex].showRegionBoundaries = showRegionBoundaries;
+    }
+    if (showMatchPaletteSwatches !== undefined) {
+        allMetadata[imageIndex].showMatchPaletteSwatches = showMatchPaletteSwatches;
+    }
+    if (addingSwatches !== undefined) {
+        allMetadata[imageIndex].addingSwatches = addingSwatches;
+    }
+    if (deletingRegionsMode !== undefined) {
+        allMetadata[imageIndex].deletingRegionsMode = deletingRegionsMode;
+    }
+    if (regionStrategy !== undefined) {
+        allMetadata[imageIndex].regionStrategy = regionStrategy;
+    }
+    if (regionParams !== undefined) {
+        allMetadata[imageIndex].regionParams = { ...regionParams };
     }
     if (regions !== undefined) {
         allMetadata[imageIndex].regions = regions;
@@ -823,6 +881,10 @@ app.post('/api/images/:filename/duplicate', async (req, res) => {
             paletteRegion: JSON.parse(JSON.stringify(getPaletteRegion(sourceMeta))),
             regionStrategy: sourceMeta.regionStrategy ?? 'default',
             regionParams: sourceMeta.regionParams ? { ...sourceMeta.regionParams } : {},
+            showRegionBoundaries: sourceMeta.showRegionBoundaries !== false,
+            showMatchPaletteSwatches: Boolean(sourceMeta.showMatchPaletteSwatches),
+            addingSwatches: Boolean(sourceMeta.addingSwatches),
+            deletingRegionsMode: Boolean(sourceMeta.deletingRegionsMode),
             backgroundSwatchIndex: sourceMeta.backgroundSwatchIndex !== undefined ? sourceMeta.backgroundSwatchIndex : undefined,
             ...(s3Dup ? { s3Key: s3Dup.s3Key, imagePublicUrl: s3Dup.imagePublicUrl } : {})
         };

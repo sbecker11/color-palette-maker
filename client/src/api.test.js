@@ -445,4 +445,31 @@ describe('api', () => {
       })
     );
   });
+
+  it('saveMetadata includes viewer prefs and region detection fields when provided', async () => {
+    global.fetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ success: true }) });
+    await api.saveMetadata('img.jpeg', {
+      showRegionBoundaries: false,
+      showMatchPaletteSwatches: true,
+      addingSwatches: false,
+      deletingRegionsMode: true,
+      regionStrategy: 'meanshift',
+      regionParams: { meanshiftSpatial: 10, meanshiftColor: 30 },
+    });
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/metadata/img.jpeg',
+      expect.objectContaining({
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          showRegionBoundaries: false,
+          showMatchPaletteSwatches: true,
+          addingSwatches: false,
+          deletingRegionsMode: true,
+          regionStrategy: 'meanshift',
+          regionParams: { meanshiftSpatial: 10, meanshiftColor: 30 },
+        }),
+      })
+    );
+  });
 });

@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useRef, useState } from 'react';
-import { rgbToHex, formatHexDisplay } from '../utils';
+import { rgbToHex, formatHexDisplay, hexToRgb } from '../utils';
 import { shrinkPolygon, polygonToPath } from '../imageViewerGeometry';
 import { useClickOutsideToExit } from '../hooks/useClickOutsideToExit';
 import {
@@ -10,6 +10,33 @@ import {
   REGION_HIGHLIGHT_STROKE_COLOR,
   REGION_HIGHLIGHT_FILL,
 } from './imageViewerConfig';
+
+/** Palette row index for a hex string; compares canonical #rrggbb (handles #rgb vs #RRGGBB). */
+function paletteIndexForHex(palette, maybeHex) {
+  if (maybeHex == null || !Array.isArray(palette) || palette.length === 0) return -1;
+  const nh = formatHexDisplay(maybeHex);
+  if (!nh || !/^#[0-9a-f]{6}$/.test(nh)) return -1;
+  return palette.findIndex((c) => formatHexDisplay(c) === nh);
+}
+
+/** Canonical #rrggbb for Match Region Swatches outline, or null if none. */
+function resolveMatchSwatchStrokeHex(regionData, palette) {
+  if (!regionData) return null;
+  const paletteArr = Array.isArray(palette) ? palette : [];
+  const paletteIdxForRegion = paletteIndexForHex(
+    paletteArr,
+    regionData.hex ?? regionData.regionColor
+  );
+  const raw =
+    regionData.hex ??
+    regionData.regionColor ??
+    (paletteIdxForRegion >= 0 ? paletteArr[paletteIdxForRegion] : null);
+  if (raw == null || !hexToRgb(raw)) return null;
+  return formatHexDisplay(raw);
+}
+
+/** Extra-wide outline in image/viewBox units when hovering with Match Region Swatches (readable over busy photos). */
+const MATCH_SWATCH_OUTLINE_STROKE_WIDTH = 5;
 
 // Small "x" cursor for Deleting regions mode when hovering over a region
 const CURSOR_DELETE_X = `url("data:image/svg+xml,${encodeURIComponent(
@@ -549,23 +576,49 @@ const ImageViewer = forwardRef(function ImageViewer({
                     const shrunk = shrinkPolygon(poly, 3);
                     const d = polygonToPath(shrunk);
                     const regionData = paletteRegion?.[i];
-                    const paletteColorForRegion = regionData?.hex;
-                    const paletteIdxForRegion = paletteColorForRegion != null
-                      ? palette.findIndex((c) => String(c).toLowerCase() === String(paletteColorForRegion).toLowerCase())
-                      : -1;
+                    const paletteIdxForRegion = paletteIndexForHex(
+                      palette,
+                      regionData?.hex ?? regionData?.regionColor
+                    );
                     const isRegionHovered = hoveredRegionIndex === i;
                     const isSwatchMatchHighlighted = showMatchPaletteSwatches && hoveredSwatchIndex === paletteIdxForRegion;
                     const isBoundaryHighlighted = HIGHLIGHT_REGION_ON_ROLLOVER && (isRegionHovered || isSwatchMatchHighlighted);
                     const showBoundary = showRegionBoundaries || isBoundaryHighlighted;
+                    const matchSwatchHex =
+                      showMatchPaletteSwatches && isBoundaryHighlighted
+                        ? resolveMatchSwatchStrokeHex(regionData, palette)
+                        : null;
+                    const boundaryInteriorFill =
+                      matchSwatchHex != null
+                        ? 'transparent'
+                        : isBoundaryHighlighted
+                          ? REGION_HIGHLIGHT_FILL
+                          : 'transparent';
+                    const strokeColor =
+                      showBoundary && isBoundaryHighlighted
+                        ? matchSwatchHex ?? REGION_HIGHLIGHT_STROKE_COLOR
+                        : showBoundary
+                          ? REGION_BOUNDARY_STROKE_COLOR
+                          : 'transparent';
+                    const strokeWidth =
+                      showBoundary && isBoundaryHighlighted
+                        ? matchSwatchHex != null
+                          ? MATCH_SWATCH_OUTLINE_STROKE_WIDTH
+                          : REGION_HIGHLIGHT_STROKE_WIDTH
+                        : showBoundary
+                          ? REGION_BOUNDARY_STROKE_WIDTH
+                          : 0;
                     return (
                       <path
                         key={`region-${i}`}
                         className="region-boundary"
                         data-region-index={i}
                         d={d}
-                        fill={isBoundaryHighlighted ? REGION_HIGHLIGHT_FILL : 'transparent'}
-                        stroke={showBoundary ? (isBoundaryHighlighted ? REGION_HIGHLIGHT_STROKE_COLOR : REGION_BOUNDARY_STROKE_COLOR) : 'transparent'}
-                        strokeWidth={showBoundary ? (isBoundaryHighlighted ? REGION_HIGHLIGHT_STROKE_WIDTH : REGION_BOUNDARY_STROKE_WIDTH) : 0}
+                        fill={boundaryInteriorFill}
+                        stroke={strokeColor}
+                        strokeWidth={strokeWidth}
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
                         style={{ cursor: isDeleteRegionMode ? CURSOR_DELETE_X : 'default' }}
                         onMouseEnter={() => {
                           setHoveredRegionIndex(i);
@@ -587,9 +640,7 @@ const ImageViewer = forwardRef(function ImageViewer({
                     const labelOffset = r + (overlayScale > 0 ? 8 / overlayScale : 8);
                     const regionColor = regionData.regionColor ?? regionData.hex;
                     const paletteColor = regionData.hex;
-                    const paletteIdx = palette.findIndex(
-                      (c) => String(c).toLowerCase() === String(paletteColor).toLowerCase()
-                    );
+                    const paletteIdx = paletteIndexForHex(palette, regionData.hex ?? regionData.regionColor);
                     const regionLabel = regionLabels[i] ?? String(i).padStart(2, '0');
                     const isRegionHovered = hoveredRegionIndex === i;
                     const isSwatchMatchHighlighted = showMatchPaletteSwatches && hoveredSwatchIndex === paletteIdx;

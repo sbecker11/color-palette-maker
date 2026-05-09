@@ -106,6 +106,27 @@ function App() {
     }
   }, []);
 
+  const syncViewerPrefsFromMeta = useCallback((meta) => {
+    if (!meta) return;
+    setShowRegionBoundaries(meta.showRegionBoundaries !== false);
+    setShowMatchPaletteSwatches(Boolean(meta.showMatchPaletteSwatches));
+    const adding = Boolean(meta.addingSwatches);
+    setIsSamplingMode(adding);
+    if (adding) document.body.classList.add('sampling-active');
+    else document.body.classList.remove('sampling-active');
+    dispatchRegions({ type: 'SET_DELETE_MODE', payload: Boolean(meta.deletingRegionsMode) });
+  }, []);
+
+  const persistCatalogPatch = useCallback((filename, patch) => {
+    if (!filename || !patch || typeof patch !== 'object') return;
+    api.saveMetadata(filename, patch).then((result) => {
+      if (result.success) {
+        setSelectedMeta((prev) => (prev && getFilenameFromMeta(prev) === filename ? { ...prev, ...patch } : prev));
+        setImages((prev) => prev.map((m) => (getFilenameFromMeta(m) === filename ? { ...m, ...patch } : m)));
+      }
+    }).catch(() => {});
+  }, []);
+
   const loadImages = useCallback(async (opts = {}) => {
     const { selectFirst = true } = opts;
     setIsLoading(true);
@@ -122,6 +143,7 @@ function App() {
             setSelectedImageUrl(getImageUrlForMeta(first));
             setPaletteName(first.paletteName || getFilenameWithoutExt(filename));
             dispatchRegions({ type: 'SET_REGIONS', payload: Array.isArray(first.regions) ? first.regions : [] });
+            syncViewerPrefsFromMeta(first);
             if (needsPaletteGeneration(first)) {
               setPaletteGenerating(true);
               api
@@ -151,7 +173,7 @@ function App() {
     } finally {
       setIsLoading(false);
     }
-  }, [showMessage]);
+  }, [showMessage, syncViewerPrefsFromMeta]);
 
   useEffect(() => {
     loadImages();
@@ -178,21 +200,22 @@ function App() {
           setSelectedMeta(first);
           setSelectedImageUrl(`/palette-images/${encodeURIComponent(fn)}`);
           setPaletteName(first.paletteName || getFilenameWithoutExt(fn));
+          dispatchRegions({ type: 'SET_REGIONS', payload: Array.isArray(first.regions) ? first.regions : [] });
+          syncViewerPrefsFromMeta(first);
         }
       }
     }
-  }, [images, selectedMeta]);
+  }, [images, selectedMeta, syncViewerPrefsFromMeta]);
 
   const handleSelectImage = useCallback((meta, imageUrl, opts = {}) => {
     const { skipPaletteGeneration = false } = opts;
     imageViewerRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
-    setIsSamplingMode(false);
     setCurrentSampledColor(null);
-    dispatchRegions({ type: 'SET_DELETE_MODE', payload: false });
     setSelectedMeta(meta);
     setSelectedImageUrl(imageUrl);
     setPaletteName(meta.paletteName || getFilenameWithoutExt(getFilenameFromMeta(meta) || ''));
     dispatchRegions({ type: 'SET_REGIONS', payload: Array.isArray(meta.regions) ? meta.regions : [] });
+    syncViewerPrefsFromMeta(meta);
 
     if (skipPaletteGeneration || !needsPaletteGeneration(meta)) {
       setPaletteGenerating(false);
@@ -217,7 +240,7 @@ function App() {
         setPaletteGenerating(false);
       }
     }
-  }, []);
+  }, [syncViewerPrefsFromMeta]);
 
   const handleUpload = useCallback(
     async (formData) => {
@@ -402,42 +425,50 @@ function App() {
       showMessage('Select an image first.', true);
       return;
     }
+    const fn = getFilenameFromMeta(selectedMeta);
     if (isSamplingMode) {
       setIsSamplingMode(false);
       setCurrentSampledColor(null);
       document.body.classList.remove('sampling-active');
+      if (fn) persistCatalogPatch(fn, { addingSwatches: false });
     } else {
       dispatchRegions({ type: 'SET_DELETE_MODE', payload: false });
       setIsSamplingMode(true);
       setCurrentSampledColor(null);
       document.body.classList.add('sampling-active');
+      if (fn) persistCatalogPatch(fn, { addingSwatches: true });
     }
-  }, [selectedMeta, isSamplingMode, showMessage]);
+  }, [selectedMeta, isSamplingMode, showMessage, persistCatalogPatch]);
 
   const handleAddingSwatchesModeChange = useCallback((checked) => {
     if (checked && !selectedMeta) {
       showMessage('Select an image first.', true);
       return;
     }
+    const fn = selectedMeta ? getFilenameFromMeta(selectedMeta) : null;
     if (checked) {
       dispatchRegions({ type: 'SET_DELETE_MODE', payload: false });
       setIsSamplingMode(true);
       setCurrentSampledColor(null);
       document.body.classList.add('sampling-active');
+      if (fn) persistCatalogPatch(fn, { addingSwatches: true });
     } else {
       setIsSamplingMode(false);
       setCurrentSampledColor(null);
       document.body.classList.remove('sampling-active');
+      if (fn) persistCatalogPatch(fn, { addingSwatches: false });
     }
-  }, [selectedMeta, showMessage]);
+  }, [selectedMeta, showMessage, persistCatalogPatch]);
 
   const handleExitAddingSwatchesMode = useCallback(() => {
     if (isSamplingMode) {
       setIsSamplingMode(false);
       setCurrentSampledColor(null);
       document.body.classList.remove('sampling-active');
+      const fn = selectedMeta ? getFilenameFromMeta(selectedMeta) : null;
+      if (fn) persistCatalogPatch(fn, { addingSwatches: false });
     }
-  }, [isSamplingMode]);
+  }, [isSamplingMode, selectedMeta, persistCatalogPatch]);
 
   useEffect(() => {
     return () => document.body.classList.remove('sampling-active');
@@ -644,6 +675,7 @@ function App() {
           )
         );
         dispatchRegions({ type: 'SET_DELETE_MODE', payload: true });
+        persistCatalogPatch(filename, { deletingRegionsMode: true });
         if (showMatchPaletteSwatches) setPairingsNeeded(true);
         showMessage(`Detected ${newRegions.length} region(s). Saved. Click to remove unwanted; click outside to exit.`);
       } else {
@@ -654,7 +686,7 @@ function App() {
     } finally {
       dispatchRegions({ type: 'SET_DETECTING', payload: false });
     }
-  }, [selectedMeta, showMessage, showMatchPaletteSwatches, templateMatchBox]);
+  }, [selectedMeta, showMessage, showMatchPaletteSwatches, templateMatchBox, persistCatalogPatch]);
 
   const handleTemplateBoxDrawn = useCallback(
     (box) => {
@@ -673,18 +705,20 @@ function App() {
     const emptyRegions = [];
     const emptyPaletteRegions = [];
     dispatchRegions({ type: 'SET_REGIONS', payload: emptyRegions });
-    setSelectedMeta((prev) => (prev ? { ...applyRegionsToMeta(prev, emptyRegions), paletteRegion: emptyPaletteRegions } : prev));
+    setSelectedMeta((prev) =>
+      prev ? { ...applyRegionsToMeta(prev, emptyRegions), paletteRegion: emptyPaletteRegions, deletingRegionsMode: false } : prev
+    );
     setImages((prev) =>
       prev.map((m) =>
         getFilenameFromMeta(m) === filename
-          ? { ...m, ...applyRegionsToMeta(m, emptyRegions), paletteRegion: emptyPaletteRegions }
+          ? { ...m, ...applyRegionsToMeta(m, emptyRegions), paletteRegion: emptyPaletteRegions, deletingRegionsMode: false }
           : m
       )
     );
     dispatchRegions({ type: 'SET_DELETE_MODE', payload: false });
     if (showMatchPaletteSwatches) setPairingsNeeded(true);
     try {
-      await api.saveMetadata(filename, { regions: emptyRegions, regionLabels: [] });
+      await api.saveMetadata(filename, { regions: emptyRegions, regionLabels: [], deletingRegionsMode: false });
       showMessage('Regions cleared.');
     } catch {
       showMessage('Failed to save.', true);
@@ -701,16 +735,31 @@ function App() {
     const updatedLabels = computeRegionLabels(updated);
     dispatchRegions({ type: 'REMOVE_REGION', payload: index });
     if (updated.length === 0) dispatchRegions({ type: 'SET_DELETE_MODE', payload: false });
-    setSelectedMeta((prev) => (prev ? { ...applyRegionsToMeta(prev, updated), paletteRegion: updatedPaletteRegions } : prev));
+    setSelectedMeta((prev) =>
+      prev
+        ? {
+            ...applyRegionsToMeta(prev, updated),
+            paletteRegion: updatedPaletteRegions,
+            ...(updated.length === 0 ? { deletingRegionsMode: false } : {}),
+          }
+        : prev
+    );
     setImages((prev) =>
       prev.map((m) =>
         getFilenameFromMeta(m) === filename
-          ? { ...m, ...applyRegionsToMeta(m, updated), paletteRegion: updatedPaletteRegions }
+          ? {
+              ...m,
+              ...applyRegionsToMeta(m, updated),
+              paletteRegion: updatedPaletteRegions,
+              ...(updated.length === 0 ? { deletingRegionsMode: false } : {}),
+            }
           : m
       )
     );
     if (showMatchPaletteSwatches) setPairingsNeeded(true);
-    api.saveMetadata(filename, { regions: updated, regionLabels: updatedLabels }).catch(() => {
+    const metaPayload = { regions: updated, regionLabels: updatedLabels };
+    if (updated.length === 0) metaPayload.deletingRegionsMode = false;
+    api.saveMetadata(filename, metaPayload).catch(() => {
       showMessage('Failed to save region change.', true);
     });
   }, [selectedMeta, regions, showMessage, showMatchPaletteSwatches]);
@@ -720,24 +769,34 @@ function App() {
       setIsSamplingMode(false);
       setCurrentSampledColor(null);
       document.body.classList.remove('sampling-active');
+      const fn = selectedMeta ? getFilenameFromMeta(selectedMeta) : null;
+      if (fn) persistCatalogPatch(fn, { addingSwatches: false });
     }
     dispatchRegions({ type: 'SET_DELETE_MODE', payload: true });
+    const fn = selectedMeta ? getFilenameFromMeta(selectedMeta) : null;
+    if (fn) persistCatalogPatch(fn, { deletingRegionsMode: true });
     showMessage('Click a region to remove it; click outside the image to exit.');
-  }, [showMessage, isSamplingMode]);
+  }, [showMessage, isSamplingMode, selectedMeta, persistCatalogPatch]);
 
   const handleExitDeleteRegionMode = useCallback(() => {
     dispatchRegions({ type: 'SET_DELETE_MODE', payload: false });
-  }, []);
+    const fn = selectedMeta ? getFilenameFromMeta(selectedMeta) : null;
+    if (fn) persistCatalogPatch(fn, { deletingRegionsMode: false });
+  }, [selectedMeta, persistCatalogPatch]);
 
   const handleDeleteRegionModeChange = useCallback((checked) => {
     if (checked && isSamplingMode) {
       setIsSamplingMode(false);
       setCurrentSampledColor(null);
       document.body.classList.remove('sampling-active');
+      const fn = selectedMeta ? getFilenameFromMeta(selectedMeta) : null;
+      if (fn) persistCatalogPatch(fn, { addingSwatches: false });
     }
     dispatchRegions({ type: 'SET_DELETE_MODE', payload: checked });
+    const fn = selectedMeta ? getFilenameFromMeta(selectedMeta) : null;
+    if (fn) persistCatalogPatch(fn, { deletingRegionsMode: checked });
     if (checked) showMessage('Click a region to remove it; click outside the image to exit.');
-  }, [showMessage, isSamplingMode]);
+  }, [showMessage, isSamplingMode, selectedMeta, persistCatalogPatch]);
 
   const palettePanelRef = useRef(null);
   const imageViewerRef = useRef(null);
@@ -816,9 +875,16 @@ function App() {
           onShowMatchPaletteSwatchesChange={(checked) => {
             setShowMatchPaletteSwatches(checked);
             if (checked) setPairingsNeeded(true);
+            const fn = selectedMeta ? getFilenameFromMeta(selectedMeta) : null;
+            if (fn) persistCatalogPatch(fn, { showMatchPaletteSwatches: checked });
           }}
           showRegionBoundaries={showRegionBoundaries}
-          onShowRegionBoundariesChange={setShowRegionBoundaries}
+          onShowRegionBoundariesChange={(checked) => {
+            setShowRegionBoundaries(checked);
+            const fn = selectedMeta ? getFilenameFromMeta(selectedMeta) : null;
+            if (fn) persistCatalogPatch(fn, { showRegionBoundaries: checked });
+          }}
+          onPersistRegionDetectionUi={(patch, filename) => persistCatalogPatch(filename, patch)}
           hoveredSwatchIndex={hoveredSwatchIndex}
           onSwatchHover={setHoveredSwatchIndex}
         />

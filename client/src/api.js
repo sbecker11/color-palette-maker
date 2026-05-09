@@ -143,14 +143,20 @@ const api = {
   },
 
   async saveMetadata(filename, opts = {}) {
-    const { paletteName, regions, regionLabels, backgroundSwatchIndex } = typeof opts === 'string' ? { paletteName: opts } : opts;
+    const o = typeof opts === 'string' ? { paletteName: opts } : opts;
     const body = {};
-    if (paletteName !== undefined) body.paletteName = paletteName;
-    if (regions !== undefined) body.regions = regions;
-    if (regionLabels !== undefined && Array.isArray(regionLabels) && regionLabels.length === (regions?.length ?? 0)) {
-      body.regionLabels = regionLabels;
+    if (o.paletteName !== undefined) body.paletteName = o.paletteName;
+    if (o.regions !== undefined) body.regions = o.regions;
+    if (o.regionLabels !== undefined && Array.isArray(o.regionLabels) && o.regionLabels.length === (o.regions?.length ?? 0)) {
+      body.regionLabels = o.regionLabels;
     }
-    if (backgroundSwatchIndex !== undefined) body.backgroundSwatchIndex = backgroundSwatchIndex;
+    if (o.backgroundSwatchIndex !== undefined) body.backgroundSwatchIndex = o.backgroundSwatchIndex;
+    if (o.showRegionBoundaries !== undefined) body.showRegionBoundaries = o.showRegionBoundaries;
+    if (o.showMatchPaletteSwatches !== undefined) body.showMatchPaletteSwatches = o.showMatchPaletteSwatches;
+    if (o.addingSwatches !== undefined) body.addingSwatches = o.addingSwatches;
+    if (o.deletingRegionsMode !== undefined) body.deletingRegionsMode = o.deletingRegionsMode;
+    if (o.regionStrategy !== undefined) body.regionStrategy = o.regionStrategy;
+    if (o.regionParams !== undefined) body.regionParams = o.regionParams;
     if (Object.keys(body).length === 0) return { success: false, message: 'Nothing to save.' };
     const response = await fetch(`/api/metadata/${encodeURIComponent(filename)}`, {
       method: 'PUT',

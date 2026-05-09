@@ -47,7 +47,14 @@ function setLastPaletteAction(value) {
   }
 }
 
-function RegionDetectionForm({ selectedMeta, onDetectRegions, regionsDetecting, onRegionStrategyChange, templateDrawPhase }) {
+function RegionDetectionForm({
+  selectedMeta,
+  onDetectRegions,
+  regionsDetecting,
+  onRegionStrategyChange,
+  templateDrawPhase,
+  onPersistRegionDetectionUi,
+}) {
   const s = selectedMeta?.regionStrategy;
   const p = selectedMeta?.regionParams;
   const initialStrategy = s && VALID_STRATEGIES.includes(s) ? s : 'default';
@@ -55,6 +62,27 @@ function RegionDetectionForm({ selectedMeta, onDetectRegions, regionsDetecting, 
   const [regionStrategy, setRegionStrategy] = useState(initialStrategy);
   const [regionParams, setRegionParams] = useState(initialParams);
   const hasStrategyParams = STRATEGIES_WITH_PARAMS.includes(regionStrategy);
+  const metaFilename = selectedMeta ? getFilenameFromMeta(selectedMeta) : null;
+  const skipPersistAfterMetaChangeRef = useRef(true);
+
+  useEffect(() => {
+    skipPersistAfterMetaChangeRef.current = true;
+  }, [metaFilename]);
+
+  useEffect(() => {
+    if (!metaFilename || !onPersistRegionDetectionUi) return;
+    if (skipPersistAfterMetaChangeRef.current) {
+      skipPersistAfterMetaChangeRef.current = false;
+      return;
+    }
+    const t = setTimeout(() => {
+      onPersistRegionDetectionUi(
+        { regionStrategy, regionParams: { ...regionParams } },
+        metaFilename
+      );
+    }, 450);
+    return () => clearTimeout(t);
+  }, [regionStrategy, regionParams, metaFilename, onPersistRegionDetectionUi]);
 
   // Sync App's regionStrategy when form's initial strategy comes from selectedMeta (e.g. Template already selected)
   useEffect(() => {
@@ -449,6 +477,7 @@ function RegionDetectionAndActions({
   onClearAllSwatches,
   onEnterDeleteRegionMode,
   onDeleteRegions,
+  onPersistRegionDetectionUi,
 }) {
   return (
     <div className="palette-panel-subsection region-detection-panel">
@@ -468,6 +497,7 @@ function RegionDetectionAndActions({
         onRegionStrategyChange={onRegionStrategyChange}
         regionsDetecting={regionsDetecting}
         templateDrawPhase={templateDrawPhase}
+        onPersistRegionDetectionUi={onPersistRegionDetectionUi}
       />
       <div id="paletteActionsRow">
         <select
@@ -554,6 +584,7 @@ function PaletteDisplay({
   hoveredSwatchIndex = null,
   onSwatchHover,
   palettePanelRef,
+  onPersistRegionDetectionUi,
 }) {
   const [actionSelect, setActionSelect] = useState(() =>
     getLastPaletteAction() === ACTION_DETECT_REGIONS ? ACTION_DETECT_REGIONS : ''
@@ -906,6 +937,7 @@ function PaletteDisplay({
         onClearAllSwatches={onClearAllSwatches}
         onEnterDeleteRegionMode={onEnterDeleteRegionMode}
         onDeleteRegions={onDeleteRegions}
+        onPersistRegionDetectionUi={onPersistRegionDetectionUi}
       />
       <MetadataDisplay meta={selectedMeta} />
       {bizCardSwatchIndex != null && palette?.[bizCardSwatchIndex] && (
