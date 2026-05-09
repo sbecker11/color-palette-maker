@@ -71,6 +71,46 @@ describe('s3-storage', () => {
 
     });
 
+    describe('getObjectKeyFromPublicUrl', () => {
+        it('returns null when bucket not configured', async () => {
+            delete process.env.S3_IMAGES_BUCKET;
+            vi.resetModules();
+            const mod = await loadS3Storage();
+            expect(
+                mod.getObjectKeyFromPublicUrl('https://test-bucket.s3.us-east-1.amazonaws.com/images/x.jpg')
+            ).toBeNull();
+        });
+
+        it('parses virtual-hosted-style URL', () => {
+            expect(
+                s3Storage.getObjectKeyFromPublicUrl(
+                    'https://test-bucket.s3.us-east-1.amazonaws.com/images/img-1.jpeg'
+                )
+            ).toBe('images/img-1.jpeg');
+        });
+
+        it('parses dualstack hostname', () => {
+            expect(
+                s3Storage.getObjectKeyFromPublicUrl(
+                    'https://test-bucket.s3.dualstack.us-west-1.amazonaws.com/foo/bar.jpg'
+                )
+            ).toBe('foo/bar.jpg');
+        });
+
+        it('returns null for wrong bucket hostname', () => {
+            expect(
+                s3Storage.getObjectKeyFromPublicUrl('https://other-bucket.s3.us-east-1.amazonaws.com/images/x.jpg')
+            ).toBeNull();
+        });
+
+        it('parses S3_PUBLIC_URL_BASE hostname', async () => {
+            process.env.S3_PUBLIC_URL_BASE = 'https://cdn.example.com';
+            vi.resetModules();
+            const mod = await loadS3Storage();
+            expect(mod.getObjectKeyFromPublicUrl('https://cdn.example.com/images/a.jpeg')).toBe('images/a.jpeg');
+        });
+    });
+
     describe('publicUrlForKey', () => {
         it('returns S3 virtual-hosted URL when S3_PUBLIC_URL_BASE not set', async () => {
             const url = await s3Storage.publicUrlForKey('images/img-123.jpeg');

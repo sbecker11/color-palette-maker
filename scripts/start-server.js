@@ -10,6 +10,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const port = parseInt(process.env.EXPRESS_PORT, 10) || 3000;
 
 const projectRoot = path.join(__dirname, '..');
+console.log(`[start-server] Clearing anything bound to port ${port} before startup (expected if you restarted).`);
 spawnSync('npx', ['kill-port', String(port)], { cwd: projectRoot, stdio: 'inherit', shell: true });
 spawn('node', ['scripts/run-with-venv.js', 'node', 'server.js'], {
   cwd: projectRoot,

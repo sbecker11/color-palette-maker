@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 const express = require('express');
 const path = require('path');
 const { spawn } = require('child_process');
@@ -166,10 +166,30 @@ app.get('/api/image-proxy', async (req, res) => {
     if (targetUrl.protocol !== 'https:') {
         return res.status(400).json({ success: false, message: 'Only https URLs are allowed.' });
     }
-    const bucket = process.env.S3_IMAGES_BUCKET;
-    if (bucket && !targetUrl.hostname.includes(bucket)) {
+    const configuredBucket = process.env.S3_IMAGES_BUCKET;
+    const s3Key = s3Storage.getObjectKeyFromPublicUrl(targetUrl);
+    if (configuredBucket && !s3Key) {
         return res.status(403).json({ success: false, message: 'URL must point to configured S3 bucket.' });
     }
+
+    if ((await s3Storage.isS3Enabled()) && s3Key) {
+        try {
+            const obj = await s3Storage.getObjectBufferByKey(s3Key);
+            if (obj) {
+                const contentType = obj.contentType || 'image/jpeg';
+                if (!contentType.startsWith('image/')) {
+                    return res.status(415).json({ success: false, message: 'Upstream is not an image.' });
+                }
+                res.setHeader('Content-Type', contentType);
+                res.setHeader('Cache-Control', 'public, max-age=86400');
+                return res.send(obj.buffer);
+            }
+        } catch (err) {
+            console.error('[API image-proxy] S3 GetObject error:', err.message);
+            return res.status(502).json({ success: false, message: 'Failed to fetch image.' });
+        }
+    }
+
     try {
         const response = await axios({
             method: 'get',

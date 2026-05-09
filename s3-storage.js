@@ -67,6 +67,51 @@ function objectKeyForFilename(filename) {
     return prefix ? `${prefix}/${filename}` : filename;
 }
 
+/**
+ * If the HTTPS URL points at an object in the configured bucket (virtual-hosted S3 or S3_PUBLIC_URL_BASE), return the S3 object key; otherwise null.
+ * Used by GET /api/image-proxy to serve private buckets via IAM when anonymous GET returns 403.
+ *
+ * @param {string|URL} inputUrl
+ * @returns {string|null}
+ */
+function getObjectKeyFromPublicUrl(inputUrl) {
+    const bucket = getBucket();
+    if (!bucket) return null;
+    let url;
+    try {
+        url = inputUrl instanceof URL ? inputUrl : new URL(inputUrl);
+    } catch {
+        return null;
+    }
+    if (url.protocol !== 'https:') return null;
+
+    const keyFromPathname = () => {
+        const raw = url.pathname.replace(/^\/+/, '');
+        if (!raw) return null;
+        return raw.split('/').map((seg) => decodeURIComponent(seg)).join('/');
+    };
+
+    const base = (process.env.S3_PUBLIC_URL_BASE || '').trim().replace(/\/+$/, '');
+    if (base) {
+        try {
+            const bu = new URL(base);
+            if (url.hostname === bu.hostname && url.port === bu.port) {
+                return keyFromPathname();
+            }
+        } catch {
+            /* ignore invalid base */
+        }
+    }
+
+    const escaped = bucket.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const virtualHosted = new RegExp(`^${escaped}\\.s3(\\.dualstack)?\\.[^.]+\\.amazonaws\\.com$`, 'i');
+    if (virtualHosted.test(url.hostname)) {
+        return keyFromPathname();
+    }
+
+    return null;
+}
+
 /** Object key for palette metadata JSONL (same bucket as images; keep private — no anon GetObject). */
 function palettesJsonlObjectKey() {
     const k = (process.env.S3_PALETTES_JSONL_KEY || 'metadata/color_palettes.jsonl').replace(/^\/+/, '');
@@ -353,6 +398,7 @@ async function verifyPublicPalettesCatalogUrl() {
 module.exports = {
     getRegion,
     isS3Enabled,
+    getObjectKeyFromPublicUrl,
     objectKeyForFilename,
     palettesJsonlObjectKey,
     publicUrlForKey,
