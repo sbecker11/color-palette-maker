@@ -99,7 +99,17 @@ function App() {
   useEffect(() => {
     const handlePageHide = (event) => {
       if (event.persisted === false) {
-        navigator.sendBeacon('/api/log-cleanup', JSON.stringify({ status: 'closed' }));
+        const sent = navigator.sendBeacon('/api/log-cleanup', JSON.stringify({ status: 'closed' }));
+        if (!sent) {
+          // sendBeacon can refuse to queue (e.g. unsupported, or over its payload/queue limits).
+          // fetch with keepalive is the standard fallback for firing a request during unload.
+          fetch('/api/log-cleanup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({ status: 'closed' }),
+            keepalive: true,
+          }).catch(() => {});
+        }
       }
     };
     window.addEventListener('pagehide', handlePageHide);
