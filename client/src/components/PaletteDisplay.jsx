@@ -770,41 +770,6 @@ function PaletteDisplay({
             </>
           )}
         </div>
-        {hasPalette && (
-          <div className="palette-saturation-row">
-            <label htmlFor="paletteSaturationSlider" className="palette-saturation-label">
-              Saturation: <span className="palette-saturation-value">{saturation.toFixed(2)}</span>
-            </label>
-            <input
-              id="paletteSaturationSlider"
-              type="range"
-              min="0"
-              max="3"
-              step="0.01"
-              value={saturation}
-              onChange={(e) => setSaturation(parseFloat(e.target.value))}
-              aria-label="Palette saturation multiplier"
-            />
-            <button
-              type="button"
-              className="palette-saturation-reset-btn"
-              onClick={handleResetSaturation}
-              disabled={saturation === 1}
-              title="Reset saturation to 1.0"
-            >
-              Reset
-            </button>
-            <button
-              type="button"
-              className="palette-saturation-apply-btn"
-              onClick={handleApplySaturation}
-              disabled={saturation === 1}
-              title="Save the boosted/suppressed swatch colors"
-            >
-              Apply
-            </button>
-          </div>
-        )}
         {isGenerating && (
           <span className="placeholder">Generating palette...</span>
         )}
@@ -931,6 +896,43 @@ function PaletteDisplay({
             {isSamplingMode && currentSampledColor ? formatHexDisplay(currentSampledColor) : '\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0'}
           </span>
         </div>
+        {hasPalette && (
+          <div className="palette-saturation-row">
+            <label htmlFor="paletteSaturationSlider" className="palette-saturation-label">
+              Saturation: <span className="palette-saturation-value">{saturation.toFixed(2)}</span>
+            </label>
+            <input
+              id="paletteSaturationSlider"
+              type="range"
+              min="0"
+              max="3"
+              step="0.01"
+              value={saturation}
+              onChange={(e) => setSaturation(parseFloat(e.target.value))}
+              aria-label="Palette saturation multiplier"
+            />
+            <div className="palette-saturation-actions">
+              <button
+                type="button"
+                className="palette-saturation-reset-btn"
+                onClick={handleResetSaturation}
+                disabled={saturation === 1}
+                title="Reset saturation to 1.0"
+              >
+                Reset
+              </button>
+              <button
+                type="button"
+                className="palette-saturation-apply-btn"
+                onClick={handleApplySaturation}
+                disabled={saturation === 1}
+                title="Save the boosted/suppressed swatch colors"
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        )}
       </div>
       <RegionDetectionAndActions
         key={getFilenameFromMeta(selectedMeta) ?? 'none'}

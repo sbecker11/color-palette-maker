@@ -729,7 +729,7 @@ button.theme-toggle-btn {
   gap: calc(var(--gap) * 0.6);
   width: 100%;
   justify-content: flex-start;
-  margin-bottom: 0.4em;
+  margin-top: 0.4em;
 }
 .palette-saturation-label {
   font-size: 0.85em;
@@ -743,6 +743,12 @@ button.theme-toggle-btn {
 .palette-saturation-row input[type="range"] {
   flex: 1 1 120px;
   max-width: 220px;
+}
+.palette-saturation-actions {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--gap) * 0.4);
+  margin-left: auto;
 }
 .palette-saturation-reset-btn,
 .palette-saturation-apply-btn {
