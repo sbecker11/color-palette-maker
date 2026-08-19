@@ -627,7 +627,6 @@ app.put('/api/metadata/:filename', express.json(), async (req, res) => {
         regionStrategy,
         regionParams,
     } = req.body;
-    console.log(`[API PUT /metadata] Request received for ${filename}`);
 
     if (!validateFilename(filename)) {
         return res.status(400).json({ success: false, message: 'Invalid filename.' });
@@ -689,6 +688,7 @@ app.put('/api/metadata/:filename', express.json(), async (req, res) => {
         return res.status(404).json({ success: false, message: 'Image metadata not found.' });
     }
     const { allMetadata, idx: imageIndex } = metaResult;
+    const originalEntrySnapshot = JSON.stringify(allMetadata[imageIndex]);
     if (paletteName !== undefined) {
         allMetadata[imageIndex].paletteName = paletteName.trim();
     }
@@ -742,6 +742,12 @@ app.put('/api/metadata/:filename', express.json(), async (req, res) => {
         }
     }
 
+    if (JSON.stringify(allMetadata[imageIndex]) === originalEntrySnapshot) {
+        // Nothing actually changed (e.g. redundant save of already-current values) - skip the write and stay quiet.
+        return res.json({ success: true, message: 'No changes to save.' });
+    }
+
+    console.log(`[API PUT /metadata] Request received for ${filename}`);
     try {
         await metadataHandler.rewriteMetadata(allMetadata);
         console.log(`[API PUT /metadata] Successfully saved updated metadata for ${filename}.`);

@@ -61,12 +61,11 @@ async function readMetadata(overridePath) {
     const targetFile = overridePath ?? metadataFile;
     const useS3 = !overridePath && (await s3Storage.isS3Enabled());
 
-    console.log('[Metadata] Reading metadata...');
-
     if (useS3) {
         if (metadataCache.value && metadataCache.expiresAt > Date.now()) {
             return metadataCache.value;
         }
+        console.log('[Metadata] Reading metadata...');
         const s3Text = await s3Storage.readPalettesJsonl();
         const metadataArray = parseMetadataContent(s3Text || '');
         setMetadataCache(metadataArray);
@@ -75,6 +74,7 @@ async function readMetadata(overridePath) {
     }
 
     try {
+        console.log('[Metadata] Reading metadata...');
         return await readFromLocal(targetFile);
     } catch (error) {
         if (error.code === 'ENOENT') {
