@@ -13,6 +13,17 @@ let metadataCache = {
     value: null,
 };
 
+// Tracks the last metadata content actually logged as "read", so repeated cache-miss reads of
+// unchanged data (e.g. frequent polling) don't spam stdout with identical lines.
+let lastLoggedMetadataSignature = null;
+
+function logMetadataReadIfChanged(source, metadataArray) {
+    const signature = JSON.stringify(metadataArray);
+    if (signature === lastLoggedMetadataSignature) return;
+    lastLoggedMetadataSignature = signature;
+    console.log(`[Metadata] Read ${metadataArray.length} records from ${source}.`);
+}
+
 function parseMetadataContent(data) {
     const s = typeof data === 'string' ? data : '';
     if (!s.trim()) return [];
@@ -32,7 +43,7 @@ function serializeMetadataArray(metadataArray) {
 async function readFromLocal(targetFile) {
     const data = await fs.readFile(targetFile, 'utf8');
     const metadataArray = parseMetadataContent(data);
-    console.log(`[Metadata] Read ${metadataArray.length} records from local file.`);
+    logMetadataReadIfChanged('local file', metadataArray);
     return metadataArray;
 }
 
@@ -65,16 +76,14 @@ async function readMetadata(overridePath) {
         if (metadataCache.value && metadataCache.expiresAt > Date.now()) {
             return metadataCache.value;
         }
-        console.log('[Metadata] Reading metadata...');
         const s3Text = await s3Storage.readPalettesJsonl();
         const metadataArray = parseMetadataContent(s3Text || '');
         setMetadataCache(metadataArray);
-        console.log(`[Metadata] Read ${metadataArray.length} records from S3.`);
+        logMetadataReadIfChanged('S3', metadataArray);
         return metadataArray;
     }
 
     try {
-        console.log('[Metadata] Reading metadata...');
         return await readFromLocal(targetFile);
     } catch (error) {
         if (error.code === 'ENOENT') {
