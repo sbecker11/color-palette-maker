@@ -122,6 +122,21 @@ app.get('/api/readme', async (req, res) => {
     }
 });
 
+/**
+ * Returns the command line of a process (via `ps`), or '' if it can't be determined
+ * (e.g. `ps` unavailable, such as on Windows). Used to confirm a PID is one of our own
+ * wrapper scripts before signaling it, never an arbitrary parent shell/terminal.
+ */
+function getProcessCommand(pid) {
+    if (!pid) return '';
+    try {
+        const result = spawnSync('ps', ['-p', String(pid), '-o', 'command='], { encoding: 'utf8' });
+        return (result.stdout || '').trim();
+    } catch {
+        return '';
+    }
+}
+
 // POST /api/log-cleanup - Beacon sent by the client on tab/window close (pagehide, not persisted to
 // back/forward cache). When AUTO_SHUTDOWN_ON_CLIENT_CLOSE=true (opt-in; intended for local single-user
 // dev use only - never enable on a shared/production deployment), stops the Vite dev server and this
@@ -142,7 +157,25 @@ app.post('/api/log-cleanup', express.text({ type: '*/*' }), (req, res) => {
     setTimeout(() => {
         const viteDevPort = parseInt(process.env.VITE_DEV_PORT, 10) || 5173;
         console.log(`[Shutdown] Client window closed. Stopping Vite dev server (port ${viteDevPort}) and this server.`);
+        // Killing the Vite port kills the vite process; its own npm/wrapper scripts (wait-and-dev-client.js)
+        // already exit in turn when that child exits, so no extra step is needed on that side.
         spawnSync('npx', ['kill-port', String(viteDevPort)], { cwd: __dirname, stdio: 'inherit', shell: true });
+
+        // Under `npm run dev`, this process is a child of nodemon, which does NOT exit when its
+        // watched child exits cleanly (it just idles, waiting for a file change). Signal nodemon
+        // itself (our direct parent) so the whole dev process tree actually exits, not just this
+        // server. Only do this when the parent is verifiably one of our own wrapper scripts
+        // (nodemon, or run-with-venv.js in the non-nodemon/production path) - never an arbitrary
+        // parent shell/terminal.
+        const parentCommand = getProcessCommand(process.ppid);
+        if (/nodemon|run-with-venv\.js/.test(parentCommand)) {
+            try {
+                process.kill(process.ppid, 'SIGTERM');
+            } catch (err) {
+                console.warn('[Shutdown] Could not signal parent process:', err.message);
+            }
+        }
+
         process.exit(0);
     }, 100);
 });
