@@ -6,6 +6,9 @@ import {
   getHighContrastMono,
   hexToRgb,
   rgbToHex,
+  rgbToHsv,
+  hsvToRgb,
+  applySaturationToHex,
 } from '../../utils/color_utils.js';
 
 describe('utils/color_utils.js', () => {
@@ -100,6 +103,64 @@ describe('utils/color_utils.js', () => {
       const a = hexToRgb(dark);
       const b = hexToRgb(h);
       expect(b.r + b.g + b.b).toBeGreaterThan(a.r + a.g + a.b);
+    });
+  });
+
+  describe('rgbToHsv / hsvToRgb', () => {
+    it('converts primary colors to expected hue/saturation/value', () => {
+      expect(rgbToHsv(255, 0, 0)).toEqual({ h: 0, s: 1, v: 1 });
+      const green = rgbToHsv(0, 255, 0);
+      expect(green.h).toBeCloseTo(120);
+      expect(green.s).toBeCloseTo(1);
+      expect(green.v).toBeCloseTo(1);
+      const blue = rgbToHsv(0, 0, 255);
+      expect(blue.h).toBeCloseTo(240);
+    });
+
+    it('gives s=0 for grays and v=0 for black', () => {
+      expect(rgbToHsv(128, 128, 128).s).toBe(0);
+      expect(rgbToHsv(0, 0, 0)).toEqual({ h: 0, s: 0, v: 0 });
+    });
+
+    it('round-trips rgb -> hsv -> rgb', () => {
+      const cases = [
+        [255, 0, 0], [0, 255, 0], [0, 0, 255],
+        [12, 200, 100], [128, 128, 128], [255, 255, 255], [0, 0, 0],
+      ];
+      for (const [r, g, b] of cases) {
+        const { h, s, v } = rgbToHsv(r, g, b);
+        const back = hsvToRgb(h, s, v);
+        expect(back.r).toBeCloseTo(r, 0);
+        expect(back.g).toBeCloseTo(g, 0);
+        expect(back.b).toBeCloseTo(b, 0);
+      }
+    });
+  });
+
+  describe('applySaturationToHex', () => {
+    it('leaves color unchanged with multiplier 1.0', () => {
+      expect(applySaturationToHex('#3366cc', 1.0)).toBe('#3366cc');
+    });
+
+    it('desaturates toward gray with multiplier 0.0', () => {
+      const out = applySaturationToHex('#ff0000', 0.0);
+      const rgb = hexToRgb(out);
+      expect(rgb.r).toBe(rgb.g);
+      expect(rgb.g).toBe(rgb.b);
+    });
+
+    it('boosts saturation and clamps at multiplier > 1', () => {
+      // A partially-saturated color boosted heavily should clamp to full saturation (same hue/value).
+      const base = '#a06060'; // moderately saturated red-ish
+      const boosted = applySaturationToHex(base, 3.0);
+      const baseHsv = rgbToHsv(...Object.values(hexToRgb(base)));
+      const boostedHsv = rgbToHsv(...Object.values(hexToRgb(boosted)));
+      expect(boostedHsv.s).toBeCloseTo(1, 1);
+      expect(boostedHsv.h).toBeCloseTo(baseHsv.h, 0);
+    });
+
+    it('returns input unchanged for invalid hex', () => {
+      expect(applySaturationToHex('not-a-color', 2)).toBe('not-a-color');
     });
   });
 

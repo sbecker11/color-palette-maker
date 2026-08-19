@@ -420,6 +420,34 @@ function App() {
     }
   }, [selectedMeta, showMessage, showMatchPaletteSwatches]);
 
+  const handleApplySaturation = useCallback(async (newPalette) => {
+    if (!selectedMeta) return;
+    const filename = getFilenameFromMeta(selectedMeta);
+    if (!filename || !Array.isArray(newPalette) || newPalette.length === 0) return;
+    const currentLabels = selectedMeta.swatchLabels;
+    const labels = Array.isArray(currentLabels) && currentLabels.length === newPalette.length
+      ? currentLabels
+      : computeSwatchLabels(newPalette);
+    const updatedMeta = { ...applyPaletteToMeta(selectedMeta, newPalette), swatchLabels: labels };
+    setSelectedMeta(updatedMeta);
+    setImages((prev) =>
+      applyPaletteToImages(prev, filename, newPalette).map((m) =>
+        getFilenameFromMeta(m) === filename ? { ...m, swatchLabels: labels } : m
+      )
+    );
+    try {
+      const result = await api.savePalette(filename, newPalette, labels);
+      if (result.success) {
+        showMessage('Saturation applied and saved.');
+        if (showMatchPaletteSwatches) setPairingsNeeded(true);
+      } else {
+        showMessage(result.message || 'Error saving palette.', true);
+      }
+    } catch {
+      showMessage('Network error saving palette update.', true);
+    }
+  }, [selectedMeta, showMessage, showMatchPaletteSwatches]);
+
   const handleToggleSamplingMode = useCallback(() => {
     if (!selectedMeta) {
       showMessage('Select an image first.', true);
@@ -887,6 +915,7 @@ function App() {
           onPersistRegionDetectionUi={(patch, filename) => persistCatalogPatch(filename, patch)}
           hoveredSwatchIndex={hoveredSwatchIndex}
           onSwatchHover={setHoveredSwatchIndex}
+          onApplySaturation={handleApplySaturation}
         />
         <ImageViewer
           ref={imageViewerRef}

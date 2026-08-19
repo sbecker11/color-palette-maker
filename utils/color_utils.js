@@ -66,6 +66,59 @@ export function getContrastIconSet(hex, options = {}) {
   };
 }
 
+// --- RGB (0–255) ↔ HSV (h in [0,360), s,v in [0,1]) ---
+export function rgbToHsv(r, g, b) {
+  const rn = r / 255;
+  const gn = g / 255;
+  const bn = b / 255;
+  const max = Math.max(rn, gn, bn);
+  const min = Math.min(rn, gn, bn);
+  const delta = max - min;
+  let h = 0;
+  if (delta !== 0) {
+    if (max === rn) h = 60 * (((gn - bn) / delta) % 6);
+    else if (max === gn) h = 60 * ((bn - rn) / delta + 2);
+    else h = 60 * ((rn - gn) / delta + 4);
+  }
+  if (h < 0) h += 360;
+  const s = max === 0 ? 0 : delta / max;
+  const v = max;
+  return { h, s, v };
+}
+
+export function hsvToRgb(h, s, v) {
+  const c = v * s;
+  const hh = (((h % 360) + 360) % 360) / 60;
+  const x = c * (1 - Math.abs((hh % 2) - 1));
+  let r1 = 0, g1 = 0, b1 = 0;
+  if (hh < 1) [r1, g1, b1] = [c, x, 0];
+  else if (hh < 2) [r1, g1, b1] = [x, c, 0];
+  else if (hh < 3) [r1, g1, b1] = [0, c, x];
+  else if (hh < 4) [r1, g1, b1] = [0, x, c];
+  else if (hh < 5) [r1, g1, b1] = [x, 0, c];
+  else [r1, g1, b1] = [c, 0, x];
+  const m = v - c;
+  const clamp255 = (n) => Math.round(Math.min(255, Math.max(0, n * 255)));
+  return {
+    r: clamp255(r1 + m),
+    g: clamp255(g1 + m),
+    b: clamp255(b1 + m),
+  };
+}
+
+/**
+ * Multiplies a hex color's HSV saturation by `saturationMultiplier` (S' = S * multiplier,
+ * clamped to [0,1]); hue and value are unchanged. Returns the input unchanged if invalid.
+ */
+export function applySaturationToHex(hex, saturationMultiplier) {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return hex;
+  const { h, s, v } = rgbToHsv(rgb.r, rgb.g, rgb.b);
+  const s2 = Math.min(1, Math.max(0, s * saturationMultiplier));
+  const out = hsvToRgb(h, s2, v);
+  return rgbToHex(out.r, out.g, out.b);
+}
+
 // --- sRGB ↔ linear (0–1) ---
 function srgbToLinear(c) {
   return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);

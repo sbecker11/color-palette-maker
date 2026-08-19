@@ -10,6 +10,7 @@ import {
   getHighContrastMono as _getHighContrastMono,
   hexToRgb as _hexToRgb,
   rgbToHex,
+  applySaturationToHex,
 } from '../../utils/color_utils.js';
 
 // --- App-specific (non-color) ---
@@ -51,7 +52,7 @@ export function formatFileSize(bytes) {
 // --- Color: re-exports from utils with app config ---
 export const formatHexDisplay = _formatHexDisplay;
 export const hexToRgb = _hexToRgb;
-export { rgbToHex };
+export { rgbToHex, applySaturationToHex };
 
 export function getHighContrastMono(hex) {
   return _getHighContrastMono(hex);

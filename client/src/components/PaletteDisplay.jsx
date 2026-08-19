@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { formatHexDisplay, getFilenameFromMeta } from '../utils';
+import { formatHexDisplay, getFilenameFromMeta, applySaturationToHex } from '../utils';
 import MetadataDisplay from './MetadataDisplay';
 import BizCardModal from './BizCardModal';
 import { VALID_STRATEGIES, REGION_STRATEGIES, STRATEGIES_WITH_PARAMS } from '../../../utils/regionStrategies.js';
@@ -585,20 +585,44 @@ function PaletteDisplay({
   onSwatchHover,
   palettePanelRef,
   onPersistRegionDetectionUi,
+  onApplySaturation,
 }) {
   const [actionSelect, setActionSelect] = useState(() =>
     getLastPaletteAction() === ACTION_DETECT_REGIONS ? ACTION_DETECT_REGIONS : ''
   );
   const [bizCardSwatchIndex, setBizCardSwatchIndex] = useState(null);
   const [selectingBackgroundSwatch, setSelectingBackgroundSwatch] = useState(false);
+  const [saturation, setSaturation] = useState(1.0);
   const paletteNameInputRef = useRef(null);
   const hasPalette = palette && Array.isArray(palette) && palette.length > 0;
   const showPlaceholder = !isGenerating && !hasPalette;
   const len = palette?.length ?? 0;
+  const metaFilename = selectedMeta ? getFilenameFromMeta(selectedMeta) : null;
   const isBackgroundIndex = (idx) => {
     if (backgroundSwatchIndex === null) return false;
     const effective = (backgroundSwatchIndex === undefined || typeof backgroundSwatchIndex !== 'number' || backgroundSwatchIndex < 0 || backgroundSwatchIndex >= len) ? 0 : backgroundSwatchIndex;
     return effective === idx;
+  };
+
+  // Reset the saturation preview whenever the selected image (and thus palette) changes.
+  // (Adjusting state during render on prop change, per React docs, instead of an effect.)
+  const [prevMetaFilename, setPrevMetaFilename] = useState(metaFilename);
+  if (metaFilename !== prevMetaFilename) {
+    setPrevMetaFilename(metaFilename);
+    setSaturation(1.0);
+  }
+
+  // Live preview: boost/suppress S in HSV from the last-saved swatch colors (not compounded across drags).
+  const previewPalette = hasPalette && saturation !== 1
+    ? palette.map((hex) => applySaturationToHex(hex, saturation))
+    : palette;
+
+  const handleResetSaturation = () => setSaturation(1.0);
+  const handleApplySaturation = () => {
+    if (!hasPalette || saturation === 1) return;
+    const boosted = palette.map((hex) => applySaturationToHex(hex, saturation));
+    onApplySaturation?.(boosted);
+    setSaturation(1.0);
   };
 
   return (
@@ -654,6 +678,7 @@ function PaletteDisplay({
                     : backgroundSwatchIndex;
                 if (effectiveBg < 0) return null;
                 const hexColor = palette[effectiveBg];
+                const displayHex = previewPalette[effectiveBg] ?? hexColor;
                 const label = swatchLabels[effectiveBg] ?? String.fromCharCode(65 + (effectiveBg % 26));
                 const handleSwatchClick = (e) => {
                   e.stopPropagation();
@@ -671,18 +696,18 @@ function PaletteDisplay({
                   >
                     <div
                       className="palette-swatch-wrapper"
-                      style={{ '--swatch-color': hexColor, colorScheme: 'light' }}
+                      style={{ '--swatch-color': displayHex, colorScheme: 'light' }}
                     >
                       <div
                         className={`palette-swatch palette-swatch-filled ${hoveredSwatchIndex === effectiveBg ? 'highlighted' : ''}`}
                         style={{
-                          backgroundColor: hexColor,
-                          boxShadow: `inset 0 0 0 50px ${hexColor}`,
+                          backgroundColor: displayHex,
+                          boxShadow: `inset 0 0 0 50px ${displayHex}`,
                         }}
                         title={
                           selectingBackgroundSwatch
                             ? 'Set as background swatch'
-                            : `${hexColor} — Click to view biz card`
+                            : `${displayHex} — Click to view biz card`
                         }
                         role="button"
                         tabIndex={0}
@@ -711,7 +736,7 @@ function PaletteDisplay({
                         </button>
                       )}
                     </div>
-                    <span className="palette-label">{formatHexDisplay(hexColor)}</span>
+                    <span className="palette-label">{formatHexDisplay(displayHex)}</span>
                     <button
                       type="button"
                       className="swatch-delete-btn"
@@ -745,12 +770,48 @@ function PaletteDisplay({
             </>
           )}
         </div>
+        {hasPalette && (
+          <div className="palette-saturation-row">
+            <label htmlFor="paletteSaturationSlider" className="palette-saturation-label">
+              Saturation: <span className="palette-saturation-value">{saturation.toFixed(2)}</span>
+            </label>
+            <input
+              id="paletteSaturationSlider"
+              type="range"
+              min="0"
+              max="3"
+              step="0.01"
+              value={saturation}
+              onChange={(e) => setSaturation(parseFloat(e.target.value))}
+              aria-label="Palette saturation multiplier"
+            />
+            <button
+              type="button"
+              className="palette-saturation-reset-btn"
+              onClick={handleResetSaturation}
+              disabled={saturation === 1}
+              title="Reset saturation to 1.0"
+            >
+              Reset
+            </button>
+            <button
+              type="button"
+              className="palette-saturation-apply-btn"
+              onClick={handleApplySaturation}
+              disabled={saturation === 1}
+              title="Save the boosted/suppressed swatch colors"
+            >
+              Apply
+            </button>
+          </div>
+        )}
         {isGenerating && (
           <span className="placeholder">Generating palette...</span>
         )}
         {!isGenerating && hasPalette && palette.map((hexColor, idx) => {
           const isBg = isBackgroundIndex(idx);
           if (isBg) return null;
+          const displayHex = previewPalette[idx] ?? hexColor;
           const label = swatchLabels[idx] ?? String.fromCharCode(65 + (idx % 26));
           const handleSwatchClick = (e) => {
             e.stopPropagation();
@@ -769,18 +830,18 @@ function PaletteDisplay({
             >
               <div
                 className="palette-swatch-wrapper"
-                style={{ '--swatch-color': hexColor, colorScheme: 'light' }}
+                style={{ '--swatch-color': displayHex, colorScheme: 'light' }}
               >
                 <div
                   className={`palette-swatch palette-swatch-filled ${hoveredSwatchIndex === idx ? 'highlighted' : ''}`}
                   style={{
-                    backgroundColor: hexColor,
-                    boxShadow: `inset 0 0 0 50px ${hexColor}`,
+                    backgroundColor: displayHex,
+                    boxShadow: `inset 0 0 0 50px ${displayHex}`,
                   }}
                   title={
                     selectingBackgroundSwatch
                       ? `Set as background swatch`
-                      : `${hexColor} — Click to view biz card`
+                      : `${displayHex} — Click to view biz card`
                   }
                   role="button"
                   tabIndex={0}
@@ -814,7 +875,7 @@ function PaletteDisplay({
                   </button>
                 )}
               </div>
-              <span className="palette-label">{formatHexDisplay(hexColor)}</span>
+              <span className="palette-label">{formatHexDisplay(displayHex)}</span>
               <button
                 type="button"
                 className="swatch-delete-btn"
