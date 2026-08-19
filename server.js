@@ -1,7 +1,7 @@
 require('dotenv').config({ quiet: true });
 const express = require('express');
 const path = require('path');
-const { spawn } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 const axios = require('axios');
 const fs = require('fs');
 const fsp = require('fs').promises;
@@ -120,6 +120,31 @@ app.get('/api/readme', async (req, res) => {
         console.error('[API GET /readme] Error:', error);
         res.status(500).json({ success: false, message: 'Failed to load README.' });
     }
+});
+
+// POST /api/log-cleanup - Beacon sent by the client on tab/window close (pagehide, not persisted to
+// back/forward cache). When AUTO_SHUTDOWN_ON_CLIENT_CLOSE=true (opt-in; intended for local single-user
+// dev use only - never enable on a shared/production deployment), stops the Vite dev server and this
+// server together so closing the browser window fully tears down `npm run dev`.
+app.post('/api/log-cleanup', express.text({ type: '*/*' }), (req, res) => {
+    let payload = {};
+    try {
+        payload = JSON.parse(req.body || '{}');
+    } catch {
+        // Beacon payload wasn't valid JSON; ignore and proceed with shutdown regardless.
+    }
+    console.log('[API POST /log-cleanup] Client reported closed:', payload);
+    res.status(204).end();
+
+    if (process.env.AUTO_SHUTDOWN_ON_CLIENT_CLOSE !== 'true') return;
+
+    // Let the response flush before tearing anything down.
+    setTimeout(() => {
+        const viteDevPort = parseInt(process.env.VITE_DEV_PORT, 10) || 5173;
+        console.log(`[Shutdown] Client window closed. Stopping Vite dev server (port ${viteDevPort}) and this server.`);
+        spawnSync('npx', ['kill-port', String(viteDevPort)], { cwd: __dirname, stdio: 'inherit', shell: true });
+        process.exit(0);
+    }, 100);
 });
 
 // GET /api/images - List images from metadata

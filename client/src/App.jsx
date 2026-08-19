@@ -94,6 +94,18 @@ function App() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+  // Notify the server when this tab/window is actually closing (not just cached for back/forward
+  // navigation), so a local dev server can optionally shut itself (and the Vite dev client) down.
+  useEffect(() => {
+    const handlePageHide = (event) => {
+      if (event.persisted === false) {
+        navigator.sendBeacon('/api/log-cleanup', JSON.stringify({ status: 'closed' }));
+      }
+    };
+    window.addEventListener('pagehide', handlePageHide);
+    return () => window.removeEventListener('pagehide', handlePageHide);
+  }, []);
+
   // Clear swatch highlight when match palette swatches is turned off
   useEffect(() => {
     if (!showMatchPaletteSwatches) setHoveredSwatchIndex(null);
