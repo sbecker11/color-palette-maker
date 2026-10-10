@@ -2,6 +2,14 @@
  * API helpers for Color Palette Maker
  */
 
+import {
+  DEMO_MODE,
+  DEMO_PALETTES_URL,
+  DEMO_README_URL,
+  DEMO_UNAVAILABLE_MESSAGE,
+  parseJsonl,
+} from './demoMode.js';
+
 async function handleResponse(response) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -10,7 +18,46 @@ async function handleResponse(response) {
   return data;
 }
 
-const api = {
+const unavailable = async () => ({ success: false, message: DEMO_UNAVAILABLE_MESSAGE });
+
+async function fetchDemoJsonl() {
+  const response = await fetch(DEMO_PALETTES_URL, { cache: 'no-store' });
+  if (!response.ok) return { success: false, message: `HTTP ${response.status}` };
+  return { success: true, body: await response.text() };
+}
+
+const demoApi = {
+  async getReadme() {
+    const response = await fetch(DEMO_README_URL);
+    if (!response.ok) return { success: false, message: `HTTP ${response.status}` };
+    return { success: true, readme: await response.text() };
+  },
+  async getConfig() {
+    return { about: false, palettesJsonlPublicUrl: DEMO_PALETTES_URL };
+  },
+  async getImages() {
+    const result = await fetchDemoJsonl();
+    if (!result.success) return result;
+    return { success: true, images: parseJsonl(result.body) };
+  },
+  getColorPalettesJsonl: fetchDemoJsonl,
+  // Edits stay in the browser for this visit; there is nowhere to persist them.
+  async savePalette() {
+    return { success: true };
+  },
+  async saveMetadata() {
+    return { success: true };
+  },
+  upload: unavailable,
+  generatePalette: unavailable,
+  detectRegions: unavailable,
+  refreshPairings: unavailable,
+  deleteImage: unavailable,
+  duplicateImage: unavailable,
+  reorderImages: unavailable,
+};
+
+const serverApi = {
   async getReadme() {
     const response = await fetch('/api/readme');
     return handleResponse(response);
@@ -189,5 +236,7 @@ const api = {
     return handleResponse(response);
   },
 };
+
+const api = DEMO_MODE ? demoApi : serverApi;
 
 export default api;

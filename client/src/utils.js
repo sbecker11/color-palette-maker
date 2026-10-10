@@ -12,6 +12,7 @@ import {
   rgbToHex,
   applySaturationToHex,
 } from '../../utils/color_utils.js';
+import { DEMO_MODE } from './demoMode.js';
 
 // --- App-specific (non-color) ---
 export function getFilenameFromMeta(meta) {
@@ -22,6 +23,7 @@ export function getFilenameFromMeta(meta) {
 /** Image URL for <img src>: proxied S3 URL when imagePublicUrl present (avoids CORS), else same-origin /palette-images/... */
 export function getImageUrlForMeta(meta) {
   if (meta?.imagePublicUrl && typeof meta.imagePublicUrl === 'string') {
+    if (DEMO_MODE) return meta.imagePublicUrl;
     return `/api/image-proxy?url=${encodeURIComponent(meta.imagePublicUrl)}`;
   }
   const fn = getFilenameFromMeta(meta) || 'unknown';
@@ -59,7 +61,7 @@ export function getHighContrastMono(hex) {
 }
 
 const HIGHLIGHT_PERCENT = Number(import.meta.env.VITE_SWATCH_HIGHLIGHT_PERCENTAGE) || 135;
-const ICON_BASE = '/static_content/icons/anchors';
+const ICON_BASE = `${import.meta.env.BASE_URL}static_content/icons/anchors`;
 
 export function getHighlightColor(hex) {
   return _getHighlightColor(hex, { highlightPercent: HIGHLIGHT_PERCENT });

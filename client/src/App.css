@@ -1330,3 +1330,25 @@ body.sampling-active #imageViewer img {
 .readme-preview code {
   font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Monaco, "Courier New", monospace;
 }
+
+.demo-notice {
+  margin-bottom: var(--gap);
+  padding: 10px 12px;
+  border: 1px solid var(--message-success-border);
+  border-radius: 6px;
+  background: var(--message-success-bg);
+  color: var(--message-success-text);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.demo-notice a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.demo-notice__message {
+  margin: 8px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--message-success-border);
+}

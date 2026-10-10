@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useReducer, useRef } from 'react';
 import api from './api';
+import { DEMO_MODE, DEMO_REPO_URL } from './demoMode';
 import { getFilenameFromMeta, getFilenameWithoutExt, getImageUrlForMeta, isSelectedImage } from './utils';
 import {
   needsPaletteGeneration,
@@ -97,6 +98,7 @@ function App() {
   // Notify the server when this tab/window is actually closing (not just cached for back/forward
   // navigation), so a local dev server can optionally shut itself (and the Vite dev client) down.
   useEffect(() => {
+    if (DEMO_MODE) return undefined;
     const handlePageHide = (event) => {
       if (event.persisted === false) {
         const sent = navigator.sendBeacon('/api/log-cleanup', JSON.stringify({ status: 'closed' }));
@@ -871,7 +873,16 @@ function App() {
       />
       <main>
         <div id="leftPanel">
-          <UploadForm onSubmit={handleUpload} message={message} />
+          {DEMO_MODE ? (
+            <div className="demo-notice" role="note">
+              <strong>Read-only demo.</strong> Browse the saved palettes and try edits in your browser;
+              nothing is saved. Uploads, palette extraction, and region detection need the server:{' '}
+              <a href={DEMO_REPO_URL} target="_blank" rel="noopener noreferrer">clone the repo</a> to run the full app.
+              {message?.text && <p className="demo-notice__message">{message.text}</p>}
+            </div>
+          ) : (
+            <UploadForm onSubmit={handleUpload} message={message} />
+          )}
           <ImageLibrary
             images={images}
             selectedMeta={selectedMeta}
