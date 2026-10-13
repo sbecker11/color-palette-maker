@@ -1,8 +1,8 @@
 # Color Palette Maker
 
-<a href="https://sbecker11.github.io/color-palette-maker/" target="_blank" rel="noopener noreferrer"><img src="docs/gold-2.gif" alt="Gold palette demo (click to open the live demo)" width="400" /></a>
-
 <!-- SUMMARY:START generated from workspace-linkedin-profile/Projects.json by scripts/build_readme_header.py; edit there -->
+<a href="https://sbecker11.github.io/color-palette-maker/" target="_blank" rel="noopener noreferrer"><img src="docs/gold-2.gif" alt="Gold palette demo"></a>
+
 React app generating color palettes via K-means clustering with CIEDE2000 color distance.
 
 **RunMe:** [https://sbecker11.github.io/color-palette-maker/](https://sbecker11.github.io/color-palette-maker/)
