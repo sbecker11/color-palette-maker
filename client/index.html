@@ -7,6 +7,17 @@
     <title>Color Palette Maker</title>
   </head>
   <body style="background:#0A0A0A">
+    <script>
+      (function () {
+        try {
+          var demo = location.hostname.endsWith('github.io');
+          var key = demo ? 'demo-theme' : 'theme';
+          var stored = localStorage.getItem(key);
+          var theme = stored === 'light' || stored === 'dark' ? stored : (demo ? 'dark' : 'light');
+          document.body.dataset.theme = theme;
+        } catch (e) {}
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

@@ -42,7 +42,12 @@ function regionsReducer(state, action) {
 }
 
 function App() {
-  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
+  const themeKey = DEMO_MODE ? 'demo-theme' : 'theme';
+  const [theme, setTheme] = useState(() => {
+    const stored = localStorage.getItem(themeKey);
+    if (stored === 'light' || stored === 'dark') return stored;
+    return DEMO_MODE ? 'dark' : 'light';
+  });
   const [images, setImages] = useState([]);
   const [selectedMeta, setSelectedMeta] = useState(null);
   const [selectedImageUrl, setSelectedImageUrl] = useState('');
@@ -92,8 +97,8 @@ function App() {
   // Apply theme to document
   useEffect(() => {
     document.body.dataset.theme = theme;
-    localStorage.setItem('theme', theme);
-  }, [theme]);
+    localStorage.setItem(themeKey, theme);
+  }, [theme, themeKey]);
 
   // Notify the server when this tab/window is actually closing (not just cached for back/forward
   // navigation), so a local dev server can optionally shut itself (and the Vite dev client) down.
