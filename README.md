@@ -1,5 +1,9 @@
 # Color Palette Maker
 
+<a href="https://github.com/sbecker11/color-palette-maker-react/releases/download/v1.0.0/gold-blue-2.gif">
+  <img src="docs/gold-2.gif" alt="Gold palette demo" width="400" />
+</a>
+
 <!-- SUMMARY:START generated from workspace-linkedin-profile/Projects.json by scripts/build_readme_header.py; edit there -->
 React app generating color palettes via K-means clustering with CIEDE2000 color distance.
 
@@ -7,10 +11,6 @@ React app generating color palettes via K-means clustering with CIEDE2000 color 
 
 **Skills:** React · TypeScript · JavaScript · Vite · Node.js · Express.js · Python (Programming Language) · OpenCV · NumPy · K-means Clustering · CIEDE2000 Color Distance · Computer Vision · Algorithms · REST APIs · Amazon S3 · Vitest · GitHub Pages · Automated Software Testing (JUnit/Jest/Vitest/PyTest)
 <!-- SUMMARY:END -->
-
-<a href="https://github.com/sbecker11/color-palette-maker-react/releases/download/v1.0.0/gold-blue-2.gif">
-  <img src="docs/gold-2.gif" alt="Gold palette demo" width="400" />
-</a>
 
 A React + Node.js app for extracting and managing color palettes from images.
 Upload via URL or file, extract dominant colors with K-means clustering,
